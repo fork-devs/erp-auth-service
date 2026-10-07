@@ -1,0 +1,98 @@
+package com.erp.auth.application.service;
+
+import com.erp.auth.application.dto.command.ForgotPasswordCommand;
+import com.erp.auth.application.dto.command.ResetPasswordCommand;
+import com.erp.auth.application.usecase.PasswordResetUseCase;
+import com.erp.auth.domain.exception.InvalidTokenException;
+import com.erp.auth.domain.exception.TokenExpiredException;
+import com.erp.auth.domain.exception.UserNotFoundException;
+import com.erp.auth.domain.model.PasswordResetToken;
+import com.erp.auth.domain.model.User;
+import com.erp.auth.domain.port.PasswordEncoderPort;
+import com.erp.auth.domain.port.PasswordResetTokenRepositoryPort;
+import com.erp.auth.domain.port.RefreshTokenRepositoryPort;
+import com.erp.auth.domain.port.TokenSignerPort;
+import com.erp.auth.domain.port.UserRepositoryPort;
+import com.erp.auth.domain.valueobject.Email;
+import com.erp.auth.domain.valueobject.PasswordHash;
+
+import java.time.Instant;
+import java.util.Optional;
+
+public class PasswordResetService implements PasswordResetUseCase {
+
+    private final UserRepositoryPort userRepositoryPort;
+    private final PasswordResetTokenRepositoryPort passwordResetTokenRepositoryPort;
+    private final RefreshTokenRepositoryPort refreshTokenRepositoryPort;
+    private final PasswordEncoderPort passwordEncoderPort;
+    private final TokenSignerPort tokenSignerPort;
+
+    public PasswordResetService(
+            UserRepositoryPort userRepositoryPort,
+            PasswordResetTokenRepositoryPort passwordResetTokenRepositoryPort,
+            RefreshTokenRepositoryPort refreshTokenRepositoryPort,
+            PasswordEncoderPort passwordEncoderPort,
+            TokenSignerPort tokenSignerPort) {
+        this.userRepositoryPort = userRepositoryPort;
+        this.passwordResetTokenRepositoryPort = passwordResetTokenRepositoryPort;
+        this.refreshTokenRepositoryPort = refreshTokenRepositoryPort;
+        this.passwordEncoderPort = passwordEncoderPort;
+        this.tokenSignerPort = tokenSignerPort;
+    }
+
+    @Override
+    public String requestPasswordReset(ForgotPasswordCommand command) {
+        if (command.email() == null || command.email().trim().isEmpty()) {
+            throw new IllegalArgumentException("El correo electrónico es obligatorio");
+        }
+
+        Email email = Email.of(command.email());
+        Optional<User> userOpt = userRepositoryPort.findByEmail(email);
+
+        if (userOpt.isEmpty()) {
+            // Silencioso para prevenir enumeración de usuarios
+            return null;
+        }
+
+        User user = userOpt.get();
+        passwordResetTokenRepositoryPort.invalidateAllByUserId(user.getId());
+
+        String rawToken = tokenSignerPort.generateRandomTokenString();
+        String tokenHash = tokenSignerPort.hashToken(rawToken);
+        Instant expiresAt = Instant.now().plus(tokenSignerPort.getPasswordResetTokenDuration());
+
+        PasswordResetToken resetToken = PasswordResetToken.create(user.getId(), tokenHash, expiresAt);
+        passwordResetTokenRepositoryPort.save(resetToken);
+
+        return rawToken;
+    }
+
+    @Override
+    public void resetPassword(ResetPasswordCommand command) {
+        if (command.token() == null || command.newPassword() == null) {
+            throw new IllegalArgumentException("Token y nueva contraseña son obligatorios");
+        }
+
+        String tokenHash = tokenSignerPort.hashToken(command.token().trim());
+        PasswordResetToken resetToken = passwordResetTokenRepositoryPort.findByTokenHash(tokenHash)
+                .orElseThrow(() -> new InvalidTokenException("Token de restablecimiento inválido"));
+
+        if (!resetToken.isValid()) {
+            throw new TokenExpiredException();
+        }
+
+        resetToken.markAsUsed();
+        passwordResetTokenRepositoryPort.save(resetToken);
+
+        User user = userRepositoryPort.findById(resetToken.getUserId())
+                .orElseThrow(() -> new UserNotFoundException(resetToken.getUserId().toString()));
+
+        PasswordHash newPasswordHash = PasswordHash.of(passwordEncoderPort.encode(command.newPassword()));
+        user.changePassword(newPasswordHash);
+        user.recordSuccessfulLogin();
+        userRepositoryPort.save(user);
+
+        // Revocar todos los refresh tokens existentes por seguridad
+        refreshTokenRepositoryPort.revokeAllByUserId(user.getId());
+    }
+}

@@ -1,0 +1,15 @@
+services:
+  auth-postgres:
+    image: 'postgres:16-alpine'
+    container_name: erp-auth-postgres
+    environment:
+      - POSTGRES_DB=erp_auth_db
+      - POSTGRES_USER=auth_user
+      - POSTGRES_PASSWORD=auth_secret
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_auth_data:
