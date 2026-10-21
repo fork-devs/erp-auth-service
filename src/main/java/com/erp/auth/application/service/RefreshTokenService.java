@@ -13,6 +13,7 @@ import com.erp.auth.domain.model.RefreshToken;
 import com.erp.auth.domain.model.User;
 import com.erp.auth.domain.port.RefreshTokenRepositoryPort;
 import com.erp.auth.domain.port.TokenSignerPort;
+import com.erp.auth.domain.port.UnitOfWork;
 import com.erp.auth.domain.port.UserRepositoryPort;
 import com.erp.auth.domain.valueobject.TenantId;
 
@@ -27,14 +28,17 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
     private final RefreshTokenRepositoryPort refreshTokenRepositoryPort;
     private final UserRepositoryPort userRepositoryPort;
     private final TokenSignerPort tokenSignerPort;
+    private final UnitOfWork unitOfWork;
 
     public RefreshTokenService(
             RefreshTokenRepositoryPort refreshTokenRepositoryPort,
             UserRepositoryPort userRepositoryPort,
-            TokenSignerPort tokenSignerPort) {
+            TokenSignerPort tokenSignerPort,
+            UnitOfWork unitOfWork) {
         this.refreshTokenRepositoryPort = refreshTokenRepositoryPort;
         this.userRepositoryPort = userRepositoryPort;
         this.tokenSignerPort = tokenSignerPort;
+        this.unitOfWork = unitOfWork;
     }
 
     @Override
@@ -65,55 +69,63 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
             throw new TokenExpiredException();
         }
 
-        // Rotación estricta: revocar token anterior
-        token.revoke();
-        refreshTokenRepositoryPort.save(token);
+        // La rotacion se confirma como una sola operacion. Antes, revocar el
+        // token anterior y crear el nuevo eran dos escrituras en dos
+        // transacciones: si la segunda fallaba, el usuario se quedaba sin
+        // ningun token valido pese a haber iniciado sesion correctamente, y
+        // el token anterior, ya revocado, no servia para volver a entrar.
+        return unitOfWork.callInTransaction(() -> {
+            // Rotacion estricta: revocar token anterior
+            token.revoke();
+            refreshTokenRepositoryPort.save(token);
 
-        User user = userRepositoryPort.findByIdAndTenantId(token.getUserId(), new TenantId(token.getTenantId()))
-                .orElseThrow(() -> new UserNotFoundException(token.getUserId().toString()));
+            User user = userRepositoryPort.findByIdAndTenantId(token.getUserId(), new TenantId(token.getTenantId()))
+                    .orElseThrow(() -> new UserNotFoundException(token.getUserId().toString()));
 
-        if (user.isAccountLocked()) {
-            throw new AccountLockedException(user.getLockedUntil());
-        }
+            if (user.isAccountLocked()) {
+                throw new AccountLockedException(user.getLockedUntil());
+            }
 
-        // Generar nuevo Access Token y nuevo Refresh Token
-        String newAccessToken = tokenSignerPort.generateAccessToken(user);
-        String newRawRefreshToken = tokenSignerPort.generateRandomTokenString();
-        String newRefreshTokenHash = tokenSignerPort.hashToken(newRawRefreshToken);
-        Instant newRefreshTokenExpiry = Instant.now().plus(tokenSignerPort.getRefreshTokenDuration());
+            // Generar nuevo Access Token y nuevo Refresh Token
+            String newAccessToken = tokenSignerPort.generateAccessToken(user);
+            String newRawRefreshToken = tokenSignerPort.generateRandomTokenString();
+            String newRefreshTokenHash = tokenSignerPort.hashToken(newRawRefreshToken);
+            Instant newRefreshTokenExpiry = Instant.now().plus(tokenSignerPort.getRefreshTokenDuration());
 
-        RefreshToken newRefreshTokenEntity = RefreshToken.create(user.getId(), user.getTenantId().getValue(), newRefreshTokenHash, newRefreshTokenExpiry);
-        refreshTokenRepositoryPort.save(newRefreshTokenEntity);
+            RefreshToken newRefreshTokenEntity = RefreshToken.create(user.getId(), user.getTenantId().getValue(),
+                    newRefreshTokenHash, newRefreshTokenExpiry);
+            refreshTokenRepositoryPort.save(newRefreshTokenEntity);
 
-        Set<String> roleCodes = user.getRoles().stream()
-                .map(r -> r.getCode().name())
-                .collect(Collectors.toSet());
+            Set<String> roleCodes = user.getRoles().stream()
+                    .map(r -> r.getCode().name())
+                    .collect(Collectors.toSet());
 
-        return new AuthResult(
-                newAccessToken,
-                newRawRefreshToken,
-                "Bearer",
-                tokenSignerPort.getAccessTokenDuration().toSeconds(),
-                user.getId(),
-                user.getTenantId().getValue(),
-                user.getEmail().getValue(),
-                user.getFullName(),
-                roleCodes
-        );
+            return new AuthResult(
+                    newAccessToken,
+                    newRawRefreshToken,
+                    "Bearer",
+                    tokenSignerPort.getAccessTokenDuration().toSeconds(),
+                    user.getId(),
+                    user.getTenantId().getValue(),
+                    user.getEmail().getValue(),
+                    user.getFullName(),
+                    roleCodes
+            );
+        });
     }
 
     @Override
     public void revokeToken(String refreshToken) {
         if (refreshToken != null && !refreshToken.trim().isEmpty()) {
             String tokenHash = tokenSignerPort.hashToken(refreshToken.trim());
-            refreshTokenRepositoryPort.revokeByTokenHash(tokenHash);
+            unitOfWork.runInTransaction(() -> refreshTokenRepositoryPort.revokeByTokenHash(tokenHash));
         }
     }
 
     @Override
     public void revokeAllUserTokens(UUID userId) {
         if (userId != null) {
-            refreshTokenRepositoryPort.revokeAllByUserId(userId);
+            unitOfWork.runInTransaction(() -> refreshTokenRepositoryPort.revokeAllByUserId(userId));
         }
     }
 }

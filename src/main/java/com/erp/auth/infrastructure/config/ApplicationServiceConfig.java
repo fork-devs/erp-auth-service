@@ -43,11 +43,13 @@ public class ApplicationServiceConfig {
     public RefreshTokenService refreshTokenService(
             RefreshTokenRepositoryPort refreshTokenRepositoryPort,
             UserRepositoryPort userRepositoryPort,
-            TokenSignerPort tokenSignerPort) {
+            TokenSignerPort tokenSignerPort,
+            UnitOfWork unitOfWork) {
         return new RefreshTokenService(
                 refreshTokenRepositoryPort,
                 userRepositoryPort,
-                tokenSignerPort
+                tokenSignerPort,
+                unitOfWork
         );
     }
 
