@@ -4,6 +4,7 @@
 - **Fecha:** 2026-10-21
 - **Change:** `harden-access-control`
 - **Ámbito:** `erp-auth-service` y, por consecuencia, `erp-api-gateway` y `erp-integration-hub`
+- **Copia canónica:** `erp-auth-service/docs/adr/ADR-001-diferir-migracion-spring-authorization-server.md` (este repositorio; los demás guardan un espejo)
 
 ## Contexto
 
