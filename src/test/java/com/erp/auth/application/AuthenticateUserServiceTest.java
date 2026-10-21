@@ -30,6 +30,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -81,7 +82,8 @@ class AuthenticateUserServiceTest {
         when(userRepositoryPort.findByEmailAndTenantId(Email.of("admin@taller.pe"), tenantId)).thenReturn(Optional.of(sampleUser));
         when(passwordEncoderPort.matches(rawPassword, sampleUser.getPasswordHash().getValue())).thenReturn(true);
         when(tokenSignerPort.generateAccessToken(sampleUser)).thenReturn("eyJhbGciOiJSUzI1NiJ9.mockToken");
-        when(tokenSignerPort.generateRandomTokenString()).thenReturn("mockRefreshTokenRaw");
+        when(tokenSignerPort.generateRefreshToken(any(User.class))).thenReturn("mockRefreshTokenRaw");
+        when(tokenSignerPort.extractTokenId(anyString())).thenReturn("token-id-de-prueba");
         when(tokenSignerPort.hashToken("mockRefreshTokenRaw")).thenReturn("hashedRefreshToken");
         when(tokenSignerPort.getAccessTokenDuration()).thenReturn(Duration.ofMinutes(15));
         when(tokenSignerPort.getRefreshTokenDuration()).thenReturn(Duration.ofDays(7));

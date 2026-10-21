@@ -31,6 +31,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -79,7 +80,8 @@ class RefreshTokenServiceTest {
         when(refreshTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, tenantId.getValue())).thenReturn(Optional.of(activeToken));
         when(userRepositoryPort.findByIdAndTenantId(sampleUser.getId(), tenantId)).thenReturn(Optional.of(sampleUser));
         when(tokenSignerPort.generateAccessToken(sampleUser)).thenReturn("newSignedJwtToken");
-        when(tokenSignerPort.generateRandomTokenString()).thenReturn("newRawRefreshToken");
+        when(tokenSignerPort.generateRefreshToken(any(User.class))).thenReturn("newRawRefreshToken");
+        when(tokenSignerPort.extractTokenId(anyString())).thenReturn("token-id-de-prueba");
         when(tokenSignerPort.hashToken("newRawRefreshToken")).thenReturn("newHashedRefreshToken");
         when(tokenSignerPort.getAccessTokenDuration()).thenReturn(Duration.ofMinutes(15));
         when(tokenSignerPort.getRefreshTokenDuration()).thenReturn(Duration.ofDays(7));

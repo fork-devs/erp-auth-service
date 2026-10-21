@@ -100,7 +100,7 @@ class JwksControllerIntegrationTest {
                         TestKeyMaterial.privateKeyPem(), TestKeyMaterial.publicKeyPem(),
                         privadaAnterior, publicaAnterior);
         return new NimbusJwtTokenSignerAdapter(
-                manager, "https://auth.test.erp-automotriz.com", 15, 7, 30);
+                manager, "https://auth.test.erp-automotriz.com", "erp-api-gateway", 15, 7, 30);
     }
 
     private String claveVigente() {
