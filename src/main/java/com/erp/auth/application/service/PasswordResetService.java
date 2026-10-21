@@ -1,6 +1,7 @@
 package com.erp.auth.application.service;
 
 import com.erp.auth.application.dto.command.ForgotPasswordCommand;
+import com.erp.auth.application.logging.AuthEventLogger;
 import com.erp.auth.application.dto.command.ResetPasswordCommand;
 import com.erp.auth.application.usecase.PasswordResetUseCase;
 import com.erp.auth.domain.exception.InvalidTokenException;
@@ -21,6 +22,7 @@ import com.erp.auth.domain.valueobject.PasswordHash;
 import com.erp.auth.domain.valueobject.TenantId;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 
 public class PasswordResetService implements PasswordResetUseCase {
@@ -89,6 +91,8 @@ public class PasswordResetService implements PasswordResetUseCase {
             // El token se entrega al destinatario, no se devuelve. Es la
             // unica forma de que llegue a quien puede usarlo: devolverlo en
             // la respuesta de la API se lo entregaria a quien la pide.
+            AuthEventLogger.registrar("restablecimiento_solicitado", user.getTenantId().getValue(), user.getId(),
+                    null, "ok", Map.of());
             notificationPort.deliver(NotificationMessage.of(
                     user.getEmail().getValue(),
                     "Restablecimiento de contrasena",

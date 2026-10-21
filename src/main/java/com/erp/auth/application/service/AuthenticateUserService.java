@@ -4,6 +4,7 @@ import com.erp.auth.application.dto.command.LoginCommand;
 import com.erp.auth.application.dto.result.AuthResult;
 import com.erp.auth.application.usecase.AuthenticateUserUseCase;
 import com.erp.auth.domain.exception.AccountLockedException;
+import com.erp.auth.application.logging.AuthEventLogger;
 import com.erp.auth.domain.exception.InvalidCredentialsException;
 import com.erp.auth.domain.model.RefreshToken;
 import com.erp.auth.domain.model.User;
@@ -20,6 +21,7 @@ import com.erp.auth.domain.valueobject.TenantId;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.Set;
@@ -133,6 +135,8 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
             // inexistente es inmediata, y la de una existente cuesta el tiempo
             // del hash. La diferencia basta para enumerar las cuentas.
             passwordEncoderPort.matches(command.password(), HASH_SENUELO);
+            AuthEventLogger.registrar("login_fallido", command.tenantId(), null, null, "fallo",
+                    Map.of("motivo", "cuenta_inexistente"));
             throw new InvalidCredentialsException();
         }
 
@@ -166,8 +170,12 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
                     user.getId(), maxFailedAttempts, lockDuration));
 
             if (cuentaBloqueada(user.getId(), new TenantId(command.tenantId()))) {
+                AuthEventLogger.registrar("cuenta_bloqueada", command.tenantId(), user.getId(), null, "fallo",
+                        Map.of());
                 throw new AccountLockedException(user.getLockedUntil());
             }
+            AuthEventLogger.registrar("login_fallido", command.tenantId(), user.getId(), null, "fallo",
+                    Map.of("motivo", "credenciales_incorrectas"));
             throw new InvalidCredentialsException();
         }
 
@@ -191,6 +199,7 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
         // contador, el usuario veia su cuenta como desbloqueada y sus
         // intentos como zerados, sin haber recibido ningun token: el sistema
         // afirmaba un acceso que nunca llego a darle.
+        AuthEventLogger.registrar("login_correcto", command.tenantId(), user.getId(), null, "ok", Map.of());
         return unitOfWork.callInTransaction(() -> {
             // Login exitoso: restablecer intentos fallidos
             user.recordSuccessfulLogin();
