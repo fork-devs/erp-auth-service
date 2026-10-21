@@ -24,7 +24,15 @@ public class UserJpaEntity {
     @Column(name = "tenant_id", nullable = false)
     private UUID tenantId;
 
-    @Column(nullable = false, unique = true, length = 255)
+    /**
+     * El correo NO es unico de forma global: lo unico es el par (taller,
+     * correo). El indice compuesto lo impone la migracion V10.
+     *
+     * <p>Con la unicidad global, un taller no podia registrar a su propio
+     * empleado con el mismo correo que tiene en otro taller, y el conflicto
+     * de unicidad permitia enumerar las cuentas de otros talleres.
+     */
+    @Column(nullable = false, length = 255)
     private String email;
 
     @Column(name = "password_hash", nullable = false, length = 255)
