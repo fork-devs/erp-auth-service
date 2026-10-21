@@ -27,6 +27,9 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalRestExceptionHandler {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(GlobalRestExceptionHandler.class);
+
     /**
      * La cuenta bloqueada responde IGUAL que las credenciales invalidas.
      *
@@ -38,6 +41,9 @@ public class GlobalRestExceptionHandler {
      */
     @ExceptionHandler(AccountLockedException.class)
     public ResponseEntity<ProblemDetail> handleAccountLocked(AccountLockedException ex) {
+        // La excepcion se registra con su traza, y la respuesta al cliente
+        // no cambia: el diagnostico va al registro, no al consumidor.
+        log.warn("Cuenta bloqueada: {}", ex.getMessage(), ex);
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
         problem.setTitle("Credenciales Inválidas");
         problem.setType(URI.create("https://errors.erp-automotriz.com/auth/invalid-credentials"));
@@ -48,6 +54,7 @@ public class GlobalRestExceptionHandler {
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ProblemDetail> handleInvalidCredentials(InvalidCredentialsException ex) {
+        log.info("Credenciales invalidas: {}", ex.getMessage());
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
         problem.setTitle("Credenciales Inválidas");
         problem.setType(URI.create("https://errors.erp-automotriz.com/auth/invalid-credentials"));
@@ -149,6 +156,10 @@ public class GlobalRestExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGeneralException(Exception ex) {
+        // La traza va al registro. Antes se perdia: el cliente recibia un
+        // error generico y nadie podia saber que habia ocurrido, ni por que.
+        log.error("Error no controlado: {}", ex.getMessage(), ex);
+
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Ha ocurrido un error interno en el servidor.");
         problem.setTitle("Error Interno");
         problem.setProperty("timestamp", Instant.now());
