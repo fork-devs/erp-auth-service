@@ -41,7 +41,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/actuator/health"
+                                "/actuator/health",
+                                "/actuator/health/**"
                         ).permitAll()
                         // Endpoints protegidos
                         .requestMatchers("/api/v1/users/**").authenticated()

@@ -82,6 +82,16 @@
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
+        <!--
+            Salud y disponibilidad del servicio. Sin esto no hay forma de
+            saber si el servicio responde, ni si su base de datos es
+            alcanzable, que es lo que necesita un orquestador para decidir
+            si le envia peticiones.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>

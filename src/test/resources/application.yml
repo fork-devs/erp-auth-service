@@ -32,3 +32,29 @@ erp:
     rate-limit:
       max-failed-attempts: 5
       lock-duration-minutes: 15
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      group:
+        # La disponibilidad comprueba tambien la base de datos: un servicio
+        # con el pool de conexiones roto esta vivo, pero no sirve de nada.
+        readiness:
+          include: readinessState,database
+        liveness:
+          include: livenessState
+  health:
+    db:
+      enabled: true
+    readiness:
+      state:
+        enabled: true
+    liveness:
+      state:
+        enabled: true

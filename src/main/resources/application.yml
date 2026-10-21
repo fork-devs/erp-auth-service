@@ -100,3 +100,33 @@ logging:
     root: INFO
     com.erp.auth: DEBUG
     org.springframework.security: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Solo lo necesario para la salud y la disponibilidad. Exponer todo
+        # daria acceso a datos del entorno y a beans del contexto.
+        include: health,info,metrics
+  endpoint:
+    health:
+      # El detalle de los componentes verificados: sin el, la comprobacion
+      # dice "OK" y no dice de que.
+      show-details: always
+      show-components: always
+      group:
+        # La disponibilidad comprueba tambien la base de datos: un servicio
+        # con el pool de conexiones roto esta vivo, pero no sirve de nada.
+        readiness:
+          include: readinessState,database
+        liveness:
+          include: livenessState
+  health:
+    db:
+      enabled: true
+    readiness:
+      state:
+        enabled: true
+    liveness:
+      state:
+        enabled: true
