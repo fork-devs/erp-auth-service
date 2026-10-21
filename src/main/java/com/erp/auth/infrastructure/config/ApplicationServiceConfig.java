@@ -79,13 +79,15 @@ public class ApplicationServiceConfig {
             PasswordResetTokenRepositoryPort passwordResetTokenRepositoryPort,
             RefreshTokenRepositoryPort refreshTokenRepositoryPort,
             PasswordEncoderPort passwordEncoderPort,
-            TokenSignerPort tokenSignerPort) {
+            TokenSignerPort tokenSignerPort,
+            UnitOfWork unitOfWork) {
         return new PasswordResetService(
                 userRepositoryPort,
                 passwordResetTokenRepositoryPort,
                 refreshTokenRepositoryPort,
                 passwordEncoderPort,
-                tokenSignerPort
+                tokenSignerPort,
+                unitOfWork
         );
     }
 }

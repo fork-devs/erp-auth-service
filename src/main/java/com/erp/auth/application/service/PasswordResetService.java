@@ -12,6 +12,7 @@ import com.erp.auth.domain.port.PasswordEncoderPort;
 import com.erp.auth.domain.port.PasswordResetTokenRepositoryPort;
 import com.erp.auth.domain.port.RefreshTokenRepositoryPort;
 import com.erp.auth.domain.port.TokenSignerPort;
+import com.erp.auth.domain.port.UnitOfWork;
 import com.erp.auth.domain.port.UserRepositoryPort;
 import com.erp.auth.domain.valueobject.Email;
 import com.erp.auth.domain.valueobject.PasswordHash;
@@ -27,18 +28,21 @@ public class PasswordResetService implements PasswordResetUseCase {
     private final RefreshTokenRepositoryPort refreshTokenRepositoryPort;
     private final PasswordEncoderPort passwordEncoderPort;
     private final TokenSignerPort tokenSignerPort;
+    private final UnitOfWork unitOfWork;
 
     public PasswordResetService(
             UserRepositoryPort userRepositoryPort,
             PasswordResetTokenRepositoryPort passwordResetTokenRepositoryPort,
             RefreshTokenRepositoryPort refreshTokenRepositoryPort,
             PasswordEncoderPort passwordEncoderPort,
-            TokenSignerPort tokenSignerPort) {
+            TokenSignerPort tokenSignerPort,
+            UnitOfWork unitOfWork) {
         this.userRepositoryPort = userRepositoryPort;
         this.passwordResetTokenRepositoryPort = passwordResetTokenRepositoryPort;
         this.refreshTokenRepositoryPort = refreshTokenRepositoryPort;
         this.passwordEncoderPort = passwordEncoderPort;
         this.tokenSignerPort = tokenSignerPort;
+        this.unitOfWork = unitOfWork;
     }
 
     @Override
@@ -60,16 +64,23 @@ public class PasswordResetService implements PasswordResetUseCase {
         }
 
         User user = userOpt.get();
-        passwordResetTokenRepositoryPort.invalidateAllByUserId(user.getId());
 
-        String rawToken = tokenSignerPort.generateRandomTokenString();
-        String tokenHash = tokenSignerPort.hashToken(rawToken);
-        Instant expiresAt = Instant.now().plus(tokenSignerPort.getPasswordResetTokenDuration());
+        // Invalidar los tokens anteriores y emitir el nuevo es una sola
+        // operacion: si el guardado fallara tras invalidar, el usuario se
+        // quedaria sin ninguna via de recuperacion.
+        return unitOfWork.callInTransaction(() -> {
+            passwordResetTokenRepositoryPort.invalidateAllByUserId(user.getId());
 
-        PasswordResetToken resetToken = PasswordResetToken.create(user.getId(), user.getTenantId().getValue(), tokenHash, expiresAt);
-        passwordResetTokenRepositoryPort.save(resetToken);
+            String rawToken = tokenSignerPort.generateRandomTokenString();
+            String tokenHash = tokenSignerPort.hashToken(rawToken);
+            Instant expiresAt = Instant.now().plus(tokenSignerPort.getPasswordResetTokenDuration());
 
-        return rawToken;
+            PasswordResetToken resetToken = PasswordResetToken.create(user.getId(), user.getTenantId().getValue(),
+                    tokenHash, expiresAt);
+            passwordResetTokenRepositoryPort.save(resetToken);
+
+            return rawToken;
+        });
     }
 
     @Override
@@ -90,18 +101,28 @@ public class PasswordResetService implements PasswordResetUseCase {
             throw new TokenExpiredException();
         }
 
-        resetToken.markAsUsed();
-        passwordResetTokenRepositoryPort.save(resetToken);
+        // El restablecimiento se confirma como una sola operacion: marcar el
+        // token como usado, cambiar la contrasena y revocar los refresh
+        // tokens son tres escrituras que deben ocurrir juntas.
+        //
+        // Antes, si la escritura de la contrasena fallaba tras marcar el
+        // token como usado, el usuario se quedaba con un token consumido y
+        // sin poder cambiar la contrasena: un fallo que no se podia reintentar
+        // sin pedir un token nuevo.
+        unitOfWork.runInTransaction(() -> {
+            resetToken.markAsUsed();
+            passwordResetTokenRepositoryPort.save(resetToken);
 
-        User user = userRepositoryPort.findByIdAndTenantId(resetToken.getUserId(), new TenantId(resetToken.getTenantId()))
-                .orElseThrow(() -> new UserNotFoundException(resetToken.getUserId().toString()));
+            User user = userRepositoryPort.findByIdAndTenantId(resetToken.getUserId(), new TenantId(resetToken.getTenantId()))
+                    .orElseThrow(() -> new UserNotFoundException(resetToken.getUserId().toString()));
 
-        PasswordHash newPasswordHash = PasswordHash.of(passwordEncoderPort.encode(command.newPassword()));
-        user.changePassword(newPasswordHash);
-        user.recordSuccessfulLogin();
-        userRepositoryPort.save(user);
+            PasswordHash newPasswordHash = PasswordHash.of(passwordEncoderPort.encode(command.newPassword()));
+            user.changePassword(newPasswordHash);
+            user.recordSuccessfulLogin();
+            userRepositoryPort.save(user);
 
-        // Revocar todos los refresh tokens existentes por seguridad
-        refreshTokenRepositoryPort.revokeAllByUserId(user.getId());
+            // Revocar todos los refresh tokens existentes por seguridad
+            refreshTokenRepositoryPort.revokeAllByUserId(user.getId());
+        });
     }
 }
