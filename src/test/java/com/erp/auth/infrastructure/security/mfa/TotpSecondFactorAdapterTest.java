@@ -54,7 +54,7 @@ class TotpSecondFactorAdapterTest {
         Instant instante = Instant.ofEpochSecond(1_700_000_000L);
         String codigo = codigoEn(instante);
 
-        assertTrue(adapter.verify(secret, codigo, instante));
+        assertTrue(adapter.verify(secret, codigo, instante).isPresent());
     }
 
     @Test
@@ -66,7 +66,7 @@ class TotpSecondFactorAdapterTest {
         // Dos intervalos despues, el codigo ya no vale.
         Instant dosIntervalosDespues = instante.plusMillis(2 * INTERVAL_MILLIS);
 
-        assertFalse(adapter.verify(secret, codigo, dosIntervalosDespues),
+        assertFalse(adapter.verify(secret, codigo, dosIntervalosDespues).isPresent(),
                 "El codigo de un intervalo anterior no puede seguir valiendo");
     }
 
@@ -76,7 +76,7 @@ class TotpSecondFactorAdapterTest {
         Instant instante = Instant.ofEpochSecond(1_700_000_000L);
         Instant siguiente = instante.plusMillis(INTERVAL_MILLIS);
 
-        assertTrue(adapter.verify(secret, codigoEn(siguiente), siguiente));
+        assertTrue(adapter.verify(secret, codigoEn(siguiente), siguiente).isPresent());
     }
 
     @Test
@@ -84,9 +84,18 @@ class TotpSecondFactorAdapterTest {
     void unCodigoConOtraFormaNoSeAcepta() {
         Instant instante = Instant.ofEpochSecond(1_700_000_000L);
 
-        assertFalse(adapter.verify(secret, "no-es-un-codigo", instante));
-        assertFalse(adapter.verify(secret, "", instante));
-        assertFalse(adapter.verify("", "123456", instante));
+        assertFalse(adapter.verify(secret, "no-es-un-codigo", instante).isPresent());
+        assertFalse(adapter.verify(secret, "", instante).isPresent());
+        assertFalse(adapter.verify("", "123456", instante).isPresent());
+    }
+
+    @Test
+    @DisplayName("La verificacion devuelve el contador del intervalo aceptado")
+    void laVerificacionDevuelveElContadorDelIntervalo() {
+        Instant instante = Instant.ofEpochSecond(1_700_000_000L);
+        long intervaloEsperado = instante.toEpochMilli() / INTERVAL_MILLIS;
+
+        assertEquals(intervaloEsperado, adapter.verify(secret, codigoEn(instante), instante).orElseThrow());
     }
 
     @Test

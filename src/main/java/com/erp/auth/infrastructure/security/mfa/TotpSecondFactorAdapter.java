@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.Optional;
 
 /**
  * Verificacion de codigos de un solo uso temporizados (TOTP).
@@ -50,32 +51,33 @@ public class TotpSecondFactorAdapter implements SecondFactorPort {
     }
 
     @Override
-    public boolean verify(String secret, String code, Instant at) {
+    public Optional<Long> verify(String secret, String code, Instant at) {
         if (secret == null || secret.isBlank() || code == null || code.isBlank()) {
-            return false;
+            return Optional.empty();
         }
 
         int introducido;
         try {
             introducido = Integer.parseInt(code.trim());
         } catch (NumberFormatException e) {
-            return false;
+            return Optional.empty();
         }
 
         long instante = at.toEpochMilli();
         long intervaloActual = instante / INTERVAL_MILLIS;
 
         for (int delta = -WINDOW_TOLERANCE; delta <= WINDOW_TOLERANCE; delta++) {
-            long instanteIntervalo = (intervaloActual + delta) * INTERVAL_MILLIS;
+            long contador = intervaloActual + delta;
+            long instanteIntervalo = contador * INTERVAL_MILLIS;
             try {
                 if (authenticator.getTotpPassword(secret, instanteIntervalo) == introducido) {
-                    return true;
+                    return Optional.of(contador);
                 }
             } catch (Exception e) {
-                return false;
+                return Optional.empty();
             }
         }
-        return false;
+        return Optional.empty();
     }
 
     /**

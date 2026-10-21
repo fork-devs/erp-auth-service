@@ -18,6 +18,14 @@
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_secret_ciphertext TEXT;
 
+-- Contador del ultimo codigo aceptado. Un codigo TOTP vale durante su
+-- intervalo y el siguiente: sin registrar cual se acepto por ultima vez, el
+-- mismo codigo podria usarse dos veces dentro de esa ventana.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_last_code_counter BIGINT;
+
+COMMENT ON COLUMN users.mfa_last_code_counter IS
+    'Contador del ultimo codigo de segundo factor aceptado. Impide que un codigo se reutilice.';
+
 COMMENT ON COLUMN users.mfa_secret_ciphertext IS
     'Secreto del segundo factor, cifrado. El texto plano NO debe guardarse nunca: quien lo lea puede generar codigos validos.';
 

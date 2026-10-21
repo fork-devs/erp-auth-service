@@ -41,6 +41,18 @@ public interface SecondFactorRepositoryPort {
     Optional<RecoveryCode> consumeRecoveryCode(UUID userId, String hashedCode);
 
     /**
+     * Contador del ultimo codigo aceptado por el usuario. Vacio si todavia
+     * no ha aceptado ninguno.
+     */
+    Optional<Long> findLastAcceptedCounter(UUID userId);
+
+    /**
+     * Registra el contador del codigo que acaba de aceptarse, de modo que el
+     * mismo codigo no pueda usarse otra vez.
+     */
+    void recordAcceptedCounter(UUID userId, long counter);
+
+    /**
      * Un codigo de recuperacion consumido.
      */
     record RecoveryCode(UUID id, Instant expiresAt) {

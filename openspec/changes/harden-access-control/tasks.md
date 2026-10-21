@@ -4,8 +4,8 @@
 
 - [x] 1.1 Incorporar al `pom.xml` del servicio de autenticación la biblioteca de verificación de códigos de un solo uso temporizados, y crear `domain/port/SecondFactorPort.java` con las operaciones de enrolar un secreto y verificar un código, sin dependencias de framework en el puerto. Verificar con un test de dominio que el puerto no importa nada de `org.springframework` ni de la biblioteca concreta.
 - [x] 1.2 Crear la migración `V9__create_second_factor_tables.sql` en `erp-auth-service/src/main/resources/db/migration/`: columna del secreto del segundo factor cifrado en la tabla de usuarios, y tabla de códigos de recuperación con su estado de consumo y su fecha de caducidad. Verificar que la migración se aplica y que el secreto se almacena cifrado, de modo que una lectura directa de la tabla no muestre el valor en claro.
-- [ ] 1.3 Implementar en `infrastructure/` la implementación del puerto de segundo factor, con la validación del código, la tolerancia de una ventana temporal y el registro del último código aceptado. Verificar con un test que el mismo código se rechaza dentro de la ventana y se acepta en la ventana siguiente.
-- [ ] 1.4 Implementar la generación y el consumo de códigos de recuperación de un solo uso, y su invalidación en el momento del uso. Verificar con un test que un código de recuperación se acepta una vez y se rechaza en un segundo uso.
+- [x] 1.3 Implementar en `infrastructure/` la implementación del puerto de segundo factor, con la validación del código, la tolerancia de una ventana temporal y el registro del último código aceptado. Verificar con un test que el mismo código se rechaza dentro de la ventana y se acepta en la ventana siguiente.
+- [x] 1.4 Implementar la generación y el consumo de códigos de recuperación de un solo uso, y su invalidación en el momento del uso. Verificar con un test que un código de recuperación se acepta una vez y se rechaza en un segundo uso.
 
 ## 2. erp-auth-service — Habilitación del segundo factor y verificación en el login
 

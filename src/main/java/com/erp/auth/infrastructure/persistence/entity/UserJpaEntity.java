@@ -43,6 +43,13 @@ public class UserJpaEntity {
     @Column(name = "mfa_secret_ciphertext")
     private String mfaSecretCiphertext;
 
+    /**
+     * Contador del ultimo codigo de segundo factor aceptado. Impide que un
+     * codigo se use dos veces dentro de su ventana de validez.
+     */
+    @Column(name = "mfa_last_code_counter")
+    private Long mfaLastCodeCounter;
+
     @Column(name = "failed_attempts")
     private Integer failedAttempts;
 
@@ -129,6 +136,14 @@ public class UserJpaEntity {
 
     public void setMfaSecretCiphertext(String mfaSecretCiphertext) {
         this.mfaSecretCiphertext = mfaSecretCiphertext;
+    }
+
+    public Long getMfaLastCodeCounter() {
+        return mfaLastCodeCounter;
+    }
+
+    public void setMfaLastCodeCounter(Long mfaLastCodeCounter) {
+        this.mfaLastCodeCounter = mfaLastCodeCounter;
     }
 
     public Boolean getMfaEnabled() {

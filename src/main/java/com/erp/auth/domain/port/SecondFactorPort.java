@@ -27,8 +27,12 @@ public interface SecondFactorPort {
      * @param code    el codigo que introduce el usuario
      * @param at      el instante en el que se verifica, para que la
      *                comprobacion sea determinista y verificable
+     * @return el contador del intervalo aceptado, o vacio si el codigo no es
+     *         valido. El contador es lo que permite impedir que un mismo
+     *         codigo se use dos veces: un codigo vale durante su intervalo y
+     *         el siguiente.
      */
-    boolean verify(String secret, String code, java.time.Instant at);
+    java.util.Optional<Long> verify(String secret, String code, java.time.Instant at);
 
     /**
      * Secreto de segundo factor y su enlace de enrolamiento.

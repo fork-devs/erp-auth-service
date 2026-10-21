@@ -45,6 +45,21 @@ public class SecondFactorPersistenceAdapter implements SecondFactorRepositoryPor
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<Long> findLastAcceptedCounter(UUID userId) {
+        return userRepository.findById(userId).map(UserJpaEntity::getMfaLastCodeCounter);
+    }
+
+    @Override
+    public void recordAcceptedCounter(UUID userId, long counter) {
+        transactionGuard.requireActiveTransaction("recordAcceptedSecondFactorCode");
+        UserJpaEntity user = userRepository.findById(userId).orElseThrow(
+                () -> new IllegalStateException("El usuario " + userId + " no existe"));
+        user.setMfaLastCodeCounter(counter);
+        userRepository.save(user);
+    }
+
+    @Override
     public void storeRecoveryCodes(UUID userId, List<String> hashedCodes, Instant expiresAt) {
         transactionGuard.requireActiveTransaction("storeRecoveryCodes");
         List<RecoveryCodeJpaEntity> entidades = hashedCodes.stream()

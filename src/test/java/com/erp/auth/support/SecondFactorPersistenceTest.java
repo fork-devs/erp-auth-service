@@ -130,6 +130,17 @@ class SecondFactorPersistenceTest extends AbstractPostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("El contador del ultimo codigo aceptado se registra y se conserva")
+    void elContadorDelUltimoCodigoAceptadoSeRegistra() {
+        assertFalse(enTransaccion(() -> secondFactorRepositoryPort.findLastAcceptedCounter(userId)).isPresent(),
+                "Un usuario que no ha aceptado ningun codigo no tiene contador");
+
+        enTransaccion(() -> secondFactorRepositoryPort.recordAcceptedCounter(userId, 42L));
+
+        assertEquals(42L, enTransaccion(() -> secondFactorRepositoryPort.findLastAcceptedCounter(userId)).orElseThrow());
+    }
+
+    @Test
     @DisplayName("Un codigo de recuperacion se acepta una vez y se rechaza en el segundo uso")
     void unCodigoDeRecuperacionSeAceptaUnaVez() {
         Instant caducidad = Instant.now().plusSeconds(3600);
