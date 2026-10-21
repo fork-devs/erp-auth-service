@@ -36,6 +36,13 @@ public class UserJpaEntity {
     @Column(name = "mfa_enabled")
     private Boolean mfaEnabled;
 
+    /**
+     * Secreto del segundo factor, CIFRADO. El texto plano no se guarda
+     * nunca: quien lo lea puede generar codigos validos.
+     */
+    @Column(name = "mfa_secret_ciphertext")
+    private String mfaSecretCiphertext;
+
     @Column(name = "failed_attempts")
     private Integer failedAttempts;
 
@@ -114,6 +121,14 @@ public class UserJpaEntity {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+
+    public String getMfaSecretCiphertext() {
+        return mfaSecretCiphertext;
+    }
+
+    public void setMfaSecretCiphertext(String mfaSecretCiphertext) {
+        this.mfaSecretCiphertext = mfaSecretCiphertext;
     }
 
     public Boolean getMfaEnabled() {

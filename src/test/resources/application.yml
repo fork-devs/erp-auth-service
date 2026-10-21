@@ -26,6 +26,9 @@ erp:
       # El material de firma lo inyecta TestKeyMaterial, que lo registra como
       # propiedad dinamica: el servicio ya no acepta claves en memoria, y el
       # identificador se deriva del material.
+    mfa:
+      # Clave de test. No es un secreto: solo se usa en la suite.
+      encryption-key: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
     rate-limit:
       max-failed-attempts: 5
       lock-duration-minutes: 15

@@ -60,6 +60,17 @@
             <artifactId>nimbus-jose-jwt</artifactId>
             <version>9.40</version>
         </dependency>
+        <!--
+            Verificacion de codigos de un solo uso temporizados (TOTP), el
+            estandar que usan las aplicaciones autenticadoras. La eleccion es
+            una biblioteca ya auditada en lugar de una implementacion propia
+            del algoritmo.
+        -->
+        <dependency>
+            <groupId>com.warrenstrange</groupId>
+            <artifactId>googleauth</artifactId>
+            <version>1.5.0</version>
+        </dependency>
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>

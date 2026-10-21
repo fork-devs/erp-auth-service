@@ -72,6 +72,12 @@ erp:
       # este definida, el servicio firma con la vigente y publica ambas.
       previous-private-key-pem: ${JWT_PREVIOUS_PRIVATE_KEY_PEM:}
       previous-public-key-pem: ${JWT_PREVIOUS_PUBLIC_KEY_PEM:}
+    mfa:
+      # Clave de cifrado del secreto del segundo factor, en Base64, de 32
+      # bytes. Sin ella el arranque falla: el secreto del segundo factor es
+      # una credencial, y guardarlo sin cifrar seria guardar una credencial
+      # mas, con la diferencia de que no caduca.
+      encryption-key: ${MFA_ENCRYPTION_KEY:}
     rate-limit:
       max-failed-attempts: ${AUTH_MAX_FAILED_ATTEMPTS:5}
       lock-duration-minutes: ${AUTH_LOCK_DURATION_MINUTES:15}
