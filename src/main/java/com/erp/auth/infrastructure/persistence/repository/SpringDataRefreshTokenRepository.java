@@ -15,6 +15,8 @@ public interface SpringDataRefreshTokenRepository extends JpaRepository<RefreshT
 
     Optional<RefreshTokenJpaEntity> findByTokenHash(String tokenHash);
 
+    Optional<RefreshTokenJpaEntity> findByTokenHashAndTenantId(String tokenHash, UUID tenantId);
+
     @Modifying
     @Query("UPDATE RefreshTokenJpaEntity r SET r.revoked = true WHERE r.tokenHash = :tokenHash")
     void revokeByTokenHash(@Param("tokenHash") String tokenHash);

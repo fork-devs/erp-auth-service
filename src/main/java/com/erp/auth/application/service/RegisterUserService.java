@@ -42,7 +42,7 @@ public class RegisterUserService implements RegisterUserUseCase, GetUserProfileU
         }
 
         Email email = Email.of(command.email());
-        if (userRepositoryPort.existsByEmail(email)) {
+        if (userRepositoryPort.existsByEmailAndTenantId(email, new TenantId(command.tenantId()))) {
             throw new UserAlreadyExistsException(email.getValue());
         }
 

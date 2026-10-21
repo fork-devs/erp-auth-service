@@ -50,14 +50,12 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
             throw new InvalidCredentialsException("Correo y contraseña son obligatorios");
         }
 
-        Email email = Email.of(command.email());
-        Optional<User> userOpt;
-
-        if (command.tenantId() != null) {
-            userOpt = userRepositoryPort.findByEmailAndTenantId(email, new TenantId(command.tenantId()));
-        } else {
-            userOpt = userRepositoryPort.findByEmail(email);
+        if (command.tenantId() == null) {
+            throw new InvalidCredentialsException("El identificador de taller es obligatorio para iniciar sesion");
         }
+
+        Email email = Email.of(command.email());
+        Optional<User> userOpt = userRepositoryPort.findByEmailAndTenantId(email, new TenantId(command.tenantId()));
 
         if (userOpt.isEmpty()) {
             throw new InvalidCredentialsException();
@@ -95,7 +93,7 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
         String refreshTokenHash = tokenSignerPort.hashToken(rawRefreshToken);
         Instant refreshTokenExpiry = Instant.now().plus(tokenSignerPort.getRefreshTokenDuration());
 
-        RefreshToken refreshTokenEntity = RefreshToken.create(user.getId(), refreshTokenHash, refreshTokenExpiry);
+        RefreshToken refreshTokenEntity = RefreshToken.create(user.getId(), user.getTenantId().getValue(), refreshTokenHash, refreshTokenExpiry);
         refreshTokenRepositoryPort.save(refreshTokenEntity);
 
         Set<String> roleCodes = user.getRoles().stream()

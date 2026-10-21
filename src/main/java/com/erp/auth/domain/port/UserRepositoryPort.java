@@ -14,6 +14,7 @@ public interface UserRepositoryPort {
     Optional<User> findByEmail(Email email);
     Optional<User> findByEmailAndTenantId(Email email, TenantId tenantId);
     boolean existsByEmail(Email email);
+    boolean existsByEmailAndTenantId(Email email, TenantId tenantId);
     List<User> findAllByTenantId(TenantId tenantId);
     void deleteById(UUID id);
 }

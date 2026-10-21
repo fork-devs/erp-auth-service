@@ -45,6 +45,7 @@ class RefreshTokenServiceTest {
     private TokenSignerPort tokenSignerPort;
 
     private RefreshTokenService refreshTokenService;
+    private TenantId tenantId;
     private User sampleUser;
     private RefreshToken activeToken;
     private final String rawToken = "sampleRawRefreshToken";
@@ -58,22 +59,22 @@ class RefreshTokenServiceTest {
                 tokenSignerPort
         );
 
-        TenantId tenantId = TenantId.generate();
+        tenantId = TenantId.generate();
         Email email = Email.of("asesor@taller.pe");
         PasswordHash passwordHash = PasswordHash.of("$2a$12$hashedPasswordExample");
         Role role = Role.create(RoleCode.ASESOR, "Asesor");
 
         sampleUser = User.create(tenantId, email, passwordHash, "Juan Asesor", Set.of(role));
-        activeToken = RefreshToken.create(sampleUser.getId(), tokenHash, Instant.now().plus(Duration.ofDays(7)));
+        activeToken = RefreshToken.create(sampleUser.getId(), tenantId.getValue(), tokenHash, Instant.now().plus(Duration.ofDays(7)));
     }
 
     @Test
     @DisplayName("Debe rotar el refresh token: revocar el anterior y emitir un nuevo par de tokens")
     void shouldRotateRefreshTokenSuccessfully() {
-        RefreshTokenCommand command = new RefreshTokenCommand(rawToken);
+        RefreshTokenCommand command = new RefreshTokenCommand(rawToken, tenantId.getValue());
 
         when(tokenSignerPort.hashToken(rawToken)).thenReturn(tokenHash);
-        when(refreshTokenRepositoryPort.findByTokenHash(tokenHash)).thenReturn(Optional.of(activeToken));
+        when(refreshTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, tenantId.getValue())).thenReturn(Optional.of(activeToken));
         when(userRepositoryPort.findById(sampleUser.getId())).thenReturn(Optional.of(sampleUser));
         when(tokenSignerPort.generateAccessToken(sampleUser)).thenReturn("newSignedJwtToken");
         when(tokenSignerPort.generateRandomTokenString()).thenReturn("newRawRefreshToken");
@@ -95,10 +96,10 @@ class RefreshTokenServiceTest {
     @DisplayName("Debe lanzar TokenRevokedException al intentar usar un refresh token ya revocado")
     void shouldThrowTokenRevokedWhenReusingToken() {
         activeToken.revoke();
-        RefreshTokenCommand command = new RefreshTokenCommand(rawToken);
+        RefreshTokenCommand command = new RefreshTokenCommand(rawToken, tenantId.getValue());
 
         when(tokenSignerPort.hashToken(rawToken)).thenReturn(tokenHash);
-        when(refreshTokenRepositoryPort.findByTokenHash(tokenHash)).thenReturn(Optional.of(activeToken));
+        when(refreshTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, tenantId.getValue())).thenReturn(Optional.of(activeToken));
 
         assertThrows(TokenRevokedException.class, () -> refreshTokenService.refreshToken(command));
     }
@@ -109,16 +110,17 @@ class RefreshTokenServiceTest {
         RefreshToken expiredToken = new RefreshToken(
                 UUID.randomUUID(),
                 sampleUser.getId(),
+                tenantId.getValue(),
                 tokenHash,
                 Instant.now().minus(Duration.ofDays(1)),
                 false,
                 Instant.now().minus(Duration.ofDays(8))
         );
 
-        RefreshTokenCommand command = new RefreshTokenCommand(rawToken);
+        RefreshTokenCommand command = new RefreshTokenCommand(rawToken, tenantId.getValue());
 
         when(tokenSignerPort.hashToken(rawToken)).thenReturn(tokenHash);
-        when(refreshTokenRepositoryPort.findByTokenHash(tokenHash)).thenReturn(Optional.of(expiredToken));
+        when(refreshTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, tenantId.getValue())).thenReturn(Optional.of(expiredToken));
 
         assertThrows(TokenExpiredException.class, () -> refreshTokenService.refreshToken(command));
     }

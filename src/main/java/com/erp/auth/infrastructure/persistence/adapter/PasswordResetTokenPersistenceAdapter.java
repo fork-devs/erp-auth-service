@@ -30,6 +30,13 @@ public class PasswordResetTokenPersistenceAdapter implements PasswordResetTokenR
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<PasswordResetToken> findByTokenHashAndTenantId(String tokenHash, UUID tenantId) {
+        return repository.findByTokenHashAndTenantId(tokenHash, tenantId)
+                .map(PasswordResetTokenPersistenceMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<PasswordResetToken> findByTokenHash(String tokenHash) {
         return repository.findByTokenHash(tokenHash)
                 .map(PasswordResetTokenPersistenceMapper::toDomain);

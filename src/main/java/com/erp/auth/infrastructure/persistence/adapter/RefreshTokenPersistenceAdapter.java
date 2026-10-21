@@ -30,6 +30,13 @@ public class RefreshTokenPersistenceAdapter implements RefreshTokenRepositoryPor
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<RefreshToken> findByTokenHashAndTenantId(String tokenHash, UUID tenantId) {
+        return springDataRefreshTokenRepository.findByTokenHashAndTenantId(tokenHash, tenantId)
+                .map(RefreshTokenPersistenceMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<RefreshToken> findByTokenHash(String tokenHash) {
         return springDataRefreshTokenRepository.findByTokenHash(tokenHash)
                 .map(RefreshTokenPersistenceMapper::toDomain);

@@ -42,8 +42,13 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
             throw new InvalidTokenException("El token de actualización es obligatorio");
         }
 
+        if (command.tenantId() == null) {
+            throw new IllegalArgumentException("El identificador de taller es obligatorio para renovar el token");
+        }
+
         String tokenHash = tokenSignerPort.hashToken(command.refreshToken().trim());
-        Optional<RefreshToken> tokenOpt = refreshTokenRepositoryPort.findByTokenHash(tokenHash);
+        Optional<RefreshToken> tokenOpt =
+                refreshTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, command.tenantId());
 
         if (tokenOpt.isEmpty()) {
             throw new InvalidTokenException("Token de actualización no encontrado");
@@ -76,7 +81,7 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
         String newRefreshTokenHash = tokenSignerPort.hashToken(newRawRefreshToken);
         Instant newRefreshTokenExpiry = Instant.now().plus(tokenSignerPort.getRefreshTokenDuration());
 
-        RefreshToken newRefreshTokenEntity = RefreshToken.create(user.getId(), newRefreshTokenHash, newRefreshTokenExpiry);
+        RefreshToken newRefreshTokenEntity = RefreshToken.create(user.getId(), user.getTenantId().getValue(), newRefreshTokenHash, newRefreshTokenExpiry);
         refreshTokenRepositoryPort.save(newRefreshTokenEntity);
 
         Set<String> roleCodes = user.getRoles().stream()
