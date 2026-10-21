@@ -33,8 +33,8 @@
 
 ## 5. erp-auth-service — El registro de usuarios funciona contra PostgreSQL
 
-- [ ] 5.1 Mapear la columna `tenant_id` de la tabla intermedia `user_roles` en el `@JoinTable` de `UserJpaEntity` (`erp-auth-service/src/main/java/com/erp/auth/infrastructure/persistence/entity/UserJpaEntity.java:48-54`), y poblar el valor en `UserPersistenceMapper.toEntity`. Verificar con un test de integración contra PostgreSQL real embebido que el alta de un usuario con roles persiste sin violación de la restricción `NOT NULL` y que la fila de la tabla intermedia contiene el tenant correcto.
-- [ ] 5.2 Sustituir el perfil de test del servicio de autenticación por PostgreSQL real embebido en proceso (el entorno de ejecucion no dispone de Docker, de modo que Testcontainers no es viable), con Flyway habilitado y `ddl-auto: validate`, de modo que la restricción `NOT NULL` de la tabla intermedia se ejecute de verdad. Verificar que la suite arranca contra la base de datos embebida y que el test de 5.1 falla si se retira el mapeo de la columna.
+- [x] 5.1 Mapear la columna `tenant_id` de la tabla intermedia `user_roles` en el `@JoinTable` de `UserJpaEntity` (`erp-auth-service/src/main/java/com/erp/auth/infrastructure/persistence/entity/UserJpaEntity.java:48-54`), y poblar el valor en `UserPersistenceMapper.toEntity`. Verificar con un test de integración contra PostgreSQL real embebido que el alta de un usuario con roles persiste sin violación de la restricción `NOT NULL` y que la fila de la tabla intermedia contiene el tenant correcto.
+- [x] 5.2 Sustituir el perfil de test del servicio de autenticación por PostgreSQL real embebido en proceso (el entorno de ejecucion no dispone de Docker, de modo que Testcontainers no es viable), con Flyway habilitado y `ddl-auto: validate`, de modo que la restricción `NOT NULL` de la tabla intermedia se ejecute de verdad. Verificar que la suite arranca contra la base de datos embebida y que el test de 5.1 falla si se retira el mapeo de la columna.
 
 ## 6. erp-api-gateway y erp-integration-hub — Cliente del conjunto de claves corregido
 

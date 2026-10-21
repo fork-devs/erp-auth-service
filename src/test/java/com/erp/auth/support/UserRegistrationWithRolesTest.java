@@ -50,6 +50,37 @@ class UserRegistrationWithRolesTest extends AbstractPostgresIntegrationTest {
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @Test
+    void laFilaDeLaTablaIntermediaContieneElTallerCorrecto() throws Exception {
+        Role asesor = roleRepositoryPort.findByCode(RoleCode.ASESOR)
+                .orElseThrow(() -> new AssertionError("El rol ASESOR deberia estar sembrado"));
+
+        UUID correo = UUID.randomUUID();
+        User saved = withTenantContext(() -> userRepositoryPort.save(User.create(
+                new TenantId(TENANT_ID),
+                Email.of("mecanico-" + correo + "@driveos.pe"),
+                PasswordHash.of("hash-de-prueba"),
+                "Juan Perez",
+                Set.of(asesor))));
+
+        // La tabla intermedia lleva su propio tenant_id, que NO puede
+        // representarse con un @JoinTable de dos columnas. Sin el, el
+        // INSERT viola la restriccion NOT NULL.
+        //
+        // La lectura se hace con el propietario: el rol de aplicacion esta
+        // sujeto a la politica de aislamiento, y sin el contexto de taller
+        // la fila no seria visible.
+        try (var connection = EmbeddedPostgresSupport.openOwnerConnection();
+             var statement = connection.createStatement();
+             var rs = statement.executeQuery(
+                     "SELECT count(*) FROM user_roles WHERE user_id = '" + saved.getId()
+                             + "' AND tenant_id = '" + TENANT_ID + "'")) {
+            rs.next();
+            assertEquals(1, rs.getInt(1),
+                    "La fila de la tabla intermedia debe llevar el taller del usuario");
+        }
+    }
+
+    @Test
     void elAltaDeUnUsuarioConRolesPersisteLaAsignacion() {
         Role asesor = roleRepositoryPort.findByCode(RoleCode.ASESOR)
                 .orElseThrow(() -> new AssertionError("El rol ASESOR deberia estar sembrado"));
