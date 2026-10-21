@@ -55,9 +55,20 @@ erp:
       access-token-expiration-minutes: ${JWT_ACCESS_TOKEN_EXPIRATION_MINUTES:15}
       refresh-token-expiration-days: ${JWT_REFRESH_TOKEN_EXPIRATION_DAYS:7}
       password-reset-token-expiration-minutes: ${JWT_PASSWORD_RESET_EXPIRATION_MINUTES:30}
-      key-id: ${JWT_KEY_ID:erp-auth-key-2026-v1}
+      # El material de firma PERSISTE: se lee de la fuente configurada al
+      # arrancar y no se genera en memoria. El identificador de la clave no
+      # se configura: se deriva del material, de modo que no puede quedar
+      # desincronizado de la clave que realmente se usa.
+      #
+      # Para emitir el material vigente una sola vez:
+      #   ./mvnw -q compile exec:java \
+      #       -Dexec.mainClass=com.erp.auth.infrastructure.security.crypto.KeyMaterialGenerator
       private-key-pem: ${JWT_PRIVATE_KEY_PEM:}
       public-key-pem: ${JWT_PUBLIC_KEY_PEM:}
+      # Clave anterior, para la ventana de solapamiento de la rotacion. Mientras
+      # este definida, el servicio firma con la vigente y publica ambas.
+      previous-private-key-pem: ${JWT_PREVIOUS_PRIVATE_KEY_PEM:}
+      previous-public-key-pem: ${JWT_PREVIOUS_PUBLIC_KEY_PEM:}
     rate-limit:
       max-failed-attempts: ${AUTH_MAX_FAILED_ATTEMPTS:5}
       lock-duration-minutes: ${AUTH_LOCK_DURATION_MINUTES:15}

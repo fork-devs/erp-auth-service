@@ -8,6 +8,7 @@ import com.erp.auth.domain.valueobject.PasswordHash;
 import com.erp.auth.domain.valueobject.TenantId;
 import com.erp.auth.infrastructure.persistence.rls.TenantContextHolder;
 import com.erp.auth.infrastructure.security.crypto.RsaKeyPairManager;
+import com.erp.auth.support.TestKeyMaterial;
 import com.erp.auth.infrastructure.security.jwt.NimbusJwtTokenSignerAdapter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +50,9 @@ class JwtAuthenticationFilterTenantSourceTest {
 
     @BeforeEach
     void setUp() {
-        keyPairManager = new RsaKeyPairManager("erp-auth-key-test");
+        // El material de firma persiste: se carga, no se genera.
+        keyPairManager = new RsaKeyPairManager(
+                TestKeyMaterial.privateKeyPem(), TestKeyMaterial.publicKeyPem(), "", "");
         signer = new NimbusJwtTokenSignerAdapter(keyPairManager, "https://auth.test.erp", 15, 7, 30);
         filter = new JwtAuthenticationFilter(keyPairManager);
         TenantContextHolder.clear();
