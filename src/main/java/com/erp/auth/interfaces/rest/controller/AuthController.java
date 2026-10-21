@@ -57,6 +57,7 @@ public class AuthController {
 
         return ResponseEntity.ok(new AuthResponse(
                 result.accessToken(),
+                result.accessTokenId(),
                 result.refreshToken(),
                 result.tokenType(),
                 result.expiresInSeconds(),
@@ -79,6 +80,7 @@ public class AuthController {
 
         return ResponseEntity.ok(new AuthResponse(
                 result.accessToken(),
+                result.accessTokenId(),
                 result.refreshToken(),
                 result.tokenType(),
                 result.expiresInSeconds(),

@@ -18,6 +18,8 @@ erp:
   security:
     jwt:
       issuer: https://auth.test.erp-automotriz.com
+      # Audiencia para la que se emiten los tokens.
+      audience: erp-api-gateway
       access-token-expiration-minutes: 15
       refresh-token-expiration-days: 7
       password-reset-token-expiration-minutes: 30

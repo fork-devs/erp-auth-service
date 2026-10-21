@@ -52,6 +52,9 @@ erp:
   security:
     jwt:
       issuer: ${JWT_ISSUER:https://auth.erp-automotriz.com}
+      # Audiencia para la que se emiten los tokens. Los verificadores la
+      # comprueban: un token emitido para otra audiencia se rechaza.
+      audience: ${JWT_AUDIENCE:erp-api-gateway}
       access-token-expiration-minutes: ${JWT_ACCESS_TOKEN_EXPIRATION_MINUTES:15}
       refresh-token-expiration-days: ${JWT_REFRESH_TOKEN_EXPIRATION_DAYS:7}
       password-reset-token-expiration-minutes: ${JWT_PASSWORD_RESET_EXPIRATION_MINUTES:30}

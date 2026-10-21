@@ -71,7 +71,7 @@ public class PasswordResetService implements PasswordResetUseCase {
         return unitOfWork.callInTransaction(() -> {
             passwordResetTokenRepositoryPort.invalidateAllByUserId(user.getId());
 
-            String rawToken = tokenSignerPort.generateRandomTokenString();
+            String rawToken = tokenSignerPort.generatePasswordResetToken(user.getId());
             String tokenHash = tokenSignerPort.hashToken(rawToken);
             Instant expiresAt = Instant.now().plus(tokenSignerPort.getPasswordResetTokenDuration());
 

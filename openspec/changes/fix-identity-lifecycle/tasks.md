@@ -11,10 +11,10 @@
 
 ## 2. erp-auth-service — Contrato de claims: roles, identificador único y audiencia
 
-- [ ] 2.1 Cambiar en `NimbusJwtTokenSignerAdapter` (`erp-auth-service/src/main/java/com/erp/auth/infrastructure/security/jwt/NimbusJwtTokenSignerAdapter.java:60-72`) la emisión de los roles para que se use el claim `roles` como array, conservando el resto de claims, y añadir el claim de audiencia (`aud`) con el valor configurado para el servicio. Verificar con un test que el token emitido contiene `roles` como array con todos los roles del usuario y el claim `aud` presente.
-- [ ] 2.2 Añadir al token de acceso un identificador único (`jti`) generado en cada emisión, y exponerlo en la respuesta de autenticación. Verificar con un test que dos emisiones del mismo usuario producen identificadores distintos y que el identificador viaja en el token.
-- [ ] 2.3 Actualizar `TokenSignerPort` y su implementación para incluir la audiencia y el identificador único en el contrato, y actualizar el emisor de tokens de refresco y de restablecimiento para que también los lleven. Verificar con un test de contrato que ambos tipos de token llevan el conjunto completo de claims.
-- [ ] 2.4 Actualizar el `JwtAuthenticationFilter` del servicio de autenticación para que valide el emisor y la audiencia del token contra los valores configurados, y para que rechace un token sin claim de roles. Verificar con un test que un token con emisor distinto, con audiencia distinta o sin roles es rechazado.
+- [x] 2.1 Cambiar en `NimbusJwtTokenSignerAdapter` (`erp-auth-service/src/main/java/com/erp/auth/infrastructure/security/jwt/NimbusJwtTokenSignerAdapter.java:60-72`) la emisión de los roles para que se use el claim `roles` como array, conservando el resto de claims, y añadir el claim de audiencia (`aud`) con el valor configurado para el servicio. Verificar con un test que el token emitido contiene `roles` como array con todos los roles del usuario y el claim `aud` presente.
+- [x] 2.2 Añadir al token de acceso un identificador único (`jti`) generado en cada emisión, y exponerlo en la respuesta de autenticación. Verificar con un test que dos emisiones del mismo usuario producen identificadores distintos y que el identificador viaja en el token.
+- [x] 2.3 Actualizar `TokenSignerPort` y su implementación para incluir la audiencia y el identificador único en el contrato, y actualizar el emisor de tokens de refresco y de restablecimiento para que también los lleven. Verificar con un test de contrato que ambos tipos de token llevan el conjunto completo de claims.
+- [x] 2.4 Actualizar el `JwtAuthenticationFilter` del servicio de autenticación para que valide el emisor y la audiencia del token contra los valores configurados, y para que rechace un token sin claim de roles. Verificar con un test que un token con emisor distinto, con audiencia distinta o sin roles es rechazado.
 
 ## 3. erp-auth-service — Revocación efectiva del access token
 
