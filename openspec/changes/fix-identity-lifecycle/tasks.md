@@ -20,9 +20,9 @@
 
 - [x] 3.1 Crear la migración `V8__create_revoked_tokens_table.sql` en `erp-auth-service/src/main/resources/db/migration/`: tabla de tokens revocados con el identificador único del token como clave primaria, `user_id`, `expires_at` e índice por `expires_at`. Verificar que la migración se aplica y que el índice por `expires_at` existe.
 - [x] 3.2 Crear `domain/port/RevokedTokenRepositoryPort.java` con las operaciones de consultar, registrar y eliminar, y su implementación en `infrastructure/persistence/adapter/`. Verificar con un test de persistencia que un token registrado como revocado se encuentra y que un token no revocado no aparece.
-- [ ] 3.3 Consultar la revocación en `JwtAuthenticationFilter` antes de aceptar un token, de modo que un token revocado se rechace aunque su expiración no haya vencido. Verificar con un test de regresión que un token revocado es rechazado por el propio servicio de autenticación.
-- [ ] 3.4 Registrar la revocación del access token en el cierre de sesión, en `AuthController` y en `AuthResult`/`AuthResponse`, de modo que el token devuelto en el momento del login quede disponible para ser revocado. Verificar con un test de regresión que tras un cierre de sesión, el token de acceso del usuario es rechazado.
-- [ ] 3.5 Añadir la tarea programada que elimina las entradas de tokens revocados cuyo token ya expiró, y verificar que tras su ejecución la tabla no conserva entradas de tokens vencidos.
+- [x] 3.3 Consultar la revocación en `JwtAuthenticationFilter` antes de aceptar un token, de modo que un token revocado se rechace aunque su expiración no haya vencido. Verificar con un test de regresión que un token revocado es rechazado por el propio servicio de autenticación.
+- [x] 3.4 Registrar la revocación del access token en el cierre de sesión, en `AuthController` y en `AuthResult`/`AuthResponse`, de modo que el token devuelto en el momento del login quede disponible para ser revocado. Verificar con un test de regresión que tras un cierre de sesión, el token de acceso del usuario es rechazado.
+- [x] 3.5 Añadir la tarea programada que elimina las entradas de tokens revocados cuyo token ya expiró, y verificar que tras su ejecución la tabla no conserva entradas de tokens vencidos.
 
 ## 4. erp-auth-service — Entrega del token de restablecimiento de contraseña
 

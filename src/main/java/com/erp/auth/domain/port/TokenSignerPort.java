@@ -1,5 +1,6 @@
 package com.erp.auth.domain.port;
 
+import com.erp.auth.domain.model.TokenIdentity;
 import com.erp.auth.domain.model.User;
 
 import java.time.Duration;
@@ -48,6 +49,12 @@ public interface TokenSignerPort {
      * concreto.
      */
     String extractTokenId(String token);
+
+    /**
+     * Identidad de un token emitido: identificador unico, titular y fecha de
+     * expiracion. Es lo que hace falta para revocarlo.
+     */
+    TokenIdentity extractIdentity(String token);
 
     Duration getAccessTokenDuration();
 

@@ -2,14 +2,17 @@ package com.erp.auth.infrastructure.config;
 
 import com.erp.auth.application.service.AuthenticateUserService;
 import com.erp.auth.application.service.PasswordResetService;
+import com.erp.auth.application.service.AccessTokenRevocationService;
 import com.erp.auth.application.service.RefreshTokenService;
 import com.erp.auth.application.service.ListTenantUsersService;
 import com.erp.auth.application.service.RegisterUserService;
 import com.erp.auth.domain.port.PasswordEncoderPort;
 import com.erp.auth.domain.port.PasswordResetTokenRepositoryPort;
 import com.erp.auth.domain.port.RefreshTokenRepositoryPort;
+import com.erp.auth.domain.port.RevokedTokenRepositoryPort;
 import com.erp.auth.domain.port.RoleRepositoryPort;
 import com.erp.auth.domain.port.TokenSignerPort;
+import com.erp.auth.domain.port.UnitOfWork;
 import com.erp.auth.domain.port.UnitOfWork;
 import com.erp.auth.domain.port.UserRepositoryPort;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +42,14 @@ public class ApplicationServiceConfig {
                 Duration.ofMinutes(lockDurationMinutes),
                 unitOfWork
         );
+    }
+
+    @Bean
+    public AccessTokenRevocationService accessTokenRevocationService(
+            RevokedTokenRepositoryPort revokedTokenRepositoryPort,
+            TokenSignerPort tokenSignerPort,
+            UnitOfWork unitOfWork) {
+        return new AccessTokenRevocationService(revokedTokenRepositoryPort, tokenSignerPort, unitOfWork);
     }
 
     @Bean

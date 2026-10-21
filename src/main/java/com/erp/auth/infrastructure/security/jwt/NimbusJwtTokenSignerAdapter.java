@@ -1,5 +1,6 @@
 package com.erp.auth.infrastructure.security.jwt;
 
+import com.erp.auth.domain.model.TokenIdentity;
 import com.erp.auth.domain.model.User;
 import com.erp.auth.domain.port.TokenSignerPort;
 import com.erp.auth.infrastructure.security.crypto.RsaKeyPairManager;
@@ -112,6 +113,20 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
             return SignedJWT.parse(token).getJWTClaimsSet().getJWTID();
         } catch (Exception e) {
             throw new IllegalStateException("No se pudo extraer el identificador unico del token", e);
+        }
+    }
+
+    @Override
+    public TokenIdentity extractIdentity(String token) {
+        try {
+            JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
+            Date expiration = claims.getExpirationTime();
+            return new TokenIdentity(
+                    UUID.fromString(claims.getJWTID()),
+                    UUID.fromString(claims.getSubject()),
+                    expiration != null ? expiration.toInstant() : Instant.now());
+        } catch (Exception e) {
+            throw new IllegalStateException("No se pudo extraer la identidad del token", e);
         }
     }
 
