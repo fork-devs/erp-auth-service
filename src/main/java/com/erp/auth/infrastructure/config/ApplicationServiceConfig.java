@@ -4,9 +4,12 @@ import com.erp.auth.application.service.AuthenticateUserService;
 import com.erp.auth.application.service.PasswordResetService;
 import com.erp.auth.application.service.AccessTokenRevocationService;
 import com.erp.auth.application.service.RefreshTokenService;
+import com.erp.auth.application.service.SecondFactorEnrollmentService;
 import com.erp.auth.application.service.ListTenantUsersService;
 import com.erp.auth.application.service.RegisterUserService;
 import com.erp.auth.domain.port.NotificationPort;
+import com.erp.auth.domain.port.SecondFactorPort;
+import com.erp.auth.domain.port.SecondFactorRepositoryPort;
 import com.erp.auth.domain.port.PasswordEncoderPort;
 import com.erp.auth.domain.port.PasswordResetTokenRepositoryPort;
 import com.erp.auth.domain.port.RefreshTokenRepositoryPort;
@@ -33,6 +36,8 @@ public class ApplicationServiceConfig {
             TokenSignerPort tokenSignerPort,
             @Value("${erp.security.rate-limit.max-failed-attempts:5}") int maxFailedAttempts,
             @Value("${erp.security.rate-limit.lock-duration-minutes:15}") long lockDurationMinutes,
+            SecondFactorPort secondFactorPort,
+            SecondFactorRepositoryPort secondFactorRepositoryPort,
             UnitOfWork unitOfWork) {
         return new AuthenticateUserService(
                 userRepositoryPort,
@@ -41,8 +46,30 @@ public class ApplicationServiceConfig {
                 tokenSignerPort,
                 maxFailedAttempts,
                 Duration.ofMinutes(lockDurationMinutes),
+                secondFactorPort,
+                secondFactorRepositoryPort,
                 unitOfWork
         );
+    }
+
+    @Bean
+    public SecondFactorEnrollmentService secondFactorEnrollmentService(
+            SecondFactorPort secondFactorPort,
+            SecondFactorRepositoryPort secondFactorRepositoryPort,
+            UserRepositoryPort userRepositoryPort,
+            NotificationPort notificationPort,
+            com.erp.auth.infrastructure.security.crypto.SecretCipher secretCipher,
+            com.erp.auth.infrastructure.security.mfa.TotpSecondFactorAdapter totpAdapter,
+            TokenSignerPort tokenSignerPort,
+            UnitOfWork unitOfWork) {
+        return new SecondFactorEnrollmentService(
+                secondFactorPort,
+                secondFactorRepositoryPort,
+                userRepositoryPort,
+                notificationPort,
+                totpAdapter,
+                tokenSignerPort,
+                unitOfWork);
     }
 
     @Bean

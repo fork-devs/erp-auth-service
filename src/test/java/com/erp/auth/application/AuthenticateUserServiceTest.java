@@ -48,6 +48,12 @@ class AuthenticateUserServiceTest {
     @Mock
     private TokenSignerPort tokenSignerPort;
 
+    @Mock
+    private com.erp.auth.domain.port.SecondFactorPort secondFactorPort;
+
+    @Mock
+    private com.erp.auth.domain.port.SecondFactorRepositoryPort secondFactorRepositoryPort;
+
     private AuthenticateUserService authenticateUserService;
     private TenantId tenantId;
 
@@ -63,6 +69,8 @@ class AuthenticateUserServiceTest {
                 tokenSignerPort,
                 5,
                 Duration.ofMinutes(15),
+                secondFactorPort,
+                secondFactorRepositoryPort,
                 DirectUnitOfWork.INSTANCE
         );
 

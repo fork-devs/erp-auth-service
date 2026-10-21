@@ -41,8 +41,27 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
     public User save(User user) {
         transactionGuard.requireActiveTransaction("saveUser");
         UserJpaEntity entity = UserPersistenceMapper.toEntity(user, resolveManagedRoles(user));
+        preservarSegundoFactor(entity);
         UserJpaEntity savedEntity = springDataUserRepository.save(entity);
         return UserPersistenceMapper.toDomain(savedEntity);
+    }
+
+    /**
+     * El estado del segundo factor NO viaja en el modelo de dominio: el
+     * secreto viaja cifrado y el contador del ultimo codigo aceptado son
+     * datos de la fila, no del agregado.
+     *
+     * <p>Sin preservarlos aqui, CUALQUIER guardado posterior del usuario
+     * los borraria: un intento de inicio de sesion fallido, un cambio de
+     * contrasena o un simple cambio de nombre dejarian el segundo factor sin
+     * secreto, y el usuario que lo hubiera enrolado se quedaria sin poder
+     * entrar.
+     */
+    private void preservarSegundoFactor(UserJpaEntity entity) {
+        springDataUserRepository.findById(entity.getId()).ifPresent(existente -> {
+            entity.setMfaSecretCiphertext(existente.getMfaSecretCiphertext());
+            entity.setMfaLastCodeCounter(existente.getMfaLastCodeCounter());
+        });
     }
 
     @Override

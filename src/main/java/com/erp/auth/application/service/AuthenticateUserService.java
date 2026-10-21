@@ -9,6 +9,9 @@ import com.erp.auth.domain.model.RefreshToken;
 import com.erp.auth.domain.model.User;
 import com.erp.auth.domain.port.PasswordEncoderPort;
 import com.erp.auth.domain.port.RefreshTokenRepositoryPort;
+import com.erp.auth.domain.exception.InvalidSecondFactorCodeException;
+import com.erp.auth.domain.port.SecondFactorPort;
+import com.erp.auth.domain.port.SecondFactorRepositoryPort;
 import com.erp.auth.domain.port.TokenSignerPort;
 import com.erp.auth.domain.port.UnitOfWork;
 import com.erp.auth.domain.port.UserRepositoryPort;
@@ -29,6 +32,8 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
     private final TokenSignerPort tokenSignerPort;
     private final int maxFailedAttempts;
     private final Duration lockDuration;
+    private final SecondFactorPort secondFactorPort;
+    private final SecondFactorRepositoryPort secondFactorRepositoryPort;
     private final UnitOfWork unitOfWork;
 
     public AuthenticateUserService(
@@ -38,6 +43,8 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
             TokenSignerPort tokenSignerPort,
             int maxFailedAttempts,
             Duration lockDuration,
+            SecondFactorPort secondFactorPort,
+            SecondFactorRepositoryPort secondFactorRepositoryPort,
             UnitOfWork unitOfWork) {
         this.userRepositoryPort = userRepositoryPort;
         this.refreshTokenRepositoryPort = refreshTokenRepositoryPort;
@@ -45,7 +52,43 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
         this.tokenSignerPort = tokenSignerPort;
         this.maxFailedAttempts = maxFailedAttempts;
         this.lockDuration = lockDuration;
+        this.secondFactorPort = secondFactorPort;
+        this.secondFactorRepositoryPort = secondFactorRepositoryPort;
         this.unitOfWork = unitOfWork;
+    }
+
+    /**
+     * Verifica el codigo de segundo factor.
+     *
+     * <p>El codigo se acepta si corresponde al secreto enrolado Y no se ha
+     * usado antes: un codigo vale durante su intervalo y el siguiente, de modo
+     * que sin registrar el ultimo intervalo aceptado el mismo codigo podria
+     * usarse dos veces.
+     */
+    private boolean segundoFactorValido(User user, String codigo) {
+        if (codigo == null || codigo.isBlank()) {
+            return false;
+        }
+
+        String secreto = secondFactorRepositoryPort.findSecret(user.getId()).orElse(null);
+        if (secreto == null) {
+            return false;
+        }
+
+        Optional<Long> contador = secondFactorPort.verify(secreto, codigo, Instant.now());
+        if (contador.isEmpty()) {
+            return false;
+        }
+
+        Long ultimo = secondFactorRepositoryPort.findLastAcceptedCounter(user.getId()).orElse(-1L);
+        if (contador.get() <= ultimo) {
+            // El codigo ya se habia usado.
+            return false;
+        }
+
+        unitOfWork.runInTransaction(() ->
+                secondFactorRepositoryPort.recordAcceptedCounter(user.getId(), contador.get()));
+        return true;
     }
 
     @Override
@@ -90,6 +133,19 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
                 throw new AccountLockedException(user.getLockedUntil());
             }
             throw new InvalidCredentialsException();
+        }
+
+        // Cuando la cuenta tiene el segundo factor habilitado, no se emiten
+        // credenciales sin un codigo valido. Un codigo incorrecto es un
+        // intento fallido mas: cuenta para el bloqueo.
+        if (user.isMfaEnabled() && !segundoFactorValido(user, command.secondFactorCode())) {
+            user.recordFailedAttempt(maxFailedAttempts, lockDuration);
+            unitOfWork.runInTransaction(() -> userRepositoryPort.save(user));
+
+            if (user.isAccountLocked()) {
+                throw new AccountLockedException(user.getLockedUntil());
+            }
+            throw new InvalidSecondFactorCodeException();
         }
 
         // El inicio de sesion se confirma como una sola operacion: el
