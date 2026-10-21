@@ -10,6 +10,7 @@ import com.erp.auth.domain.port.PasswordResetTokenRepositoryPort;
 import com.erp.auth.domain.port.RefreshTokenRepositoryPort;
 import com.erp.auth.domain.port.RoleRepositoryPort;
 import com.erp.auth.domain.port.TokenSignerPort;
+import com.erp.auth.domain.port.UnitOfWork;
 import com.erp.auth.domain.port.UserRepositoryPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -54,11 +55,13 @@ public class ApplicationServiceConfig {
     public RegisterUserService registerUserService(
             UserRepositoryPort userRepositoryPort,
             RoleRepositoryPort roleRepositoryPort,
-            PasswordEncoderPort passwordEncoderPort) {
+            PasswordEncoderPort passwordEncoderPort,
+            UnitOfWork unitOfWork) {
         return new RegisterUserService(
                 userRepositoryPort,
                 roleRepositoryPort,
-                passwordEncoderPort
+                passwordEncoderPort,
+                unitOfWork
         );
     }
 
