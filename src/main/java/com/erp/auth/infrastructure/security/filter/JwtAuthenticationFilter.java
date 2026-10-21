@@ -38,12 +38,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader("Authorization");
         String tenantHeader = request.getHeader("X-Tenant-ID");
 
-        if (tenantHeader != null && !tenantHeader.trim().isEmpty()) {
-            try {
-                TenantContextHolder.setTenantId(UUID.fromString(tenantHeader.trim()));
-            } catch (IllegalArgumentException ignored) {}
-        }
-
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7).trim();
             try {
@@ -61,6 +55,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             try {
                                 TenantContextHolder.setTenantId(UUID.fromString(tenantIdClaim));
                             } catch (IllegalArgumentException ignored) {}
+                        }
+
+                        // La cabecera X-Tenant-ID es una pista, nunca una
+                        // autoridad: si viene, se contrasta con el tenant del
+                        // token y la peticion se rechaza cuando no coinciden.
+                        // Ver docs/doc-estado-implementacion.md, hallazgo P0 5.2.
+                        if (tenantHeader != null && !tenantHeader.trim().isEmpty()) {
+                            UUID requestedTenantId;
+                            try {
+                                requestedTenantId = UUID.fromString(tenantHeader.trim());
+                            } catch (IllegalArgumentException e) {
+                                response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                                        "X-Tenant-ID debe ser un UUID valido");
+                                return;
+                            }
+                            UUID tokenTenantId = TenantContextHolder.getTenantId();
+                            if (tokenTenantId == null || !tokenTenantId.equals(requestedTenantId)) {
+                                response.sendError(HttpServletResponse.SC_FORBIDDEN,
+                                        "El tenant solicitado no coincide con el del token");
+                                return;
+                            }
                         }
 
                         List<SimpleGrantedAuthority> authorities = (rolesList != null)
