@@ -30,10 +30,10 @@
 
 ## 5. Servicios — Aplicación de roles por endpoint
 
-- [ ] 5.1 Habilitar la seguridad a nivel de método en la `SecurityConfig` del servicio de autenticación, y anotar con el rol requerido cada endpoint de `AuthController` y `UserController`. Verificar con un test que el actor `MECANICO` recibe `403` al invocar el alta de usuario y que el `ADMIN_TALLER` la ejecuta con éxito.
-- [ ] 5.2 Habilitar la seguridad a nivel de método en la `SecurityConfig` del servicio de tenants, y anotar con el rol requerido las operaciones de administración de plataforma de `TenantController` y `PlanController`. Verificar con un test que el actor `ASESOR` recibe `403` al intentar suspender un taller y que el `ADMIN_TALLER` puede suspenderlo dentro de su taller.
-- [ ] 5.3 Añadir a la tabla de rutas del gateway (`erp-api-gateway/src/main/resources/application.yml`) el rol requerido por ruta, y comprobar en `GatewaySecurityService` que el principal lo ostente antes de reenviar. Verificar con un test que una llamada por el borde con un rol insuficiente se rechaza antes de alcanzar el servicio de destino.
-- [ ] 5.4 Inventariar los endpoints de los tres servicios y documentar la matriz endpoint→rol, revisando uno por uno los que hoy quedan accesibles a cualquier principal autenticado. Verificar que la matriz cubre todos los endpoints anotados con un rol y que no queda ningún endpoint de escritura sin rol declarado.
+- [x] 5.1 Habilitar la seguridad a nivel de método en la `SecurityConfig` del servicio de autenticación, y anotar con el rol requerido cada endpoint de `AuthController` y `UserController`. Verificar con un test que el actor `MECANICO` recibe `403` al invocar el alta de usuario y que el `ADMIN_TALLER` la ejecuta con éxito.
+- [x] 5.2 Habilitar la seguridad a nivel de método en la `SecurityConfig` del servicio de tenants, y anotar con el rol requerido las operaciones de administración de plataforma de `TenantController` y `PlanController`. Verificar con un test que el actor `ASESOR` recibe `403` al intentar suspender un taller y que el `ADMIN_TALLER` puede suspenderlo dentro de su taller.
+- [x] 5.3 Añadir a la tabla de rutas del gateway (`erp-api-gateway/src/main/resources/application.yml`) el rol requerido por ruta, y comprobar en `GatewaySecurityService` que el principal lo ostente antes de reenviar. Verificar con un test que una llamada por el borde con un rol insuficiente se rechaza antes de alcanzar el servicio de destino.
+- [x] 5.4 Inventariar los endpoints de los tres servicios y documentar la matriz endpoint→rol, revisando uno por uno los que hoy quedan accesibles a cualquier principal autenticado. Verificar que la matriz cubre todos los endpoints anotados con un rol y que no queda ningún endpoint de escritura sin rol declarado.
 
 ## 6. Servicios — Registro estructurado de los eventos de autenticación y salud del servicio
 

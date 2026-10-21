@@ -22,6 +22,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -53,6 +54,10 @@ public class AuthController {
     }
 
     @PostMapping("/login")
+    // El inicio de sesion es publico por definicion: no hay principal al
+    // que exigirle un rol. El resto de los flujos de arranque, por el mismo
+    // motivo.
+    @PreAuthorize("permitAll()")
     @Operation(summary = "Iniciar sesión", description = "Valida credenciales, aplica control de fuerza bruta y emite Access Token (JWT 15m) + Refresh Token")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginCommand command = new LoginCommand(request.email(), request.password(), request.tenantId());
@@ -76,6 +81,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
+    @PreAuthorize("permitAll()")
     @Operation(summary = "Rotar Refresh Token", description = "Invalida el token de actualización previo y emite un nuevo par Access Token + Refresh Token")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         RefreshTokenCommand command = new RefreshTokenCommand(request.refreshToken(), request.tenantId());
@@ -99,6 +105,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER', 'ASESOR', 'MECANICO')")
     @Operation(summary = "Cerrar sesión", description = "Revoca el Access Token presentado y el Refresh Token activo")
     public ResponseEntity<MessageResponse> logout(
             @Valid @RequestBody RefreshTokenRequest request,
@@ -118,6 +125,7 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
+    @PreAuthorize("permitAll()")
     @Operation(summary = "Solicitar recuperación de contraseña", description = "Genera un token seguro de un solo uso con vigencia de 30 minutos")
     public ResponseEntity<MessageResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         try (TenantContextScope scope = TenantContextScope.forTenant(request.tenantId())) {
@@ -127,6 +135,7 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
+    @PreAuthorize("permitAll()")
     @Operation(summary = "Restablecer contraseña", description = "Aplica nueva contraseña con el token de recuperación y revoca sesiones previas")
     public ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         try (TenantContextScope scope = TenantContextScope.forTenant(request.tenantId())) {
