@@ -8,6 +8,8 @@ import com.erp.auth.domain.exception.TokenExpiredException;
 import com.erp.auth.domain.exception.UserNotFoundException;
 import com.erp.auth.domain.model.PasswordResetToken;
 import com.erp.auth.domain.model.User;
+import com.erp.auth.domain.model.NotificationMessage;
+import com.erp.auth.domain.port.NotificationPort;
 import com.erp.auth.domain.port.PasswordEncoderPort;
 import com.erp.auth.domain.port.PasswordResetTokenRepositoryPort;
 import com.erp.auth.domain.port.RefreshTokenRepositoryPort;
@@ -28,6 +30,7 @@ public class PasswordResetService implements PasswordResetUseCase {
     private final RefreshTokenRepositoryPort refreshTokenRepositoryPort;
     private final PasswordEncoderPort passwordEncoderPort;
     private final TokenSignerPort tokenSignerPort;
+    private final NotificationPort notificationPort;
     private final UnitOfWork unitOfWork;
 
     public PasswordResetService(
@@ -36,17 +39,19 @@ public class PasswordResetService implements PasswordResetUseCase {
             RefreshTokenRepositoryPort refreshTokenRepositoryPort,
             PasswordEncoderPort passwordEncoderPort,
             TokenSignerPort tokenSignerPort,
+            NotificationPort notificationPort,
             UnitOfWork unitOfWork) {
         this.userRepositoryPort = userRepositoryPort;
         this.passwordResetTokenRepositoryPort = passwordResetTokenRepositoryPort;
         this.refreshTokenRepositoryPort = refreshTokenRepositoryPort;
         this.passwordEncoderPort = passwordEncoderPort;
         this.tokenSignerPort = tokenSignerPort;
+        this.notificationPort = notificationPort;
         this.unitOfWork = unitOfWork;
     }
 
     @Override
-    public String requestPasswordReset(ForgotPasswordCommand command) {
+    public void requestPasswordReset(ForgotPasswordCommand command) {
         if (command.email() == null || command.email().trim().isEmpty()) {
             throw new IllegalArgumentException("El correo electrónico es obligatorio");
         }
@@ -59,8 +64,10 @@ public class PasswordResetService implements PasswordResetUseCase {
         Optional<User> userOpt = userRepositoryPort.findByEmailAndTenantId(email, new TenantId(command.tenantId()));
 
         if (userOpt.isEmpty()) {
-            // Silencioso para prevenir enumeración de usuarios
-            return null;
+            // Silencioso para prevenir enumeracion de usuarios: la respuesta
+            // es la misma que en el caso de una cuenta existente, y no se
+            // entrega ninguna notificacion.
+            return;
         }
 
         User user = userOpt.get();
@@ -68,7 +75,7 @@ public class PasswordResetService implements PasswordResetUseCase {
         // Invalidar los tokens anteriores y emitir el nuevo es una sola
         // operacion: si el guardado fallara tras invalidar, el usuario se
         // quedaria sin ninguna via de recuperacion.
-        return unitOfWork.callInTransaction(() -> {
+        unitOfWork.runInTransaction(() -> {
             passwordResetTokenRepositoryPort.invalidateAllByUserId(user.getId());
 
             String rawToken = tokenSignerPort.generatePasswordResetToken(user.getId());
@@ -79,7 +86,13 @@ public class PasswordResetService implements PasswordResetUseCase {
                     tokenHash, expiresAt);
             passwordResetTokenRepositoryPort.save(resetToken);
 
-            return rawToken;
+            // El token se entrega al destinatario, no se devuelve. Es la
+            // unica forma de que llegue a quien puede usarlo: devolverlo en
+            // la respuesta de la API se lo entregaria a quien la pide.
+            notificationPort.deliver(NotificationMessage.of(
+                    user.getEmail().getValue(),
+                    "Restablecimiento de contrasena",
+                    "Use este token para restablecer su contrasena: " + rawToken));
         });
     }
 

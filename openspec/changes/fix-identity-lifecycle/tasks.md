@@ -26,10 +26,10 @@
 
 ## 4. erp-auth-service — Entrega del token de restablecimiento de contraseña
 
-- [ ] 4.1 Crear `domain/port/NotificationPort.java` en el servicio de autenticación, con la operación de entregar un mensaje de notificación a un destinatario, sin depender de ningún proveedor. Verificar con un test de dominio que el puerto no importa nada de framework ni de proveedor.
-- [ ] 4.2 Implementar en `infrastructure/` la implementación por defecto del puerto de notificación, que deja constancia del evento de entrega sin enviar nada, y registrarla en la configuración de infraestructura. Verificar con un test que la entrega se produce y queda registrada.
-- [ ] 4.3 Modificar `PasswordResetService.requestPasswordReset` para que entregue el token a través del puerto de notificación en lugar de devolverlo, y `AuthController` para que la respuesta de la API no lo incluya. Verificar con un test de regresión que la respuesta de la API no contiene el token en claro y que la entrega se produce.
-- [ ] 4.4 Comprobar que la respuesta de la API es idéntica para una cuenta existente y para una inexistente, y que en el caso inexistente no se entrega ninguna notificación. Verificar con un test que compara ambas respuestas y que comprueba que no se entrega notificación en el caso inexistente.
+- [x] 4.1 Crear `domain/port/NotificationPort.java` en el servicio de autenticación, con la operación de entregar un mensaje de notificación a un destinatario, sin depender de ningún proveedor. Verificar con un test de dominio que el puerto no importa nada de framework ni de proveedor.
+- [x] 4.2 Implementar en `infrastructure/` la implementación por defecto del puerto de notificación, que deja constancia del evento de entrega sin enviar nada, y registrarla en la configuración de infraestructura. Verificar con un test que la entrega se produce y queda registrada.
+- [x] 4.3 Modificar `PasswordResetService.requestPasswordReset` para que entregue el token a través del puerto de notificación en lugar de devolverlo, y `AuthController` para que la respuesta de la API no lo incluya. Verificar con un test de regresión que la respuesta de la API no contiene el token en claro y que la entrega se produce.
+- [x] 4.4 Comprobar que la respuesta de la API es idéntica para una cuenta existente y para una inexistente, y que en el caso inexistente no se entrega ninguna notificación. Verificar con un test que compara ambas respuestas y que comprueba que no se entrega notificación en el caso inexistente.
 
 ## 5. erp-auth-service — El registro de usuarios funciona contra PostgreSQL
 

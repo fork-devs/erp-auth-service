@@ -6,6 +6,7 @@ import com.erp.auth.application.service.AccessTokenRevocationService;
 import com.erp.auth.application.service.RefreshTokenService;
 import com.erp.auth.application.service.ListTenantUsersService;
 import com.erp.auth.application.service.RegisterUserService;
+import com.erp.auth.domain.port.NotificationPort;
 import com.erp.auth.domain.port.PasswordEncoderPort;
 import com.erp.auth.domain.port.PasswordResetTokenRepositoryPort;
 import com.erp.auth.domain.port.RefreshTokenRepositoryPort;
@@ -93,6 +94,7 @@ public class ApplicationServiceConfig {
             RefreshTokenRepositoryPort refreshTokenRepositoryPort,
             PasswordEncoderPort passwordEncoderPort,
             TokenSignerPort tokenSignerPort,
+            NotificationPort notificationPort,
             UnitOfWork unitOfWork) {
         return new PasswordResetService(
                 userRepositoryPort,
@@ -100,6 +102,7 @@ public class ApplicationServiceConfig {
                 refreshTokenRepositoryPort,
                 passwordEncoderPort,
                 tokenSignerPort,
+                notificationPort,
                 unitOfWork
         );
     }
