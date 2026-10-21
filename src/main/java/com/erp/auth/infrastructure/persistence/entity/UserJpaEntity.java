@@ -1,12 +1,12 @@
 package com.erp.auth.infrastructure.persistence.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -45,17 +45,25 @@ public class UserJpaEntity {
     @Column(name = "created_at")
     private Instant createdAt;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<RoleJpaEntity> roles = new HashSet<>();
+    /**
+     * Asignaciones de rol del usuario.
+     *
+     * <p>La tabla user_roles tiene clave primaria compuesta (user_id, role_id,
+     * tenant_id), de modo que no puede representarse con una @ManyToMany: su
+     * @JoinTable solo admite dos claves foraneas y la columna tenant_id nunca
+     * se escribia. Se declara como una coleccion de la entidad de asignacion.
+     *
+     * <p>La columna user_id no se escribe desde aqui porque forma parte de la
+     * clave embebida de UserRoleJpaEntity: Hibernate escribirla dos veces
+     * produciria un INSERT con la misma columna duplicada.
+     */
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id", insertable = false, updatable = false)
+    private Set<UserRoleJpaEntity> userRoles = new HashSet<>();
 
     public UserJpaEntity() {}
 
-    public UserJpaEntity(UUID id, UUID tenantId, String email, String passwordHash, String fullName, Boolean mfaEnabled, Integer failedAttempts, Instant lockedUntil, Instant createdAt, Set<RoleJpaEntity> roles) {
+    public UserJpaEntity(UUID id, UUID tenantId, String email, String passwordHash, String fullName, Boolean mfaEnabled, Integer failedAttempts, Instant lockedUntil, Instant createdAt, Set<UserRoleJpaEntity> userRoles) {
         this.id = id;
         this.tenantId = tenantId;
         this.email = email;
@@ -65,7 +73,7 @@ public class UserJpaEntity {
         this.failedAttempts = failedAttempts;
         this.lockedUntil = lockedUntil;
         this.createdAt = createdAt;
-        this.roles = roles != null ? roles : new HashSet<>();
+        this.userRoles = userRoles != null ? userRoles : new HashSet<>();
     }
 
     public UUID getId() {
@@ -140,11 +148,11 @@ public class UserJpaEntity {
         this.createdAt = createdAt;
     }
 
-    public Set<RoleJpaEntity> getRoles() {
-        return roles;
+    public Set<UserRoleJpaEntity> getUserRoles() {
+        return userRoles;
     }
 
-    public void setRoles(Set<RoleJpaEntity> roles) {
-        this.roles = roles;
+    public void setUserRoles(Set<UserRoleJpaEntity> userRoles) {
+        this.userRoles = userRoles;
     }
 }
