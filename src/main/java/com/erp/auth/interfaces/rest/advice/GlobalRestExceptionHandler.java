@@ -5,12 +5,14 @@ import com.erp.auth.domain.exception.DomainException;
 import com.erp.auth.domain.exception.InvalidCredentialsException;
 import com.erp.auth.domain.exception.InvalidTokenException;
 import com.erp.auth.domain.exception.TokenExpiredException;
+import com.erp.auth.domain.exception.RoleNotAssignableException;
 import com.erp.auth.domain.exception.TenantContextMissingException;
 import com.erp.auth.domain.exception.TokenRevokedException;
 import com.erp.auth.domain.exception.UserAlreadyExistsException;
 import com.erp.auth.domain.exception.UserNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -74,6 +76,33 @@ public class GlobalRestExceptionHandler {
         problem.setProperty("errorCode", ex.getErrorCode());
         problem.setProperty("timestamp", Instant.now());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);
+    }
+
+    /**
+     * La denegacion de la seguridad a nivel de metodo se resuelve aqui y no en
+     * el filtro de seguridad: el resolutor de excepciones del dispatcher la
+     * intercepta antes de que llegue al filtro, de modo que sin este
+     * mapeo un acceso denegado se responderia con un 500 en lugar de un 403.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN,
+                "No tiene permisos para realizar esta operacion.");
+        problem.setTitle("Acceso Denegado");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/access-denied"));
+        problem.setProperty("errorCode", "AUTH_ACCESS_DENIED");
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
+    }
+
+    @ExceptionHandler(RoleNotAssignableException.class)
+    public ResponseEntity<ProblemDetail> handleRoleNotAssignable(RoleNotAssignableException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        problem.setTitle("Rol No Concedible");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/role-not-assignable"));
+        problem.setProperty("errorCode", ex.getErrorCode());
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
     }
 
     @ExceptionHandler(TenantContextMissingException.class)
