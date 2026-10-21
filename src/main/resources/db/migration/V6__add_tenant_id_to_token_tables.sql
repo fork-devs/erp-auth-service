@@ -43,6 +43,7 @@ ALTER TABLE refresh_tokens ALTER COLUMN tenant_id SET NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_tenant ON refresh_tokens(tenant_id);
 
+ALTER TABLE refresh_tokens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE refresh_tokens FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS refresh_tokens_tenant_isolation_policy ON refresh_tokens;
@@ -85,6 +86,7 @@ ALTER TABLE password_reset_tokens ALTER COLUMN tenant_id SET NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_tenant ON password_reset_tokens(tenant_id);
 
+ALTER TABLE password_reset_tokens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE password_reset_tokens FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS password_reset_tokens_tenant_isolation_policy ON password_reset_tokens;

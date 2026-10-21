@@ -84,15 +84,17 @@ class PostgresIsolationSmokeTest extends AbstractPostgresIntegrationTest {
     }
 
     @Test
-    void lasTablasDeNegocioTienenRowLevelSecurityForzado() throws Exception {
+    void lasTablasDeNegocioTienenLaRlsHabilitadaYForzada() throws Exception {
         try (Connection connection = EmbeddedPostgresSupport.openOwnerConnection();
              Statement statement = connection.createStatement();
              ResultSet rs = statement.executeQuery(
                      "SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
                      + "WHERE n.nspname = 'public' AND c.relname IN "
                      + "('users','user_roles','refresh_tokens','password_reset_tokens') "
-                     + "AND NOT c.relforcerowsecurity")) {
-            assertFalse(rs.next(), "Todas las tablas de negocio deben tener FORCE ROW LEVEL SECURITY");
+                     + "AND NOT (c.relrowsecurity AND c.relforcerowsecurity)")) {
+            assertFalse(rs.next(),
+                    "Todas las tablas de negocio deben tener la RLS habilitada Y forzada: "
+                    + "FORCE por si solo no habilita la politica");
         }
     }
 }
