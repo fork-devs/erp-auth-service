@@ -97,9 +97,9 @@ class SecondFactorPersistenceTest extends AbstractPostgresIntegrationTest {
     @Test
     @DisplayName("El secreto se guarda cifrado: una lectura directa de la tabla no muestra el valor en claro")
     void elSecretoSeGuardaCifrado() throws Exception {
-        String cifrado = secretCipher.encrypt(SECRETO);
-
-        enTransaccion(() -> secondFactorRepositoryPort.storeSecret(userId, cifrado));
+        // El puerto recibe el secreto en claro: el cifrado es de la
+        // infraestructura.
+        enTransaccion(() -> secondFactorRepositoryPort.storeSecret(userId, SECRETO));
 
         // Lectura directa de la tabla, como el propietario.
         try (var connection = EmbeddedPostgresSupport.openOwnerConnection();

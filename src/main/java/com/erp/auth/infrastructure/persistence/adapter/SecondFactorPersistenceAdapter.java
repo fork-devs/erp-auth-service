@@ -6,6 +6,7 @@ import com.erp.auth.infrastructure.persistence.entity.UserJpaEntity;
 import com.erp.auth.infrastructure.persistence.repository.SpringDataRecoveryCodeRepository;
 import com.erp.auth.infrastructure.persistence.repository.SpringDataUserRepository;
 import com.erp.auth.infrastructure.persistence.TransactionGuard;
+import com.erp.auth.infrastructure.security.crypto.SecretCipher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,28 +21,33 @@ public class SecondFactorPersistenceAdapter implements SecondFactorRepositoryPor
     private final TransactionGuard transactionGuard;
     private final SpringDataUserRepository userRepository;
     private final SpringDataRecoveryCodeRepository recoveryCodeRepository;
+    private final SecretCipher secretCipher;
 
     public SecondFactorPersistenceAdapter(SpringDataUserRepository userRepository,
                                           SpringDataRecoveryCodeRepository recoveryCodeRepository,
+                                          SecretCipher secretCipher,
                                           TransactionGuard transactionGuard) {
         this.userRepository = userRepository;
         this.recoveryCodeRepository = recoveryCodeRepository;
+        this.secretCipher = secretCipher;
         this.transactionGuard = transactionGuard;
     }
 
     @Override
-    public void storeSecret(UUID userId, String encryptedSecret) {
+    public void storeSecret(UUID userId, String secret) {
         transactionGuard.requireActiveTransaction("storeSecondFactorSecret");
         UserJpaEntity user = userRepository.findById(userId).orElseThrow(
                 () -> new IllegalStateException("El usuario " + userId + " no existe"));
-        user.setMfaSecretCiphertext(encryptedSecret);
+        user.setMfaSecretCiphertext(secretCipher.encrypt(secret));
         userRepository.save(user);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<String> findSecret(UUID userId) {
-        return userRepository.findById(userId).map(UserJpaEntity::getMfaSecretCiphertext);
+        return userRepository.findById(userId)
+                .map(UserJpaEntity::getMfaSecretCiphertext)
+                .map(secretCipher::decrypt);
     }
 
     @Override

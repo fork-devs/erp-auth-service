@@ -9,19 +9,19 @@ import java.util.UUID;
  * Persistencia del segundo factor: el secreto enrolado y los codigos de
  * recuperacion.
  *
- * <p>El secreto viaja CIFRADO por el puerto: la capa de aplicacion no sabe
- * como se cifra, y el repositorio no lo descifra. Quien lo guarda es el
- * que sabe encriptarlo.
+ * <p>El puerto trabaja con el secreto en claro: la capa de aplicacion no
+ * sabe como se cifra, y el cifrado es cosa de la infraestructura, que es
+ * quien sabe encriptarlo. El puerto no expone ni la clave ni el algoritmo.
  */
 public interface SecondFactorRepositoryPort {
 
     /**
-     * Guarda el secreto enrolado, ya cifrado.
+     * Guarda el secreto enrolado. Quien lo guarda es quien lo cifra.
      */
-    void storeSecret(UUID userId, String encryptedSecret);
+    void storeSecret(UUID userId, String secret);
 
     /**
-     * Secreto enrolado, cifrado. Vacio si el usuario no ha enrolado el
+     * Secreto enrolado, en claro. Vacio si el usuario no ha enrolado el
      * segundo factor.
      */
     Optional<String> findSecret(UUID userId);
