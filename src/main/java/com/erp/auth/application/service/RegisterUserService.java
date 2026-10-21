@@ -6,6 +6,8 @@ import com.erp.auth.application.usecase.GetUserProfileUseCase;
 import com.erp.auth.application.usecase.RegisterUserUseCase;
 import com.erp.auth.domain.exception.RoleNotAssignableException;
 import com.erp.auth.domain.exception.UserAlreadyExistsException;
+import com.erp.auth.domain.exception.WeakPasswordException;
+import com.erp.auth.domain.model.PasswordPolicy;
 import com.erp.auth.domain.exception.UserNotFoundException;
 import com.erp.auth.domain.model.Role;
 import com.erp.auth.domain.model.RoleAssignmentPolicy;
@@ -28,15 +30,18 @@ public class RegisterUserService implements RegisterUserUseCase, GetUserProfileU
     private final UserRepositoryPort userRepositoryPort;
     private final RoleRepositoryPort roleRepositoryPort;
     private final PasswordEncoderPort passwordEncoderPort;
+    private final PasswordPolicy passwordPolicy;
     private final UnitOfWork unitOfWork;
 
     public RegisterUserService(UserRepositoryPort userRepositoryPort,
                                RoleRepositoryPort roleRepositoryPort,
                                PasswordEncoderPort passwordEncoderPort,
+                               PasswordPolicy passwordPolicy,
                                UnitOfWork unitOfWork) {
         this.userRepositoryPort = userRepositoryPort;
         this.roleRepositoryPort = roleRepositoryPort;
         this.passwordEncoderPort = passwordEncoderPort;
+        this.passwordPolicy = passwordPolicy;
         this.unitOfWork = unitOfWork;
     }
 
@@ -45,6 +50,12 @@ public class RegisterUserService implements RegisterUserUseCase, GetUserProfileU
         if (command.tenantId() == null || command.email() == null || command.password() == null) {
             throw new IllegalArgumentException("Taller, correo y contraseña son obligatorios");
         }
+
+        // La politica se comprueba ANTES de tocar la base de datos: una
+        // contrasena corta o demasiado usada no merece una escritura.
+        passwordPolicy.reject(command.password()).ifPresent(motivo -> {
+            throw new WeakPasswordException(motivo);
+        });
 
         TenantId tenantId = command.tenantId();
         Email email = Email.of(command.email());

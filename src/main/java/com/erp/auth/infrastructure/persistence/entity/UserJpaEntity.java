@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -43,6 +44,15 @@ public class UserJpaEntity {
 
     @Column(name = "mfa_enabled")
     private Boolean mfaEnabled;
+
+    /**
+     * Control de concurrencia optimista. Dos escrituras concurrentes sobre la
+     * misma fila no pueden ambas tener exito: la segunda recibe un conflicto
+     * explicito, en lugar de pisar a la primera.
+     */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     /**
      * Secreto del segundo factor, CIFRADO. El texto plano no se guarda
@@ -144,6 +154,14 @@ public class UserJpaEntity {
 
     public void setMfaSecretCiphertext(String mfaSecretCiphertext) {
         this.mfaSecretCiphertext = mfaSecretCiphertext;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 
     public Long getMfaLastCodeCounter() {

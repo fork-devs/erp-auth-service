@@ -58,10 +58,20 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
      * entrar.
      */
     private void preservarSegundoFactor(UserJpaEntity entity) {
-        springDataUserRepository.findById(entity.getId()).ifPresent(existente -> {
-            entity.setMfaSecretCiphertext(existente.getMfaSecretCiphertext());
-            entity.setMfaLastCodeCounter(existente.getMfaLastCodeCounter());
+        springDataUserRepository.findUserState(entity.getId()).ifPresent(estado -> {
+            entity.setMfaSecretCiphertext(estado.getMfaSecretCiphertext());
+            entity.setMfaLastCodeCounter(estado.getMfaLastCodeCounter());
+            // La version tiene que viajar: sin ella, Hibernate entiende que
+            // la entidad es nueva e inserta una fila en lugar de actualizarla.
+            entity.setVersion(estado.getVersion());
         });
+    }
+
+    @Override
+    public void incrementFailedAttempts(UUID id, int maxAttempts, java.time.Duration lockDuration) {
+        transactionGuard.requireActiveTransaction("incrementFailedAttempts");
+        springDataUserRepository.incrementFailedAttempts(
+                id, maxAttempts, java.time.Instant.now().plus(lockDuration));
     }
 
     @Override

@@ -31,6 +31,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -118,8 +119,14 @@ class AuthenticateUserServiceTest {
         when(passwordEncoderPort.matches("WrongPassword", sampleUser.getPasswordHash().getValue())).thenReturn(false);
 
         assertThrows(InvalidCredentialsException.class, () -> authenticateUserService.authenticate(command));
-        assertEquals(1, sampleUser.getFailedAttempts());
-        verify(userRepositoryPort, times(1)).save(sampleUser);
+
+        // El contador se incrementa EN LA BASE DE DATOS, de forma atomica: dos
+        // intentos concurrentes no pueden partir del mismo valor. El test
+        // verifica que se pide el incremento, no que se haga un guardado
+        // desde el objeto de dominio.
+        verify(userRepositoryPort, times(1)).incrementFailedAttempts(
+                eq(sampleUser.getId()), eq(5), eq(Duration.ofMinutes(15)));
+        verify(userRepositoryPort, never()).save(sampleUser);
     }
 
     @Test
@@ -131,6 +138,11 @@ class AuthenticateUserServiceTest {
         when(userRepositoryPort.findByEmailAndTenantId(Email.of("admin@taller.pe"), tenantId)).thenReturn(Optional.of(sampleUser));
 
         assertThrows(AccountLockedException.class, () -> authenticateUserService.authenticate(command));
-        verify(passwordEncoderPort, never()).matches(any(), any());
+
+        // La contrasena se verifica TAMBIEN cuando la cuenta esta
+        // bloqueada. Si no se verificara, el tiempo de respuesta delataria
+        // el estado de la cuenta: un atacante que solo conozca el correo
+        // distinguiria "esta bloqueada" de "no existe".
+        verify(passwordEncoderPort, times(1)).matches(rawPassword, sampleUser.getPasswordHash().getValue());
     }
 }

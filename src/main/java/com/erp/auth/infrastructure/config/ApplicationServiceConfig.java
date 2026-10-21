@@ -7,6 +7,7 @@ import com.erp.auth.application.service.RefreshTokenService;
 import com.erp.auth.application.service.SecondFactorEnrollmentService;
 import com.erp.auth.application.service.ListTenantUsersService;
 import com.erp.auth.application.service.RegisterUserService;
+import com.erp.auth.domain.model.PasswordPolicy;
 import com.erp.auth.domain.port.NotificationPort;
 import com.erp.auth.domain.port.SecondFactorPort;
 import com.erp.auth.domain.port.SecondFactorRepositoryPort;
@@ -73,6 +74,12 @@ public class ApplicationServiceConfig {
     }
 
     @Bean
+    public PasswordPolicy passwordPolicy(
+            @Value("${erp.security.password.min-length:14}") int minLength) {
+        return new PasswordPolicy(minLength);
+    }
+
+    @Bean
     public AccessTokenRevocationService accessTokenRevocationService(
             RevokedTokenRepositoryPort revokedTokenRepositoryPort,
             TokenSignerPort tokenSignerPort,
@@ -99,11 +106,13 @@ public class ApplicationServiceConfig {
             UserRepositoryPort userRepositoryPort,
             RoleRepositoryPort roleRepositoryPort,
             PasswordEncoderPort passwordEncoderPort,
+            PasswordPolicy passwordPolicy,
             UnitOfWork unitOfWork) {
         return new RegisterUserService(
                 userRepositoryPort,
                 roleRepositoryPort,
                 passwordEncoderPort,
+                passwordPolicy,
                 unitOfWork
         );
     }

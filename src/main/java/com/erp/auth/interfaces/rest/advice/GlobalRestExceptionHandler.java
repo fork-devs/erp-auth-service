@@ -27,15 +27,23 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalRestExceptionHandler {
 
+    /**
+     * La cuenta bloqueada responde IGUAL que las credenciales invalidas.
+     *
+     * <p>La comprobacion del bloqueo ocurre ANTES que la de la contrasena, de
+     * modo que un atacante que solo conozca el correo de una victima
+     * distingue "esta bloqueada" de "no existe": eso es enumerar cuentas. La
+     * respuesta unificada cierra el vectors; el motivo real queda en el
+     * registro de eventos de autenticacion, que no ve el atacante.
+     */
     @ExceptionHandler(AccountLockedException.class)
     public ResponseEntity<ProblemDetail> handleAccountLocked(AccountLockedException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.LOCKED, ex.getMessage());
-        problem.setTitle("Cuenta Bloqueada");
-        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/account-locked"));
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+        problem.setTitle("Credenciales Inválidas");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/invalid-credentials"));
         problem.setProperty("errorCode", ex.getErrorCode());
-        problem.setProperty("lockedUntil", ex.getLockedUntil());
         problem.setProperty("timestamp", Instant.now());
-        return ResponseEntity.status(HttpStatus.LOCKED).body(problem);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)

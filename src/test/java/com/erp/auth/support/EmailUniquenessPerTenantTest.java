@@ -119,7 +119,8 @@ class EmailUniquenessPerTenantTest extends AbstractPostgresIntegrationTest {
         return new RegisterUserService(
                 userRepositoryPort,
                 roleRepositoryPort,
-                new com.erp.auth.infrastructure.security.crypto.BCryptPasswordEncoderAdapter(),
+                new com.erp.auth.infrastructure.security.crypto.BCryptPasswordEncoderAdapter(12),
+                new com.erp.auth.domain.model.PasswordPolicy(14),
                 unitOfWork);
     }
 

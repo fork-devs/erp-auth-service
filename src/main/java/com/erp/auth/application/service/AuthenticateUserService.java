@@ -21,10 +21,19 @@ import com.erp.auth.domain.valueobject.TenantId;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class AuthenticateUserService implements AuthenticateUserUseCase {
+
+    /**
+     * Hash de un texto que no corresponde a ninguna cuenta. Se usa para
+     * igualar el tiempo de respuesta cuando la cuenta no existe: verificar
+     * contra el es lo que cuesta el tiempo del hash.
+     */
+    private static final String HASH_SENUELO =
+            "$2a$12$RAmvlO5s9LG2urup52BBsuDqh0/WakqD.ufHw41ey9CHK10OyvEb2";
 
     private final UserRepositoryPort userRepositoryPort;
     private final RefreshTokenRepositoryPort refreshTokenRepositoryPort;
@@ -55,6 +64,19 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
         this.secondFactorPort = secondFactorPort;
         this.secondFactorRepositoryPort = secondFactorRepositoryPort;
         this.unitOfWork = unitOfWork;
+    }
+
+    /**
+     * Indica si la cuenta ha quedado bloqueada tras el ultimo intento.
+     *
+     * <p>Se consulta a la base de datos, y no al objeto de dominio: el
+     * contador se incremento alli, en una sentencia atomica, de modo que el
+     * valor que se consulta es el que queda.
+     */
+    private boolean cuentaBloqueada(UUID userId, TenantId tenantId) {
+        return userRepositoryPort.findByIdAndTenantId(userId, tenantId)
+                .map(User::isAccountLocked)
+                .orElse(false);
     }
 
     /**
@@ -105,18 +127,28 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
         Optional<User> userOpt = userRepositoryPort.findByEmailAndTenantId(email, new TenantId(command.tenantId()));
 
         if (userOpt.isEmpty()) {
+            // Cuando la cuenta no existe, se verifica la contrasena contra un
+            // hash SENUELO. Sin esa verificacion, el tiempo de respuesta
+            // delata si la cuenta existe: la busqueda de una cuenta
+            // inexistente es inmediata, y la de una existente cuesta el tiempo
+            // del hash. La diferencia basta para enumerar las cuentas.
+            passwordEncoderPort.matches(command.password(), HASH_SENUELO);
             throw new InvalidCredentialsException();
         }
 
         User user = userOpt.get();
 
+        // La contrasena se verifica SIEMPRE, antes de responder por
+        // cualquier motivo. Si la cuenta esta bloqueada y se respondiera
+        // sin verificar, el tiempo de respuesta delataria el estado de la
+        // cuenta: un atacante que solo conozca el correo distingue
+        // "esta bloqueada" de "no existe".
+        boolean passwordMatches = passwordEncoderPort.matches(command.password(), user.getPasswordHash().getValue());
+
         // Verificar si la cuenta está bloqueada por intentos fallidos (QA-5)
         if (user.isAccountLocked()) {
             throw new AccountLockedException(user.getLockedUntil());
         }
-
-        // Validar contraseña
-        boolean passwordMatches = passwordEncoderPort.matches(command.password(), user.getPasswordHash().getValue());
 
         if (!passwordMatches) {
             // El intento fallido se confirma en SU PROPIA transaccion. No puede
@@ -124,12 +156,16 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
             // autenticacion fallida lanza una excepcion, y una excepcion
             // dentro de ese limite revertiria el contador, con lo que la
             // cuenta nunca se bloquearia por muchos intentos que se hagan.
-            unitOfWork.runInTransaction(() -> {
-                user.recordFailedAttempt(maxFailedAttempts, lockDuration);
-                userRepositoryPort.save(user);
-            });
+            //
+            // El incremento es ATOMICO en la base de datos: dos intentos
+            // concurrentes no pueden partir del mismo valor, de modo que
+            // ninguno se pierde. Con una lectura-modificacion-escritura, los
+            // dos leian el mismo contador y escribian el mismo incremento, y
+            // la cuenta se quedaba sin bloqueo tras muchos intentos.
+            unitOfWork.runInTransaction(() -> userRepositoryPort.incrementFailedAttempts(
+                    user.getId(), maxFailedAttempts, lockDuration));
 
-            if (user.isAccountLocked()) {
+            if (cuentaBloqueada(user.getId(), new TenantId(command.tenantId()))) {
                 throw new AccountLockedException(user.getLockedUntil());
             }
             throw new InvalidCredentialsException();
