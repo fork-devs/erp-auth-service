@@ -93,7 +93,7 @@ public class PasswordResetService implements PasswordResetUseCase {
         resetToken.markAsUsed();
         passwordResetTokenRepositoryPort.save(resetToken);
 
-        User user = userRepositoryPort.findById(resetToken.getUserId())
+        User user = userRepositoryPort.findByIdAndTenantId(resetToken.getUserId(), new TenantId(resetToken.getTenantId()))
                 .orElseThrow(() -> new UserNotFoundException(resetToken.getUserId().toString()));
 
         PasswordHash newPasswordHash = PasswordHash.of(passwordEncoderPort.encode(command.newPassword()));

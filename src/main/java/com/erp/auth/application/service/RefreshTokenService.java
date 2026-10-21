@@ -14,6 +14,7 @@ import com.erp.auth.domain.model.User;
 import com.erp.auth.domain.port.RefreshTokenRepositoryPort;
 import com.erp.auth.domain.port.TokenSignerPort;
 import com.erp.auth.domain.port.UserRepositoryPort;
+import com.erp.auth.domain.valueobject.TenantId;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -68,7 +69,7 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
         token.revoke();
         refreshTokenRepositoryPort.save(token);
 
-        User user = userRepositoryPort.findById(token.getUserId())
+        User user = userRepositoryPort.findByIdAndTenantId(token.getUserId(), new TenantId(token.getTenantId()))
                 .orElseThrow(() -> new UserNotFoundException(token.getUserId().toString()));
 
         if (user.isAccountLocked()) {

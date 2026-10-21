@@ -75,7 +75,7 @@ class RefreshTokenServiceTest {
 
         when(tokenSignerPort.hashToken(rawToken)).thenReturn(tokenHash);
         when(refreshTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, tenantId.getValue())).thenReturn(Optional.of(activeToken));
-        when(userRepositoryPort.findById(sampleUser.getId())).thenReturn(Optional.of(sampleUser));
+        when(userRepositoryPort.findByIdAndTenantId(sampleUser.getId(), tenantId)).thenReturn(Optional.of(sampleUser));
         when(tokenSignerPort.generateAccessToken(sampleUser)).thenReturn("newSignedJwtToken");
         when(tokenSignerPort.generateRandomTokenString()).thenReturn("newRawRefreshToken");
         when(tokenSignerPort.hashToken("newRawRefreshToken")).thenReturn("newHashedRefreshToken");

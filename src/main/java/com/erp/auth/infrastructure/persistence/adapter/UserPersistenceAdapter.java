@@ -43,15 +43,8 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<User> findById(UUID id) {
-        return springDataUserRepository.findById(id)
-                .map(UserPersistenceMapper::toDomain);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<User> findByEmail(Email email) {
-        return springDataUserRepository.findByEmail(email.getValue())
+    public Optional<User> findByIdAndTenantId(UUID id, TenantId tenantId) {
+        return springDataUserRepository.findByIdAndTenantId(id, tenantId.getValue())
                 .map(UserPersistenceMapper::toDomain);
     }
 
@@ -60,12 +53,6 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
     public Optional<User> findByEmailAndTenantId(Email email, TenantId tenantId) {
         return springDataUserRepository.findByEmailAndTenantId(email.getValue(), tenantId.getValue())
                 .map(UserPersistenceMapper::toDomain);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public boolean existsByEmail(Email email) {
-        return springDataUserRepository.existsByEmail(email.getValue());
     }
 
     @Override

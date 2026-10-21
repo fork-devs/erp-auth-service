@@ -66,8 +66,8 @@ public class RegisterUserService implements RegisterUserUseCase, GetUserProfileU
     }
 
     @Override
-    public UserResult getProfile(UUID userId) {
-        User user = userRepositoryPort.findById(userId)
+    public UserResult getProfile(UUID userId, TenantId tenantId) {
+        User user = userRepositoryPort.findByIdAndTenantId(userId, tenantId)
                 .orElseThrow(() -> new UserNotFoundException(userId.toString()));
         return toUserResult(user);
     }

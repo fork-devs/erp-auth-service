@@ -5,6 +5,7 @@ import com.erp.auth.application.dto.result.UserResult;
 import com.erp.auth.application.usecase.GetUserProfileUseCase;
 import com.erp.auth.application.usecase.RegisterUserUseCase;
 import com.erp.auth.domain.port.UserRepositoryPort;
+import com.erp.auth.domain.exception.TenantContextMissingException;
 import com.erp.auth.domain.valueobject.TenantId;
 import com.erp.auth.infrastructure.persistence.rls.TenantContextHolder;
 import com.erp.auth.interfaces.rest.dto.request.RegisterUserRequest;
@@ -73,7 +74,12 @@ public class UserController {
     @Operation(summary = "Perfil del usuario autenticado", description = "Retorna los datos del usuario correspondiente al token JWT actual")
     public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
-        UserResult result = getUserProfileUseCase.getProfile(userId);
+        UUID tenantId = TenantContextHolder.getTenantId();
+        if (tenantId == null) {
+            throw new TenantContextMissingException(
+                    "La consulta del perfil requiere un contexto de taller establecido");
+        }
+        UserResult result = getUserProfileUseCase.getProfile(userId, new TenantId(tenantId));
 
         return ResponseEntity.ok(new UserResponse(
                 result.id(),
