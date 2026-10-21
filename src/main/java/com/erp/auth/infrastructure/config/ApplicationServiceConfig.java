@@ -28,14 +28,16 @@ public class ApplicationServiceConfig {
             PasswordEncoderPort passwordEncoderPort,
             TokenSignerPort tokenSignerPort,
             @Value("${erp.security.rate-limit.max-failed-attempts:5}") int maxFailedAttempts,
-            @Value("${erp.security.rate-limit.lock-duration-minutes:15}") long lockDurationMinutes) {
+            @Value("${erp.security.rate-limit.lock-duration-minutes:15}") long lockDurationMinutes,
+            UnitOfWork unitOfWork) {
         return new AuthenticateUserService(
                 userRepositoryPort,
                 refreshTokenRepositoryPort,
                 passwordEncoderPort,
                 tokenSignerPort,
                 maxFailedAttempts,
-                Duration.ofMinutes(lockDurationMinutes)
+                Duration.ofMinutes(lockDurationMinutes),
+                unitOfWork
         );
     }
 

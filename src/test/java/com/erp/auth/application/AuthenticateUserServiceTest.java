@@ -13,6 +13,7 @@ import com.erp.auth.domain.port.PasswordEncoderPort;
 import com.erp.auth.domain.port.RefreshTokenRepositoryPort;
 import com.erp.auth.domain.port.TokenSignerPort;
 import com.erp.auth.domain.port.UserRepositoryPort;
+import com.erp.auth.support.DirectUnitOfWork;
 import com.erp.auth.domain.valueobject.Email;
 import com.erp.auth.domain.valueobject.PasswordHash;
 import com.erp.auth.domain.valueobject.TenantId;
@@ -60,7 +61,8 @@ class AuthenticateUserServiceTest {
                 passwordEncoderPort,
                 tokenSignerPort,
                 5,
-                Duration.ofMinutes(15)
+                Duration.ofMinutes(15),
+                DirectUnitOfWork.INSTANCE
         );
 
         tenantId = TenantId.generate();
