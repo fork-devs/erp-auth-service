@@ -76,11 +76,6 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
         <!--
             PostgreSQL real embebido en proceso para los tests de integracion.
             El entorno de ejecucion no dispone de Docker, de modo que Testcontainers
