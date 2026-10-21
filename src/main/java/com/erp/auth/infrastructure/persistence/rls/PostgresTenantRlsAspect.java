@@ -1,9 +1,11 @@
 package com.erp.auth.infrastructure.persistence.rls;
 
 import com.erp.auth.domain.exception.TenantContextMissingException;
+import com.erp.auth.infrastructure.config.PersistenceConfig;
 import jakarta.persistence.EntityManager;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
+import org.springframework.core.annotation.Order;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -21,6 +23,7 @@ import java.util.UUID;
  */
 @Aspect
 @Component
+@Order(PersistenceConfig.TENANT_RLS_ASPECT_ORDER)
 public class PostgresTenantRlsAspect {
 
     private final EntityManager entityManager;
