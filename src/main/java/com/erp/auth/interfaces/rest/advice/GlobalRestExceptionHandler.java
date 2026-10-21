@@ -5,6 +5,7 @@ import com.erp.auth.domain.exception.DomainException;
 import com.erp.auth.domain.exception.InvalidCredentialsException;
 import com.erp.auth.domain.exception.InvalidTokenException;
 import com.erp.auth.domain.exception.TokenExpiredException;
+import com.erp.auth.domain.exception.TenantContextMissingException;
 import com.erp.auth.domain.exception.TokenRevokedException;
 import com.erp.auth.domain.exception.UserAlreadyExistsException;
 import com.erp.auth.domain.exception.UserNotFoundException;
@@ -73,6 +74,16 @@ public class GlobalRestExceptionHandler {
         problem.setProperty("errorCode", ex.getErrorCode());
         problem.setProperty("timestamp", Instant.now());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);
+    }
+
+    @ExceptionHandler(TenantContextMissingException.class)
+    public ResponseEntity<ProblemDetail> handleTenantContextMissing(TenantContextMissingException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        problem.setTitle("Contexto de Taller Ausente");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/tenant-context-missing"));
+        problem.setProperty("errorCode", ex.getErrorCode());
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
