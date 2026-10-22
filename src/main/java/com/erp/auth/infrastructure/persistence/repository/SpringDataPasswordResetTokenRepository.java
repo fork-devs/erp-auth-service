@@ -16,6 +16,8 @@ public interface SpringDataPasswordResetTokenRepository extends JpaRepository<Pa
 
     Optional<PasswordResetTokenJpaEntity> findByTokenHash(String tokenHash);
 
+    Optional<PasswordResetTokenJpaEntity> findByTokenHashAndTenantId(String tokenHash, UUID tenantId);
+
     @Modifying
     @Query("UPDATE PasswordResetTokenJpaEntity p SET p.usedAt = :now WHERE p.userId = :userId AND p.usedAt IS NULL")
     void invalidateAllByUserId(@Param("userId") UUID userId, @Param("now") Instant now);

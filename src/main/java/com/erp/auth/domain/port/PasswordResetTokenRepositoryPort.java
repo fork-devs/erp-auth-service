@@ -8,5 +8,6 @@ import java.util.UUID;
 public interface PasswordResetTokenRepositoryPort {
     PasswordResetToken save(PasswordResetToken token);
     Optional<PasswordResetToken> findByTokenHash(String tokenHash);
+    Optional<PasswordResetToken> findByTokenHashAndTenantId(String tokenHash, UUID tenantId);
     void invalidateAllByUserId(UUID userId);
 }

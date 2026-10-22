@@ -139,6 +139,24 @@ public class User implements Serializable {
         return fullName;
     }
 
+    /**
+     * Habilita el segundo factor.
+     *
+     * <p>El campo mfaEnabled se fijaba en falso al construir el usuario y no
+     * habia ninguna manera de cambiarlo: el segundo factor no existia.
+     */
+    public void enableSecondFactor() {
+        this.mfaEnabled = true;
+    }
+
+    /**
+     * Deshabilita el segundo factor. Exige el secreto enrolado: sin el, el
+     * usuario se quedaria sin la forma de volver a activarlo.
+     */
+    public void disableSecondFactor() {
+        this.mfaEnabled = false;
+    }
+
     public boolean isMfaEnabled() {
         return mfaEnabled;
     }

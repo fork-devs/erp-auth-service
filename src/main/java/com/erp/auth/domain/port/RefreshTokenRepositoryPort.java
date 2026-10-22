@@ -8,6 +8,7 @@ import java.util.UUID;
 public interface RefreshTokenRepositoryPort {
     RefreshToken save(RefreshToken refreshToken);
     Optional<RefreshToken> findByTokenHash(String tokenHash);
+    Optional<RefreshToken> findByTokenHashAndTenantId(String tokenHash, UUID tenantId);
     void revokeByTokenHash(String tokenHash);
     void revokeAllByUserId(UUID userId);
 }

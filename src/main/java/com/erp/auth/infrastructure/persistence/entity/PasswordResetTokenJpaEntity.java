@@ -18,6 +18,9 @@ public class PasswordResetTokenJpaEntity {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(name = "tenant_id", nullable = false)
+    private UUID tenantId;
+
     @Column(name = "token_hash", nullable = false, unique = true, length = 255)
     private String tokenHash;
 
@@ -32,9 +35,10 @@ public class PasswordResetTokenJpaEntity {
 
     public PasswordResetTokenJpaEntity() {}
 
-    public PasswordResetTokenJpaEntity(UUID id, UUID userId, String tokenHash, Instant expiresAt, Instant usedAt, Instant createdAt) {
+    public PasswordResetTokenJpaEntity(UUID id, UUID userId, UUID tenantId, String tokenHash, Instant expiresAt, Instant usedAt, Instant createdAt) {
         this.id = id;
         this.userId = userId;
+        this.tenantId = tenantId;
         this.tokenHash = tokenHash;
         this.expiresAt = expiresAt;
         this.usedAt = usedAt;
@@ -51,6 +55,14 @@ public class PasswordResetTokenJpaEntity {
 
     public UUID getUserId() {
         return userId;
+    }
+
+    public void setTenantId(UUID tenantId) {
+        this.tenantId = tenantId;
+    }
+
+    public UUID getTenantId() {
+        return tenantId;
     }
 
     public void setUserId(UUID userId) {

@@ -12,6 +12,7 @@ public final class RefreshTokenPersistenceMapper {
         return new RefreshToken(
                 entity.getId(),
                 entity.getUserId(),
+                entity.getTenantId(),
                 entity.getTokenHash(),
                 entity.getExpiresAt(),
                 Boolean.TRUE.equals(entity.getRevoked()),
@@ -24,6 +25,7 @@ public final class RefreshTokenPersistenceMapper {
         return new RefreshTokenJpaEntity(
                 domain.getId(),
                 domain.getUserId(),
+                domain.getTenantId(),
                 domain.getTokenHash(),
                 domain.getExpiresAt(),
                 domain.isRevoked(),

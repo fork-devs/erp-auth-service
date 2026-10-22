@@ -13,6 +13,7 @@ import com.erp.auth.domain.port.PasswordEncoderPort;
 import com.erp.auth.domain.port.RefreshTokenRepositoryPort;
 import com.erp.auth.domain.port.TokenSignerPort;
 import com.erp.auth.domain.port.UserRepositoryPort;
+import com.erp.auth.support.DirectUnitOfWork;
 import com.erp.auth.domain.valueobject.Email;
 import com.erp.auth.domain.valueobject.PasswordHash;
 import com.erp.auth.domain.valueobject.TenantId;
@@ -29,6 +30,8 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,7 +49,14 @@ class AuthenticateUserServiceTest {
     @Mock
     private TokenSignerPort tokenSignerPort;
 
+    @Mock
+    private com.erp.auth.domain.port.SecondFactorPort secondFactorPort;
+
+    @Mock
+    private com.erp.auth.domain.port.SecondFactorRepositoryPort secondFactorRepositoryPort;
+
     private AuthenticateUserService authenticateUserService;
+    private TenantId tenantId;
 
     private User sampleUser;
     private final String rawPassword = "SecurePassword123!";
@@ -59,10 +69,13 @@ class AuthenticateUserServiceTest {
                 passwordEncoderPort,
                 tokenSignerPort,
                 5,
-                Duration.ofMinutes(15)
+                Duration.ofMinutes(15),
+                secondFactorPort,
+                secondFactorRepositoryPort,
+                DirectUnitOfWork.INSTANCE
         );
 
-        TenantId tenantId = TenantId.generate();
+        tenantId = TenantId.generate();
         Email email = Email.of("admin@taller.pe");
         PasswordHash passwordHash = PasswordHash.of("$2a$12$hashedPasswordExample");
         Role role = Role.create(RoleCode.ADMIN_TALLER, "Administrador");
@@ -73,12 +86,13 @@ class AuthenticateUserServiceTest {
     @Test
     @DisplayName("Debe autenticar exitosamente y retornar Access Token y Refresh Token")
     void shouldAuthenticateSuccessfully() {
-        LoginCommand command = new LoginCommand("admin@taller.pe", rawPassword, null);
+        LoginCommand command = new LoginCommand("admin@taller.pe", rawPassword, tenantId.getValue());
 
-        when(userRepositoryPort.findByEmail(Email.of("admin@taller.pe"))).thenReturn(Optional.of(sampleUser));
+        when(userRepositoryPort.findByEmailAndTenantId(Email.of("admin@taller.pe"), tenantId)).thenReturn(Optional.of(sampleUser));
         when(passwordEncoderPort.matches(rawPassword, sampleUser.getPasswordHash().getValue())).thenReturn(true);
         when(tokenSignerPort.generateAccessToken(sampleUser)).thenReturn("eyJhbGciOiJSUzI1NiJ9.mockToken");
-        when(tokenSignerPort.generateRandomTokenString()).thenReturn("mockRefreshTokenRaw");
+        when(tokenSignerPort.generateRefreshToken(any(User.class))).thenReturn("mockRefreshTokenRaw");
+        when(tokenSignerPort.extractTokenId(anyString())).thenReturn("token-id-de-prueba");
         when(tokenSignerPort.hashToken("mockRefreshTokenRaw")).thenReturn("hashedRefreshToken");
         when(tokenSignerPort.getAccessTokenDuration()).thenReturn(Duration.ofMinutes(15));
         when(tokenSignerPort.getRefreshTokenDuration()).thenReturn(Duration.ofDays(7));
@@ -99,25 +113,36 @@ class AuthenticateUserServiceTest {
     @Test
     @DisplayName("Debe incrementar intentos fallidos y lanzar InvalidCredentialsException con password incorrecto")
     void shouldFailAndIncrementAttemptsOnWrongPassword() {
-        LoginCommand command = new LoginCommand("admin@taller.pe", "WrongPassword", null);
+        LoginCommand command = new LoginCommand("admin@taller.pe", "WrongPassword", tenantId.getValue());
 
-        when(userRepositoryPort.findByEmail(Email.of("admin@taller.pe"))).thenReturn(Optional.of(sampleUser));
+        when(userRepositoryPort.findByEmailAndTenantId(Email.of("admin@taller.pe"), tenantId)).thenReturn(Optional.of(sampleUser));
         when(passwordEncoderPort.matches("WrongPassword", sampleUser.getPasswordHash().getValue())).thenReturn(false);
 
         assertThrows(InvalidCredentialsException.class, () -> authenticateUserService.authenticate(command));
-        assertEquals(1, sampleUser.getFailedAttempts());
-        verify(userRepositoryPort, times(1)).save(sampleUser);
+
+        // El contador se incrementa EN LA BASE DE DATOS, de forma atomica: dos
+        // intentos concurrentes no pueden partir del mismo valor. El test
+        // verifica que se pide el incremento, no que se haga un guardado
+        // desde el objeto de dominio.
+        verify(userRepositoryPort, times(1)).incrementFailedAttempts(
+                eq(sampleUser.getId()), eq(5), eq(Duration.ofMinutes(15)));
+        verify(userRepositoryPort, never()).save(sampleUser);
     }
 
     @Test
     @DisplayName("Debe lanzar AccountLockedException cuando la cuenta está bloqueada")
     void shouldThrowAccountLockedWhenAlreadyLocked() {
         sampleUser.recordFailedAttempt(1, Duration.ofMinutes(15));
-        LoginCommand command = new LoginCommand("admin@taller.pe", rawPassword, null);
+        LoginCommand command = new LoginCommand("admin@taller.pe", rawPassword, tenantId.getValue());
 
-        when(userRepositoryPort.findByEmail(Email.of("admin@taller.pe"))).thenReturn(Optional.of(sampleUser));
+        when(userRepositoryPort.findByEmailAndTenantId(Email.of("admin@taller.pe"), tenantId)).thenReturn(Optional.of(sampleUser));
 
         assertThrows(AccountLockedException.class, () -> authenticateUserService.authenticate(command));
-        verify(passwordEncoderPort, never()).matches(any(), any());
+
+        // La contrasena se verifica TAMBIEN cuando la cuenta esta
+        // bloqueada. Si no se verificara, el tiempo de respuesta delataria
+        // el estado de la cuenta: un atacante que solo conozca el correo
+        // distinguiria "esta bloqueada" de "no existe".
+        verify(passwordEncoderPort, times(1)).matches(rawPassword, sampleUser.getPasswordHash().getValue());
     }
 }

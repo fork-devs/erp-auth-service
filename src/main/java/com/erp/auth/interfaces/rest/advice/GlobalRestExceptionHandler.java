@@ -5,11 +5,14 @@ import com.erp.auth.domain.exception.DomainException;
 import com.erp.auth.domain.exception.InvalidCredentialsException;
 import com.erp.auth.domain.exception.InvalidTokenException;
 import com.erp.auth.domain.exception.TokenExpiredException;
+import com.erp.auth.domain.exception.RoleNotAssignableException;
+import com.erp.auth.domain.exception.TenantContextMissingException;
 import com.erp.auth.domain.exception.TokenRevokedException;
 import com.erp.auth.domain.exception.UserAlreadyExistsException;
 import com.erp.auth.domain.exception.UserNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -24,19 +27,34 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalRestExceptionHandler {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(GlobalRestExceptionHandler.class);
+
+    /**
+     * La cuenta bloqueada responde IGUAL que las credenciales invalidas.
+     *
+     * <p>La comprobacion del bloqueo ocurre ANTES que la de la contrasena, de
+     * modo que un atacante que solo conozca el correo de una victima
+     * distingue "esta bloqueada" de "no existe": eso es enumerar cuentas. La
+     * respuesta unificada cierra el vectors; el motivo real queda en el
+     * registro de eventos de autenticacion, que no ve el atacante.
+     */
     @ExceptionHandler(AccountLockedException.class)
     public ResponseEntity<ProblemDetail> handleAccountLocked(AccountLockedException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.LOCKED, ex.getMessage());
-        problem.setTitle("Cuenta Bloqueada");
-        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/account-locked"));
+        // La excepcion se registra con su traza, y la respuesta al cliente
+        // no cambia: el diagnostico va al registro, no al consumidor.
+        log.warn("Cuenta bloqueada: {}", ex.getMessage(), ex);
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+        problem.setTitle("Credenciales Inválidas");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/invalid-credentials"));
         problem.setProperty("errorCode", ex.getErrorCode());
-        problem.setProperty("lockedUntil", ex.getLockedUntil());
         problem.setProperty("timestamp", Instant.now());
-        return ResponseEntity.status(HttpStatus.LOCKED).body(problem);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ProblemDetail> handleInvalidCredentials(InvalidCredentialsException ex) {
+        log.info("Credenciales invalidas: {}", ex.getMessage());
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
         problem.setTitle("Credenciales Inválidas");
         problem.setType(URI.create("https://errors.erp-automotriz.com/auth/invalid-credentials"));
@@ -75,6 +93,43 @@ public class GlobalRestExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);
     }
 
+    /**
+     * La denegacion de la seguridad a nivel de metodo se resuelve aqui y no en
+     * el filtro de seguridad: el resolutor de excepciones del dispatcher la
+     * intercepta antes de que llegue al filtro, de modo que sin este
+     * mapeo un acceso denegado se responderia con un 500 en lugar de un 403.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN,
+                "No tiene permisos para realizar esta operacion.");
+        problem.setTitle("Acceso Denegado");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/access-denied"));
+        problem.setProperty("errorCode", "AUTH_ACCESS_DENIED");
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
+    }
+
+    @ExceptionHandler(RoleNotAssignableException.class)
+    public ResponseEntity<ProblemDetail> handleRoleNotAssignable(RoleNotAssignableException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        problem.setTitle("Rol No Concedible");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/role-not-assignable"));
+        problem.setProperty("errorCode", ex.getErrorCode());
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
+    }
+
+    @ExceptionHandler(TenantContextMissingException.class)
+    public ResponseEntity<ProblemDetail> handleTenantContextMissing(TenantContextMissingException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        problem.setTitle("Contexto de Taller Ausente");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/tenant-context-missing"));
+        problem.setProperty("errorCode", ex.getErrorCode());
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ProblemDetail> handleValidationErrors(MethodArgumentNotValidException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Error de validación en la solicitud.");
@@ -101,6 +156,10 @@ public class GlobalRestExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGeneralException(Exception ex) {
+        // La traza va al registro. Antes se perdia: el cliente recibia un
+        // error generico y nadie podia saber que habia ocurrido, ni por que.
+        log.error("Error no controlado: {}", ex.getMessage(), ex);
+
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Ha ocurrido un error interno en el servidor.");
         problem.setTitle("Error Interno");
         problem.setProperty("timestamp", Instant.now());

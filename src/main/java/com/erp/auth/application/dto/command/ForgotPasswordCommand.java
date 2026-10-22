@@ -1,5 +1,8 @@
 package com.erp.auth.application.dto.command;
 
+import java.util.UUID;
+
 public record ForgotPasswordCommand(
-        String email
+        String email,
+        UUID tenantId
 ) {}
