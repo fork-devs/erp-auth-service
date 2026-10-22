@@ -13,6 +13,7 @@ import com.erp.auth.domain.model.RoleCode;
 import com.erp.auth.domain.model.User;
 import com.erp.auth.domain.port.PasswordEncoderPort;
 import com.erp.auth.domain.port.RoleRepositoryPort;
+import com.erp.auth.domain.port.UnitOfWork;
 import com.erp.auth.domain.port.UserRepositoryPort;
 import com.erp.auth.domain.valueobject.Email;
 import com.erp.auth.domain.valueobject.PasswordHash;
@@ -27,13 +28,16 @@ public class RegisterUserService implements RegisterUserUseCase, GetUserProfileU
     private final UserRepositoryPort userRepositoryPort;
     private final RoleRepositoryPort roleRepositoryPort;
     private final PasswordEncoderPort passwordEncoderPort;
+    private final UnitOfWork unitOfWork;
 
     public RegisterUserService(UserRepositoryPort userRepositoryPort,
                                RoleRepositoryPort roleRepositoryPort,
-                               PasswordEncoderPort passwordEncoderPort) {
+                               PasswordEncoderPort passwordEncoderPort,
+                               UnitOfWork unitOfWork) {
         this.userRepositoryPort = userRepositoryPort;
         this.roleRepositoryPort = roleRepositoryPort;
         this.passwordEncoderPort = passwordEncoderPort;
+        this.unitOfWork = unitOfWork;
     }
 
     @Override
@@ -56,7 +60,12 @@ public class RegisterUserService implements RegisterUserUseCase, GetUserProfileU
 
         PasswordHash passwordHash = PasswordHash.of(passwordEncoderPort.encode(command.password()));
         User user = User.create(tenantId, email, passwordHash, command.fullName(), roles);
-        User savedUser = userRepositoryPort.save(user);
+
+        // El alta confirma la escritura del usuario dentro de un limite
+        // transaccional explicito, como el resto de las escrituras del
+        // servicio: los adaptadores de persistencia se unen a la transaccion
+        // en curso y no abren una propia.
+        User savedUser = unitOfWork.callInTransaction(() -> userRepositoryPort.save(user));
 
         return toUserResult(savedUser);
     }

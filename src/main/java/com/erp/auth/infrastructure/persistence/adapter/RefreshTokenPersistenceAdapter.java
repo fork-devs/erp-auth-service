@@ -5,6 +5,7 @@ import com.erp.auth.domain.port.RefreshTokenRepositoryPort;
 import com.erp.auth.infrastructure.persistence.entity.RefreshTokenJpaEntity;
 import com.erp.auth.infrastructure.persistence.mapper.RefreshTokenPersistenceMapper;
 import com.erp.auth.infrastructure.persistence.repository.SpringDataRefreshTokenRepository;
+import com.erp.auth.infrastructure.persistence.TransactionGuard;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,15 +15,18 @@ import java.util.UUID;
 @Component
 public class RefreshTokenPersistenceAdapter implements RefreshTokenRepositoryPort {
 
+    private final TransactionGuard transactionGuard;
     private final SpringDataRefreshTokenRepository springDataRefreshTokenRepository;
 
-    public RefreshTokenPersistenceAdapter(SpringDataRefreshTokenRepository springDataRefreshTokenRepository) {
+    public RefreshTokenPersistenceAdapter(SpringDataRefreshTokenRepository springDataRefreshTokenRepository,
+                                         TransactionGuard transactionGuard) {
         this.springDataRefreshTokenRepository = springDataRefreshTokenRepository;
+        this.transactionGuard = transactionGuard;
     }
 
     @Override
-    @Transactional
     public RefreshToken save(RefreshToken refreshToken) {
+        transactionGuard.requireActiveTransaction("saveRefreshToken");
         RefreshTokenJpaEntity entity = RefreshTokenPersistenceMapper.toEntity(refreshToken);
         RefreshTokenJpaEntity saved = springDataRefreshTokenRepository.save(entity);
         return RefreshTokenPersistenceMapper.toDomain(saved);
@@ -43,14 +47,14 @@ public class RefreshTokenPersistenceAdapter implements RefreshTokenRepositoryPor
     }
 
     @Override
-    @Transactional
     public void revokeByTokenHash(String tokenHash) {
+        transactionGuard.requireActiveTransaction("revokeByTokenHash");
         springDataRefreshTokenRepository.revokeByTokenHash(tokenHash);
     }
 
     @Override
-    @Transactional
     public void revokeAllByUserId(UUID userId) {
+        transactionGuard.requireActiveTransaction("revokeAllByUserId");
         springDataRefreshTokenRepository.revokeAllByUserId(userId);
     }
 }

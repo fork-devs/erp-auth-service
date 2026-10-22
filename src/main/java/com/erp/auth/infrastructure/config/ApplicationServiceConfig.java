@@ -10,6 +10,7 @@ import com.erp.auth.domain.port.PasswordResetTokenRepositoryPort;
 import com.erp.auth.domain.port.RefreshTokenRepositoryPort;
 import com.erp.auth.domain.port.RoleRepositoryPort;
 import com.erp.auth.domain.port.TokenSignerPort;
+import com.erp.auth.domain.port.UnitOfWork;
 import com.erp.auth.domain.port.UserRepositoryPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -27,14 +28,16 @@ public class ApplicationServiceConfig {
             PasswordEncoderPort passwordEncoderPort,
             TokenSignerPort tokenSignerPort,
             @Value("${erp.security.rate-limit.max-failed-attempts:5}") int maxFailedAttempts,
-            @Value("${erp.security.rate-limit.lock-duration-minutes:15}") long lockDurationMinutes) {
+            @Value("${erp.security.rate-limit.lock-duration-minutes:15}") long lockDurationMinutes,
+            UnitOfWork unitOfWork) {
         return new AuthenticateUserService(
                 userRepositoryPort,
                 refreshTokenRepositoryPort,
                 passwordEncoderPort,
                 tokenSignerPort,
                 maxFailedAttempts,
-                Duration.ofMinutes(lockDurationMinutes)
+                Duration.ofMinutes(lockDurationMinutes),
+                unitOfWork
         );
     }
 
@@ -42,11 +45,13 @@ public class ApplicationServiceConfig {
     public RefreshTokenService refreshTokenService(
             RefreshTokenRepositoryPort refreshTokenRepositoryPort,
             UserRepositoryPort userRepositoryPort,
-            TokenSignerPort tokenSignerPort) {
+            TokenSignerPort tokenSignerPort,
+            UnitOfWork unitOfWork) {
         return new RefreshTokenService(
                 refreshTokenRepositoryPort,
                 userRepositoryPort,
-                tokenSignerPort
+                tokenSignerPort,
+                unitOfWork
         );
     }
 
@@ -54,11 +59,13 @@ public class ApplicationServiceConfig {
     public RegisterUserService registerUserService(
             UserRepositoryPort userRepositoryPort,
             RoleRepositoryPort roleRepositoryPort,
-            PasswordEncoderPort passwordEncoderPort) {
+            PasswordEncoderPort passwordEncoderPort,
+            UnitOfWork unitOfWork) {
         return new RegisterUserService(
                 userRepositoryPort,
                 roleRepositoryPort,
-                passwordEncoderPort
+                passwordEncoderPort,
+                unitOfWork
         );
     }
 
@@ -74,13 +81,15 @@ public class ApplicationServiceConfig {
             PasswordResetTokenRepositoryPort passwordResetTokenRepositoryPort,
             RefreshTokenRepositoryPort refreshTokenRepositoryPort,
             PasswordEncoderPort passwordEncoderPort,
-            TokenSignerPort tokenSignerPort) {
+            TokenSignerPort tokenSignerPort,
+            UnitOfWork unitOfWork) {
         return new PasswordResetService(
                 userRepositoryPort,
                 passwordResetTokenRepositoryPort,
                 refreshTokenRepositoryPort,
                 passwordEncoderPort,
-                tokenSignerPort
+                tokenSignerPort,
+                unitOfWork
         );
     }
 }

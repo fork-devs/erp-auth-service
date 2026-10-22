@@ -11,6 +11,7 @@ import com.erp.auth.infrastructure.persistence.entity.UserJpaEntity;
 import com.erp.auth.infrastructure.persistence.mapper.UserPersistenceMapper;
 import com.erp.auth.infrastructure.persistence.repository.SpringDataRoleRepository;
 import com.erp.auth.infrastructure.persistence.repository.SpringDataUserRepository;
+import com.erp.auth.infrastructure.persistence.TransactionGuard;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,18 +25,21 @@ import java.util.stream.Collectors;
 @Component
 public class UserPersistenceAdapter implements UserRepositoryPort {
 
+    private final TransactionGuard transactionGuard;
     private final SpringDataUserRepository springDataUserRepository;
     private final SpringDataRoleRepository springDataRoleRepository;
 
     public UserPersistenceAdapter(SpringDataUserRepository springDataUserRepository,
-                                   SpringDataRoleRepository springDataRoleRepository) {
+                                   SpringDataRoleRepository springDataRoleRepository,
+                                   TransactionGuard transactionGuard) {
         this.springDataUserRepository = springDataUserRepository;
         this.springDataRoleRepository = springDataRoleRepository;
+        this.transactionGuard = transactionGuard;
     }
 
     @Override
-    @Transactional
     public User save(User user) {
+        transactionGuard.requireActiveTransaction("saveUser");
         UserJpaEntity entity = UserPersistenceMapper.toEntity(user, resolveManagedRoles(user));
         UserJpaEntity savedEntity = springDataUserRepository.save(entity);
         return UserPersistenceMapper.toDomain(savedEntity);
@@ -70,8 +74,8 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
     }
 
     @Override
-    @Transactional
     public void deleteById(UUID id) {
+        transactionGuard.requireActiveTransaction("deleteUser");
         springDataUserRepository.deleteById(id);
     }
 

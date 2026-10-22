@@ -12,6 +12,7 @@ import com.erp.auth.domain.model.User;
 import com.erp.auth.domain.port.RefreshTokenRepositoryPort;
 import com.erp.auth.domain.port.TokenSignerPort;
 import com.erp.auth.domain.port.UserRepositoryPort;
+import com.erp.auth.support.DirectUnitOfWork;
 import com.erp.auth.domain.valueobject.Email;
 import com.erp.auth.domain.valueobject.PasswordHash;
 import com.erp.auth.domain.valueobject.TenantId;
@@ -56,7 +57,8 @@ class RefreshTokenServiceTest {
         refreshTokenService = new RefreshTokenService(
                 refreshTokenRepositoryPort,
                 userRepositoryPort,
-                tokenSignerPort
+                tokenSignerPort,
+                DirectUnitOfWork.INSTANCE
         );
 
         tenantId = TenantId.generate();
