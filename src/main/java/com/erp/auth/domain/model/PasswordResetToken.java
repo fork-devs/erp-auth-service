@@ -8,25 +8,27 @@ import java.util.UUID;
 public class PasswordResetToken implements Serializable {
     private final UUID id;
     private final UUID userId;
+    private final UUID tenantId;
     private final String tokenHash;
     private final Instant expiresAt;
     private Instant usedAt;
     private final Instant createdAt;
 
-    public PasswordResetToken(UUID id, UUID userId, String tokenHash, Instant expiresAt, Instant usedAt, Instant createdAt) {
-        if (id == null || userId == null || tokenHash == null || expiresAt == null) {
+    public PasswordResetToken(UUID id, UUID userId, UUID tenantId, String tokenHash, Instant expiresAt, Instant usedAt, Instant createdAt) {
+        if (id == null || userId == null || tenantId == null || tokenHash == null || expiresAt == null) {
             throw new IllegalArgumentException("Campos obligatorios del PasswordResetToken no pueden ser nulos");
         }
         this.id = id;
         this.userId = userId;
+        this.tenantId = tenantId;
         this.tokenHash = tokenHash;
         this.expiresAt = expiresAt;
         this.usedAt = usedAt;
         this.createdAt = createdAt != null ? createdAt : Instant.now();
     }
 
-    public static PasswordResetToken create(UUID userId, String tokenHash, Instant expiresAt) {
-        return new PasswordResetToken(UUID.randomUUID(), userId, tokenHash, expiresAt, null, Instant.now());
+    public static PasswordResetToken create(UUID userId, UUID tenantId, String tokenHash, Instant expiresAt) {
+        return new PasswordResetToken(UUID.randomUUID(), userId, tenantId, tokenHash, expiresAt, null, Instant.now());
     }
 
     public boolean isValid() {
@@ -42,6 +44,10 @@ public class PasswordResetToken implements Serializable {
 
     public UUID getId() {
         return id;
+    }
+
+    public UUID getTenantId() {
+        return tenantId;
     }
 
     public UUID getUserId() {

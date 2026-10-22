@@ -2,6 +2,7 @@ package com.erp.auth.interfaces.rest.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.UUID;
@@ -15,5 +16,6 @@ public record LoginRequest(
         @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
         String password,
 
+        @NotNull(message = "El identificador de taller es obligatorio")
         UUID tenantId
 ) {}

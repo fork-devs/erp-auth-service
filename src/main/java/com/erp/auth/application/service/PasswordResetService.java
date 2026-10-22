@@ -15,6 +15,7 @@ import com.erp.auth.domain.port.TokenSignerPort;
 import com.erp.auth.domain.port.UserRepositoryPort;
 import com.erp.auth.domain.valueobject.Email;
 import com.erp.auth.domain.valueobject.PasswordHash;
+import com.erp.auth.domain.valueobject.TenantId;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -46,8 +47,12 @@ public class PasswordResetService implements PasswordResetUseCase {
             throw new IllegalArgumentException("El correo electrónico es obligatorio");
         }
 
+        if (command.tenantId() == null) {
+            throw new IllegalArgumentException("El identificador de taller es obligatorio para restablecer la contrasena");
+        }
+
         Email email = Email.of(command.email());
-        Optional<User> userOpt = userRepositoryPort.findByEmail(email);
+        Optional<User> userOpt = userRepositoryPort.findByEmailAndTenantId(email, new TenantId(command.tenantId()));
 
         if (userOpt.isEmpty()) {
             // Silencioso para prevenir enumeración de usuarios
@@ -61,7 +66,7 @@ public class PasswordResetService implements PasswordResetUseCase {
         String tokenHash = tokenSignerPort.hashToken(rawToken);
         Instant expiresAt = Instant.now().plus(tokenSignerPort.getPasswordResetTokenDuration());
 
-        PasswordResetToken resetToken = PasswordResetToken.create(user.getId(), tokenHash, expiresAt);
+        PasswordResetToken resetToken = PasswordResetToken.create(user.getId(), user.getTenantId().getValue(), tokenHash, expiresAt);
         passwordResetTokenRepositoryPort.save(resetToken);
 
         return rawToken;
@@ -73,8 +78,12 @@ public class PasswordResetService implements PasswordResetUseCase {
             throw new IllegalArgumentException("Token y nueva contraseña son obligatorios");
         }
 
+        if (command.tenantId() == null) {
+            throw new IllegalArgumentException("El identificador de taller es obligatorio para restablecer la contrasena");
+        }
+
         String tokenHash = tokenSignerPort.hashToken(command.token().trim());
-        PasswordResetToken resetToken = passwordResetTokenRepositoryPort.findByTokenHash(tokenHash)
+        PasswordResetToken resetToken = passwordResetTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, command.tenantId())
                 .orElseThrow(() -> new InvalidTokenException("Token de restablecimiento inválido"));
 
         if (!resetToken.isValid()) {
@@ -84,7 +93,7 @@ public class PasswordResetService implements PasswordResetUseCase {
         resetToken.markAsUsed();
         passwordResetTokenRepositoryPort.save(resetToken);
 
-        User user = userRepositoryPort.findById(resetToken.getUserId())
+        User user = userRepositoryPort.findByIdAndTenantId(resetToken.getUserId(), new TenantId(resetToken.getTenantId()))
                 .orElseThrow(() -> new UserNotFoundException(resetToken.getUserId().toString()));
 
         PasswordHash newPasswordHash = PasswordHash.of(passwordEncoderPort.encode(command.newPassword()));

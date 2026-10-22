@@ -1,5 +1,8 @@
 package com.erp.auth.application.dto.command;
 
+import java.util.UUID;
+
 public record RefreshTokenCommand(
-        String refreshToken
+        String refreshToken,
+        UUID tenantId
 ) {}

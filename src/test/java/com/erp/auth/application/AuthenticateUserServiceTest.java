@@ -47,6 +47,7 @@ class AuthenticateUserServiceTest {
     private TokenSignerPort tokenSignerPort;
 
     private AuthenticateUserService authenticateUserService;
+    private TenantId tenantId;
 
     private User sampleUser;
     private final String rawPassword = "SecurePassword123!";
@@ -62,7 +63,7 @@ class AuthenticateUserServiceTest {
                 Duration.ofMinutes(15)
         );
 
-        TenantId tenantId = TenantId.generate();
+        tenantId = TenantId.generate();
         Email email = Email.of("admin@taller.pe");
         PasswordHash passwordHash = PasswordHash.of("$2a$12$hashedPasswordExample");
         Role role = Role.create(RoleCode.ADMIN_TALLER, "Administrador");
@@ -73,9 +74,9 @@ class AuthenticateUserServiceTest {
     @Test
     @DisplayName("Debe autenticar exitosamente y retornar Access Token y Refresh Token")
     void shouldAuthenticateSuccessfully() {
-        LoginCommand command = new LoginCommand("admin@taller.pe", rawPassword, null);
+        LoginCommand command = new LoginCommand("admin@taller.pe", rawPassword, tenantId.getValue());
 
-        when(userRepositoryPort.findByEmail(Email.of("admin@taller.pe"))).thenReturn(Optional.of(sampleUser));
+        when(userRepositoryPort.findByEmailAndTenantId(Email.of("admin@taller.pe"), tenantId)).thenReturn(Optional.of(sampleUser));
         when(passwordEncoderPort.matches(rawPassword, sampleUser.getPasswordHash().getValue())).thenReturn(true);
         when(tokenSignerPort.generateAccessToken(sampleUser)).thenReturn("eyJhbGciOiJSUzI1NiJ9.mockToken");
         when(tokenSignerPort.generateRandomTokenString()).thenReturn("mockRefreshTokenRaw");
@@ -99,9 +100,9 @@ class AuthenticateUserServiceTest {
     @Test
     @DisplayName("Debe incrementar intentos fallidos y lanzar InvalidCredentialsException con password incorrecto")
     void shouldFailAndIncrementAttemptsOnWrongPassword() {
-        LoginCommand command = new LoginCommand("admin@taller.pe", "WrongPassword", null);
+        LoginCommand command = new LoginCommand("admin@taller.pe", "WrongPassword", tenantId.getValue());
 
-        when(userRepositoryPort.findByEmail(Email.of("admin@taller.pe"))).thenReturn(Optional.of(sampleUser));
+        when(userRepositoryPort.findByEmailAndTenantId(Email.of("admin@taller.pe"), tenantId)).thenReturn(Optional.of(sampleUser));
         when(passwordEncoderPort.matches("WrongPassword", sampleUser.getPasswordHash().getValue())).thenReturn(false);
 
         assertThrows(InvalidCredentialsException.class, () -> authenticateUserService.authenticate(command));
@@ -113,9 +114,9 @@ class AuthenticateUserServiceTest {
     @DisplayName("Debe lanzar AccountLockedException cuando la cuenta está bloqueada")
     void shouldThrowAccountLockedWhenAlreadyLocked() {
         sampleUser.recordFailedAttempt(1, Duration.ofMinutes(15));
-        LoginCommand command = new LoginCommand("admin@taller.pe", rawPassword, null);
+        LoginCommand command = new LoginCommand("admin@taller.pe", rawPassword, tenantId.getValue());
 
-        when(userRepositoryPort.findByEmail(Email.of("admin@taller.pe"))).thenReturn(Optional.of(sampleUser));
+        when(userRepositoryPort.findByEmailAndTenantId(Email.of("admin@taller.pe"), tenantId)).thenReturn(Optional.of(sampleUser));
 
         assertThrows(AccountLockedException.class, () -> authenticateUserService.authenticate(command));
         verify(passwordEncoderPort, never()).matches(any(), any());

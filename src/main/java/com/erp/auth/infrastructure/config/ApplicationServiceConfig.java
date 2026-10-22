@@ -3,6 +3,7 @@ package com.erp.auth.infrastructure.config;
 import com.erp.auth.application.service.AuthenticateUserService;
 import com.erp.auth.application.service.PasswordResetService;
 import com.erp.auth.application.service.RefreshTokenService;
+import com.erp.auth.application.service.ListTenantUsersService;
 import com.erp.auth.application.service.RegisterUserService;
 import com.erp.auth.domain.port.PasswordEncoderPort;
 import com.erp.auth.domain.port.PasswordResetTokenRepositoryPort;
@@ -59,6 +60,12 @@ public class ApplicationServiceConfig {
                 roleRepositoryPort,
                 passwordEncoderPort
         );
+    }
+
+    @Bean
+    public ListTenantUsersService listTenantUsersService(
+            UserRepositoryPort userRepositoryPort) {
+        return new ListTenantUsersService(userRepositoryPort);
     }
 
     @Bean

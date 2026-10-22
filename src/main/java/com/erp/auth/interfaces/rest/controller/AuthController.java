@@ -9,6 +9,7 @@ import com.erp.auth.application.usecase.AuthenticateUserUseCase;
 import com.erp.auth.application.usecase.PasswordResetUseCase;
 import com.erp.auth.application.usecase.RefreshTokenUseCase;
 import com.erp.auth.application.usecase.RevokeTokenUseCase;
+import com.erp.auth.infrastructure.persistence.rls.TenantContextScope;
 import com.erp.auth.interfaces.rest.dto.request.ForgotPasswordRequest;
 import com.erp.auth.interfaces.rest.dto.request.LoginRequest;
 import com.erp.auth.interfaces.rest.dto.request.RefreshTokenRequest;
@@ -49,7 +50,10 @@ public class AuthController {
     @Operation(summary = "Iniciar sesión", description = "Valida credenciales, aplica control de fuerza bruta y emite Access Token (JWT 15m) + Refresh Token")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginCommand command = new LoginCommand(request.email(), request.password(), request.tenantId());
-        AuthResult result = authenticateUserUseCase.authenticate(command);
+        AuthResult result;
+        try (TenantContextScope scope = TenantContextScope.forTenant(request.tenantId())) {
+            result = authenticateUserUseCase.authenticate(command);
+        }
 
         return ResponseEntity.ok(new AuthResponse(
                 result.accessToken(),
@@ -67,8 +71,11 @@ public class AuthController {
     @PostMapping("/refresh")
     @Operation(summary = "Rotar Refresh Token", description = "Invalida el token de actualización previo y emite un nuevo par Access Token + Refresh Token")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
-        RefreshTokenCommand command = new RefreshTokenCommand(request.refreshToken());
-        AuthResult result = refreshTokenUseCase.refreshToken(command);
+        RefreshTokenCommand command = new RefreshTokenCommand(request.refreshToken(), request.tenantId());
+        AuthResult result;
+        try (TenantContextScope scope = TenantContextScope.forTenant(request.tenantId())) {
+            result = refreshTokenUseCase.refreshToken(command);
+        }
 
         return ResponseEntity.ok(new AuthResponse(
                 result.accessToken(),
@@ -86,21 +93,28 @@ public class AuthController {
     @PostMapping("/logout")
     @Operation(summary = "Cerrar sesión", description = "Revoca el Refresh Token activo")
     public ResponseEntity<MessageResponse> logout(@Valid @RequestBody RefreshTokenRequest request) {
-        revokeTokenUseCase.revokeToken(request.refreshToken());
+        try (TenantContextScope scope = TenantContextScope.forTenant(request.tenantId())) {
+            revokeTokenUseCase.revokeToken(request.refreshToken());
+        }
         return ResponseEntity.ok(MessageResponse.of("Sesión cerrada exitosamente"));
     }
 
     @PostMapping("/forgot-password")
     @Operation(summary = "Solicitar recuperación de contraseña", description = "Genera un token seguro de un solo uso con vigencia de 30 minutos")
     public ResponseEntity<MessageResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        passwordResetUseCase.requestPasswordReset(new ForgotPasswordCommand(request.email()));
+        try (TenantContextScope scope = TenantContextScope.forTenant(request.tenantId())) {
+            passwordResetUseCase.requestPasswordReset(new ForgotPasswordCommand(request.email(), request.tenantId()));
+        }
         return ResponseEntity.ok(MessageResponse.of("Si el correo está registrado, se ha enviado un enlace de recuperación"));
     }
 
     @PostMapping("/reset-password")
     @Operation(summary = "Restablecer contraseña", description = "Aplica nueva contraseña con el token de recuperación y revoca sesiones previas")
     public ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        passwordResetUseCase.resetPassword(new ResetPasswordCommand(request.token(), request.newPassword()));
+        try (TenantContextScope scope = TenantContextScope.forTenant(request.tenantId())) {
+            passwordResetUseCase.resetPassword(
+                    new ResetPasswordCommand(request.token(), request.newPassword(), request.tenantId()));
+        }
         return ResponseEntity.ok(MessageResponse.of("Contraseña actualizada exitosamente"));
     }
 }

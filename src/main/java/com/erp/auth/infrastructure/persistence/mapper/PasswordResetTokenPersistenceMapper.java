@@ -12,6 +12,7 @@ public final class PasswordResetTokenPersistenceMapper {
         return new PasswordResetToken(
                 entity.getId(),
                 entity.getUserId(),
+                entity.getTenantId(),
                 entity.getTokenHash(),
                 entity.getExpiresAt(),
                 entity.getUsedAt(),
@@ -24,6 +25,7 @@ public final class PasswordResetTokenPersistenceMapper {
         return new PasswordResetTokenJpaEntity(
                 domain.getId(),
                 domain.getUserId(),
+                domain.getTenantId(),
                 domain.getTokenHash(),
                 domain.getExpiresAt(),
                 domain.getUsedAt(),
