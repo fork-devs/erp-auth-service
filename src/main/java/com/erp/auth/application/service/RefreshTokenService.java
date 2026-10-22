@@ -1,6 +1,7 @@
 package com.erp.auth.application.service;
 
 import com.erp.auth.application.dto.command.RefreshTokenCommand;
+import com.erp.auth.application.logging.AuthEventLogger;
 import com.erp.auth.application.dto.result.AuthResult;
 import com.erp.auth.application.usecase.RefreshTokenUseCase;
 import com.erp.auth.application.usecase.RevokeTokenUseCase;
@@ -18,6 +19,7 @@ import com.erp.auth.domain.port.UserRepositoryPort;
 import com.erp.auth.domain.valueobject.TenantId;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -100,6 +102,8 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
                     .map(r -> r.getCode().name())
                     .collect(Collectors.toSet());
 
+            AuthEventLogger.registrar("token_refresco_rotado", user.getTenantId().getValue(), user.getId(), null,
+                    "ok", Map.of());
             return new AuthResult(
                     newAccessToken,
                     tokenSignerPort.extractTokenId(newAccessToken),

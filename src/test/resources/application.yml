@@ -26,6 +26,35 @@ erp:
       # El material de firma lo inyecta TestKeyMaterial, que lo registra como
       # propiedad dinamica: el servicio ya no acepta claves en memoria, y el
       # identificador se deriva del material.
+    mfa:
+      # Clave de test. No es un secreto: solo se usa en la suite.
+      encryption-key: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
     rate-limit:
       max-failed-attempts: 5
       lock-duration-minutes: 15
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      group:
+        # La disponibilidad comprueba tambien la base de datos: un servicio
+        # con el pool de conexiones roto esta vivo, pero no sirve de nada.
+        readiness:
+          include: readinessState,database
+        liveness:
+          include: livenessState
+  health:
+    db:
+      enabled: true
+    readiness:
+      state:
+        enabled: true
+    liveness:
+      state:
+        enabled: true

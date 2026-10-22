@@ -60,6 +60,17 @@
             <artifactId>nimbus-jose-jwt</artifactId>
             <version>9.40</version>
         </dependency>
+        <!--
+            Verificacion de codigos de un solo uso temporizados (TOTP), el
+            estandar que usan las aplicaciones autenticadoras. La eleccion es
+            una biblioteca ya auditada en lugar de una implementacion propia
+            del algoritmo.
+        -->
+        <dependency>
+            <groupId>com.warrenstrange</groupId>
+            <artifactId>googleauth</artifactId>
+            <version>1.5.0</version>
+        </dependency>
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
@@ -70,6 +81,16 @@
             <artifactId>spring-boot-docker-compose</artifactId>
             <scope>runtime</scope>
             <optional>true</optional>
+        </dependency>
+        <!--
+            Salud y disponibilidad del servicio. Sin esto no hay forma de
+            saber si el servicio responde, ni si su base de datos es
+            alcanzable, que es lo que necesita un orquestador para decidir
+            si le envia peticiones.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>

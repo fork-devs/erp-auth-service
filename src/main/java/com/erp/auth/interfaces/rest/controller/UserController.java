@@ -2,6 +2,8 @@ package com.erp.auth.interfaces.rest.controller;
 
 import com.erp.auth.application.dto.command.RegisterUserCommand;
 import com.erp.auth.application.dto.result.UserResult;
+import com.erp.auth.application.usecase.ConfirmSecondFactorEnrollmentUseCase;
+import com.erp.auth.application.usecase.EnrollSecondFactorUseCase;
 import com.erp.auth.application.usecase.GetUserProfileUseCase;
 import com.erp.auth.application.usecase.ListTenantUsersUseCase;
 import com.erp.auth.application.usecase.RegisterUserUseCase;
@@ -10,6 +12,8 @@ import com.erp.auth.domain.model.RoleCode;
 import com.erp.auth.domain.valueobject.TenantId;
 import com.erp.auth.infrastructure.persistence.rls.TenantContextHolder;
 import com.erp.auth.interfaces.rest.dto.request.RegisterUserRequest;
+import com.erp.auth.interfaces.rest.dto.request.SecondFactorRequest;
+import com.erp.auth.interfaces.rest.dto.response.MessageResponse;
 import com.erp.auth.interfaces.rest.dto.response.UserResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -40,14 +44,49 @@ public class UserController {
     private final RegisterUserUseCase registerUserUseCase;
     private final GetUserProfileUseCase getUserProfileUseCase;
     private final ListTenantUsersUseCase listTenantUsersUseCase;
+    private final EnrollSecondFactorUseCase enrollSecondFactorUseCase;
+    private final ConfirmSecondFactorEnrollmentUseCase confirmSecondFactorEnrollmentUseCase;
 
     public UserController(
             RegisterUserUseCase registerUserUseCase,
             GetUserProfileUseCase getUserProfileUseCase,
-            ListTenantUsersUseCase listTenantUsersUseCase) {
+            ListTenantUsersUseCase listTenantUsersUseCase,
+            EnrollSecondFactorUseCase enrollSecondFactorUseCase,
+            ConfirmSecondFactorEnrollmentUseCase confirmSecondFactorEnrollmentUseCase) {
         this.registerUserUseCase = registerUserUseCase;
         this.getUserProfileUseCase = getUserProfileUseCase;
         this.listTenantUsersUseCase = listTenantUsersUseCase;
+        this.enrollSecondFactorUseCase = enrollSecondFactorUseCase;
+        this.confirmSecondFactorEnrollmentUseCase = confirmSecondFactorEnrollmentUseCase;
+    }
+
+    @PostMapping("/me/second-factor")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER', 'ASESOR', 'MECANICO')")
+    @Operation(summary = "Enrolar el segundo factor de autenticacion",
+            description = "Genera el secreto y los codigos de recuperacion, y los entrega por el canal de "
+                    + "notificacion. La respuesta NO contiene el secreto ni los codigos: son credenciales.")
+    public ResponseEntity<MessageResponse> enrollSecondFactor(Authentication authentication) {
+        UUID userId = usuarioAutenticado(authentication);
+        TenantId tenantId = tenantIdFromContext();
+
+        enrollSecondFactorUseCase.enroll(userId, tenantId.getValue());
+
+        return ResponseEntity.ok(MessageResponse.of(
+                "Se ha enviado el secreto y los codigos de recuperacion por el canal de notificacion"));
+    }
+
+    @PostMapping("/me/second-factor/confirm")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER', 'ASESOR', 'MECANICO')")
+    @Operation(summary = "Confirmar el enrolamiento del segundo factor",
+            description = "Habilita el segundo factor cuando el codigo es valido")
+    public ResponseEntity<MessageResponse> confirmSecondFactor(@Valid @RequestBody SecondFactorRequest request,
+                                                              Authentication authentication) {
+        UUID userId = usuarioAutenticado(authentication);
+        TenantId tenantId = tenantIdFromContext();
+
+        confirmSecondFactorEnrollmentUseCase.confirm(userId, tenantId.getValue(), request.code());
+
+        return ResponseEntity.ok(MessageResponse.of("Segundo factor de autenticacion habilitado"));
     }
 
     @PostMapping
@@ -86,6 +125,7 @@ public class UserController {
     }
 
     @GetMapping("/me")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER', 'ASESOR', 'MECANICO')")
     @Operation(summary = "Perfil del usuario autenticado", description = "Retorna los datos del usuario correspondiente al token JWT actual")
     public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
@@ -121,6 +161,13 @@ public class UserController {
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(users);
+    }
+
+    /**
+     * Identificador del principal autenticado.
+     */
+    private UUID usuarioAutenticado(Authentication authentication) {
+        return UUID.fromString(authentication.getName());
     }
 
     private TenantId tenantIdFromContext() {

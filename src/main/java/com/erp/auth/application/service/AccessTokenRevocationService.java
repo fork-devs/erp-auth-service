@@ -1,5 +1,6 @@
 package com.erp.auth.application.service;
 
+import com.erp.auth.application.logging.AuthEventLogger;
 import com.erp.auth.application.usecase.RevokeAccessTokenUseCase;
 import com.erp.auth.domain.model.TokenIdentity;
 import com.erp.auth.domain.port.RevokedTokenRepositoryPort;
@@ -7,6 +8,8 @@ import com.erp.auth.domain.port.TokenSignerPort;
 import com.erp.auth.domain.port.UnitOfWork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 /**
  * Revocacion de tokens de acceso.
@@ -52,6 +55,7 @@ public class AccessTokenRevocationService implements RevokeAccessTokenUseCase {
         unitOfWork.runInTransaction(() ->
                 revokedTokenRepositoryPort.revoke(identity.tokenId(), identity.userId(), identity.expiresAt()));
 
+        AuthEventLogger.registrar("token_acceso_revocado", null, identity.userId(), null, "ok", Map.of());
         log.info("Token de acceso revocado para el usuario {}", identity.userId());
     }
 }

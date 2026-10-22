@@ -27,19 +27,34 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalRestExceptionHandler {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(GlobalRestExceptionHandler.class);
+
+    /**
+     * La cuenta bloqueada responde IGUAL que las credenciales invalidas.
+     *
+     * <p>La comprobacion del bloqueo ocurre ANTES que la de la contrasena, de
+     * modo que un atacante que solo conozca el correo de una victima
+     * distingue "esta bloqueada" de "no existe": eso es enumerar cuentas. La
+     * respuesta unificada cierra el vectors; el motivo real queda en el
+     * registro de eventos de autenticacion, que no ve el atacante.
+     */
     @ExceptionHandler(AccountLockedException.class)
     public ResponseEntity<ProblemDetail> handleAccountLocked(AccountLockedException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.LOCKED, ex.getMessage());
-        problem.setTitle("Cuenta Bloqueada");
-        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/account-locked"));
+        // La excepcion se registra con su traza, y la respuesta al cliente
+        // no cambia: el diagnostico va al registro, no al consumidor.
+        log.warn("Cuenta bloqueada: {}", ex.getMessage(), ex);
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+        problem.setTitle("Credenciales Inválidas");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/invalid-credentials"));
         problem.setProperty("errorCode", ex.getErrorCode());
-        problem.setProperty("lockedUntil", ex.getLockedUntil());
         problem.setProperty("timestamp", Instant.now());
-        return ResponseEntity.status(HttpStatus.LOCKED).body(problem);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ProblemDetail> handleInvalidCredentials(InvalidCredentialsException ex) {
+        log.info("Credenciales invalidas: {}", ex.getMessage());
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
         problem.setTitle("Credenciales Inválidas");
         problem.setType(URI.create("https://errors.erp-automotriz.com/auth/invalid-credentials"));
@@ -141,6 +156,10 @@ public class GlobalRestExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGeneralException(Exception ex) {
+        // La traza va al registro. Antes se perdia: el cliente recibia un
+        // error generico y nadie podia saber que habia ocurrido, ni por que.
+        log.error("Error no controlado: {}", ex.getMessage(), ex);
+
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Ha ocurrido un error interno en el servidor.");
         problem.setTitle("Error Interno");
         problem.setProperty("timestamp", Instant.now());
