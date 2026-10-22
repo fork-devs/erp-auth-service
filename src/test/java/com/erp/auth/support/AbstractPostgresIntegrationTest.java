@@ -31,5 +31,10 @@ public abstract class AbstractPostgresIntegrationTest {
 
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
         registry.add("spring.flyway.enabled", () -> "true");
+
+        // El material de firma persiste: el servicio lo lee de la fuente
+        // configurada y falla al arrancar si no esta.
+        registry.add("erp.security.jwt.private-key-pem", TestKeyMaterial::privateKeyPem);
+        registry.add("erp.security.jwt.public-key-pem", TestKeyMaterial::publicKeyPem);
     }
 }

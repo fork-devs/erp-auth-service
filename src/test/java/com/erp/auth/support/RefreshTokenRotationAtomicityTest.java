@@ -48,7 +48,7 @@ class RefreshTokenRotationAtomicityTest extends AbstractAuthAtomicityTest {
 
     private String tokenDeRefresco() {
         try (TenantContextScope scope = TenantContextScope.forTenant(TALLER)) {
-            String crudo = tokenSignerPort.generateRandomTokenString();
+            String crudo = tokenSignerPort.generateRefreshToken(usuario());
             String hash = tokenSignerPort.hashToken(crudo);
             unitOfWork.runInTransaction(() -> refreshTokenRepositoryPort.save(
                     RefreshToken.create(usuario().getId(), TALLER, hash, Instant.now().plusSeconds(3600))));

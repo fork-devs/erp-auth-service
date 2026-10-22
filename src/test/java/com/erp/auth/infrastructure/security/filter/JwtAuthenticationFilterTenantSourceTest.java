@@ -7,7 +7,9 @@ import com.erp.auth.domain.valueobject.Email;
 import com.erp.auth.domain.valueobject.PasswordHash;
 import com.erp.auth.domain.valueobject.TenantId;
 import com.erp.auth.infrastructure.persistence.rls.TenantContextHolder;
+import com.erp.auth.domain.port.RevokedTokenRepositoryPort;
 import com.erp.auth.infrastructure.security.crypto.RsaKeyPairManager;
+import com.erp.auth.support.TestKeyMaterial;
 import com.erp.auth.infrastructure.security.jwt.NimbusJwtTokenSignerAdapter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +18,8 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import static org.mockito.Mockito.mock;
 
 import java.util.Set;
 import java.util.UUID;
@@ -49,9 +53,13 @@ class JwtAuthenticationFilterTenantSourceTest {
 
     @BeforeEach
     void setUp() {
-        keyPairManager = new RsaKeyPairManager("erp-auth-key-test");
-        signer = new NimbusJwtTokenSignerAdapter(keyPairManager, "https://auth.test.erp", 15, 7, 30);
-        filter = new JwtAuthenticationFilter(keyPairManager);
+        // El material de firma persiste: se carga, no se genera.
+        keyPairManager = new RsaKeyPairManager(
+                TestKeyMaterial.privateKeyPem(), TestKeyMaterial.publicKeyPem(), "", "");
+        signer = new NimbusJwtTokenSignerAdapter(
+                keyPairManager, "https://auth.test.erp", "erp-api-gateway", 15, 7, 30);
+        filter = new JwtAuthenticationFilter(keyPairManager, mock(RevokedTokenRepositoryPort.class),
+                "https://auth.test.erp", "erp-api-gateway");
         TenantContextHolder.clear();
         SecurityContextHolder.clearContext();
     }

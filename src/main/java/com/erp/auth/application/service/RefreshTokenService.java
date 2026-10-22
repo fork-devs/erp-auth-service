@@ -88,7 +88,7 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
 
             // Generar nuevo Access Token y nuevo Refresh Token
             String newAccessToken = tokenSignerPort.generateAccessToken(user);
-            String newRawRefreshToken = tokenSignerPort.generateRandomTokenString();
+            String newRawRefreshToken = tokenSignerPort.generateRefreshToken(user);
             String newRefreshTokenHash = tokenSignerPort.hashToken(newRawRefreshToken);
             Instant newRefreshTokenExpiry = Instant.now().plus(tokenSignerPort.getRefreshTokenDuration());
 
@@ -102,6 +102,7 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
 
             return new AuthResult(
                     newAccessToken,
+                    tokenSignerPort.extractTokenId(newAccessToken),
                     newRawRefreshToken,
                     "Bearer",
                     tokenSignerPort.getAccessTokenDuration().toSeconds(),

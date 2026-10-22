@@ -8,6 +8,7 @@ import com.erp.auth.application.dto.result.AuthResult;
 import com.erp.auth.application.usecase.AuthenticateUserUseCase;
 import com.erp.auth.application.usecase.PasswordResetUseCase;
 import com.erp.auth.application.usecase.RefreshTokenUseCase;
+import com.erp.auth.application.usecase.RevokeAccessTokenUseCase;
 import com.erp.auth.application.usecase.RevokeTokenUseCase;
 import com.erp.auth.infrastructure.persistence.rls.TenantContextScope;
 import com.erp.auth.interfaces.rest.dto.request.ForgotPasswordRequest;
@@ -19,9 +20,11 @@ import com.erp.auth.interfaces.rest.dto.response.MessageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,16 +35,19 @@ public class AuthController {
 
     private final AuthenticateUserUseCase authenticateUserUseCase;
     private final RefreshTokenUseCase refreshTokenUseCase;
+    private final RevokeAccessTokenUseCase revokeAccessTokenUseCase;
     private final RevokeTokenUseCase revokeTokenUseCase;
     private final PasswordResetUseCase passwordResetUseCase;
 
     public AuthController(
             AuthenticateUserUseCase authenticateUserUseCase,
             RefreshTokenUseCase refreshTokenUseCase,
+            RevokeAccessTokenUseCase revokeAccessTokenUseCase,
             RevokeTokenUseCase revokeTokenUseCase,
             PasswordResetUseCase passwordResetUseCase) {
         this.authenticateUserUseCase = authenticateUserUseCase;
         this.refreshTokenUseCase = refreshTokenUseCase;
+        this.revokeAccessTokenUseCase = revokeAccessTokenUseCase;
         this.revokeTokenUseCase = revokeTokenUseCase;
         this.passwordResetUseCase = passwordResetUseCase;
     }
@@ -57,6 +63,7 @@ public class AuthController {
 
         return ResponseEntity.ok(new AuthResponse(
                 result.accessToken(),
+                result.accessTokenId(),
                 result.refreshToken(),
                 result.tokenType(),
                 result.expiresInSeconds(),
@@ -79,6 +86,7 @@ public class AuthController {
 
         return ResponseEntity.ok(new AuthResponse(
                 result.accessToken(),
+                result.accessTokenId(),
                 result.refreshToken(),
                 result.tokenType(),
                 result.expiresInSeconds(),
@@ -91,11 +99,21 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "Cerrar sesión", description = "Revoca el Refresh Token activo")
-    public ResponseEntity<MessageResponse> logout(@Valid @RequestBody RefreshTokenRequest request) {
+    @Operation(summary = "Cerrar sesión", description = "Revoca el Access Token presentado y el Refresh Token activo")
+    public ResponseEntity<MessageResponse> logout(
+            @Valid @RequestBody RefreshTokenRequest request,
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization) {
         try (TenantContextScope scope = TenantContextScope.forTenant(request.tenantId())) {
             revokeTokenUseCase.revokeToken(request.refreshToken());
         }
+
+        // El token de acceso viaja en la cabecera Authorization. Es el que
+        // se presenta en cada peticion, y revocar solo el token de refresco
+        // dejaba viva la credencial hasta que expirara.
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            revokeAccessTokenUseCase.revokeAccessToken(authorization.substring(7).trim());
+        }
+
         return ResponseEntity.ok(MessageResponse.of("Sesión cerrada exitosamente"));
     }
 

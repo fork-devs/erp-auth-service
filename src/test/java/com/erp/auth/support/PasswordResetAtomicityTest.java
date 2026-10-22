@@ -49,7 +49,7 @@ class PasswordResetAtomicityTest extends AbstractAuthAtomicityTest {
 
     private String tokenDeRestablecimiento() {
         try (TenantContextScope scope = TenantContextScope.forTenant(TALLER)) {
-            String crudo = tokenSignerPort.generateRandomTokenString();
+            String crudo = tokenSignerPort.generatePasswordResetToken(usuario().getId());
             String hash = tokenSignerPort.hashToken(crudo);
             unitOfWork.runInTransaction(() -> passwordResetTokenRepositoryPort.save(
                     PasswordResetToken.create(usuario().getId(), TALLER, hash, Instant.now().plusSeconds(3600))));

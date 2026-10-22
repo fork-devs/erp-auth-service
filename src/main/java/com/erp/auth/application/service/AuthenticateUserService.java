@@ -108,7 +108,7 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
             String accessToken = tokenSignerPort.generateAccessToken(user);
 
             // Generar Refresh Token con hash criptografico
-            String rawRefreshToken = tokenSignerPort.generateRandomTokenString();
+            String rawRefreshToken = tokenSignerPort.generateRefreshToken(user);
             String refreshTokenHash = tokenSignerPort.hashToken(rawRefreshToken);
             Instant refreshTokenExpiry = Instant.now().plus(tokenSignerPort.getRefreshTokenDuration());
 
@@ -122,6 +122,7 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
 
             return new AuthResult(
                     accessToken,
+                    tokenSignerPort.extractTokenId(accessToken),
                     rawRefreshToken,
                     "Bearer",
                     tokenSignerPort.getAccessTokenDuration().toSeconds(),

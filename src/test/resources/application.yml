@@ -18,10 +18,14 @@ erp:
   security:
     jwt:
       issuer: https://auth.test.erp-automotriz.com
+      # Audiencia para la que se emiten los tokens.
+      audience: erp-api-gateway
       access-token-expiration-minutes: 15
       refresh-token-expiration-days: 7
       password-reset-token-expiration-minutes: 30
-      key-id: test-auth-key-v1
+      # El material de firma lo inyecta TestKeyMaterial, que lo registra como
+      # propiedad dinamica: el servicio ya no acepta claves en memoria, y el
+      # identificador se deriva del material.
     rate-limit:
       max-failed-attempts: 5
       lock-duration-minutes: 15
