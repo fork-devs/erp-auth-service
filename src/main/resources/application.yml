@@ -1,5 +1,6 @@
 server:
   port: ${SERVER_PORT:8081}
+  forward-headers-strategy: framework
   servlet:
     context-path: /
 
@@ -114,6 +115,8 @@ management:
       # dice "OK" y no dice de que.
       show-details: always
       show-components: always
+      probes:
+        enabled: true
       group:
         # La disponibilidad comprueba tambien la base de datos: un servicio
         # con el pool de conexiones roto esta vivo, pero no sirve de nada.
