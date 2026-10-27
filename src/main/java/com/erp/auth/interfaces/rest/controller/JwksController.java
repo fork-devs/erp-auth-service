@@ -3,6 +3,7 @@ package com.erp.auth.interfaces.rest.controller;
 import com.erp.auth.domain.port.TokenSignerPort;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,7 @@ public class JwksController {
         this(tokenSignerPort, "https://auth.erp-automotriz.com");
     }
 
+    @Autowired
     public JwksController(TokenSignerPort tokenSignerPort,
                           @Value("${erp.auth.jwt.issuer:https://auth.erp-automotriz.com}") String issuer) {
         this.tokenSignerPort = tokenSignerPort;
