@@ -19,6 +19,10 @@ public class JwksController {
     private final TokenSignerPort tokenSignerPort;
     private final String issuer;
 
+    public JwksController(TokenSignerPort tokenSignerPort) {
+        this(tokenSignerPort, "https://auth.erp-automotriz.com");
+    }
+
     public JwksController(TokenSignerPort tokenSignerPort,
                           @Value("${erp.auth.jwt.issuer:https://auth.erp-automotriz.com}") String issuer) {
         this.tokenSignerPort = tokenSignerPort;
