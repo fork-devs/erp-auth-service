@@ -12,14 +12,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * El servicio expone su salud y su disponibilidad, con el detalle de los
- * componentes verificados.
+ * The service exposes health and readiness probes, detailing the status
+ * of verified components.
  *
- * <p>Sin esto, un orquestador no tiene forma de saber si el servicio
- * responde, ni si su base de datos es alcanzable, que es justo lo que
- * necesita para decidir si le envia peticiones.
- *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P1 6.12.
+ * <p>Without these endpoints, an orchestrator cannot determine whether the
+ * service is responding or if its database is reachable to route traffic properly.
  */
 @SpringBootTest
 @AutoConfigureMockMvc

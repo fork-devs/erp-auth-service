@@ -8,12 +8,10 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Identidad de una asignacion de rol: (user_id, role_id, tenant_id).
+ * Composite identifier for a user role assignment: (user_id, role_id, tenant_id).
  *
- * <p>La tabla {@code user_roles} tiene clave primaria compuesta por las tres
- * columnas, de modo que no puede representarse con una clave simple. Se
- * declara como clave embebida y no como clase de identificadores porque las
- * columnas son valores simples y no asociaciones.
+ * <p>The {@code user_roles} table primary key spans all three columns, reflecting
+ * the tenant-scoped role assignment model.
  */
 @Embeddable
 public class UserRoleId implements Serializable {

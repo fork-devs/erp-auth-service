@@ -6,54 +6,69 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Persistencia del segundo factor: el secreto enrolado y los codigos de
- * recuperacion.
+ * Persistence for two-factor authentication: enrolled secrets and recovery codes.
  *
- * <p>El puerto trabaja con el secreto en claro: la capa de aplicacion no
- * sabe como se cifra, y el cifrado es cosa de la infraestructura, que es
- * quien sabe encriptarlo. El puerto no expone ni la clave ni el algoritmo.
+ * <p>The port interface operates on plaintext secrets: the application layer
+ * remains agnostic of encryption details, while the infrastructure layer handles
+ * transparent encryption and decryption without exposing keys or algorithms.
  */
 public interface SecondFactorRepositoryPort {
 
     /**
-     * Guarda el secreto enrolado. Quien lo guarda es quien lo cifra.
+     * Stores the enrolled secret. The persistence adapter encrypts the value before storage.
+     *
+     * @param userId the user identifier
+     * @param secret the plaintext secret
      */
     void storeSecret(UUID userId, String secret);
 
     /**
-     * Secreto enrolado, en claro. Vacio si el usuario no ha enrolado el
-     * segundo factor.
+     * Retrieves the enrolled secret in plaintext. Returns empty if the user has not enrolled 2FA.
+     *
+     * @param userId the user identifier
+     * @return the plaintext secret, or empty if absent
      */
     Optional<String> findSecret(UUID userId);
 
     /**
-     * Guarda los codigos de recuperacion, hasheados. Un codigo de
-     * recuperacion es una credencial: se guarda su hash, nunca el valor.
+     * Stores hashed recovery codes. Recovery codes are credentials: only hashes are stored.
+     *
+     * @param userId the user identifier
+     * @param hashedCodes list of hashed recovery codes
+     * @param expiresAt expiration timestamp
      */
     void storeRecoveryCodes(UUID userId, List<String> hashedCodes, Instant expiresAt);
 
     /**
-     * Consume un codigo de recuperacion: lo marca como usado en el mismo
-     * momento, de modo que no pueda usarse dos veces.
+     * Consumes a recovery code by marking it as used immediately to prevent reuse.
      *
-     * @return el codigo consumido, si existia y no habia sido usado
+     * @param userId the user identifier
+     * @param hashedCode the hashed recovery code to consume
+     * @return the consumed recovery code, or empty if nonexistent or already consumed
      */
     Optional<RecoveryCode> consumeRecoveryCode(UUID userId, String hashedCode);
 
     /**
-     * Contador del ultimo codigo aceptado por el usuario. Vacio si todavia
-     * no ha aceptado ninguno.
+     * Retrieves the counter of the last accepted time-step for the user.
+     *
+     * @param userId the user identifier
+     * @return the last accepted counter, or empty if none recorded
      */
     Optional<Long> findLastAcceptedCounter(UUID userId);
 
     /**
-     * Registra el contador del codigo que acaba de aceptarse, de modo que el
-     * mismo codigo no pueda usarse otra vez.
+     * Records the accepted time-step counter to prevent replay of the same code.
+     *
+     * @param userId the user identifier
+     * @param counter the time-step counter
      */
     void recordAcceptedCounter(UUID userId, long counter);
 
     /**
-     * Un codigo de recuperacion consumido.
+     * Represents a consumed recovery code.
+     *
+     * @param id recovery code entity identifier
+     * @param expiresAt expiration timestamp
      */
     record RecoveryCode(UUID id, Instant expiresAt) {
     }

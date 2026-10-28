@@ -12,13 +12,13 @@ import java.sql.Statement;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * El arranque contra PostgreSQL real tiene que FALLAR cuando el esquema no
- * coincide con el que espera el codigo.
+ * Startup against real PostgreSQL must FAIL when the database schema does not match
+ * what the JPA mapping expects.
  *
- * <p>Con el perfil de test anterior (H2 con create-drop) el esquema se
- * derivaba de las entidades, de modo que una migracion alterada nunca se
- * detectaba. Este test comprueba que, con las migraciones aplicadas y el
- * esquema validado, una alteracion deliberada impide el arranque.
+ * <p>With the previous test profile (H2 with create-drop), schema was derived from
+ * entities, leaving schema drift and migration bugs undetectable. This test confirms
+ * that with migrations applied and hibernate schema validation active, an intentional
+ * column rename prevents startup.
  */
 class SchemaDriftDetectionTest extends AbstractPostgresIntegrationTest {
 
@@ -28,13 +28,11 @@ class SchemaDriftDetectionTest extends AbstractPostgresIntegrationTest {
         String usuario = EmbeddedPostgresSupport.ownerUser();
         String password = EmbeddedPostgresSupport.ownerPassword();
 
-        // Se altera el esquema de forma deliberada: la migracion declara
-        // tenant_id NOT NULL y el codigo lo espera, pero la columna se
-        // renombra, con lo que la validacion de esquema debe fallar.
+        // Deliberately drift the schema: the migration declares tenant_id NOT NULL
+        // and JPA entities expect it, but renaming it forces schema validation to fail.
         //
-        // La base embebida es compartida por toda la suite, de modo que la
-        // alteracion se revierte al terminar: de lo contrario, el resto de
-        // los tests se ejecutaria contra un esquema alterado.
+        // The embedded database is shared across the suite, so changes are reverted
+        // in a finally block to avoid polluting subsequent tests.
         try (Connection connection = java.sql.DriverManager.getConnection(url, usuario, password);
              Statement statement = connection.createStatement()) {
             statement.execute("ALTER TABLE users RENAME COLUMN tenant_id TO tenant_id_alterada");

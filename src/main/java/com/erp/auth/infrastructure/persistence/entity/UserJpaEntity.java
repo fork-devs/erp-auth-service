@@ -26,12 +26,12 @@ public class UserJpaEntity {
     private UUID tenantId;
 
     /**
-     * El correo NO es unico de forma global: lo unico es el par (taller,
-     * correo). El indice compuesto lo impone la migracion V10.
+     * Email is unique per tenant, not globally: uniqueness is defined by the composite
+     * key (tenant_id, email), enforced by Flyway migration V10.
      *
-     * <p>Con la unicidad global, un taller no podia registrar a su propio
-     * empleado con el mismo correo que tiene en otro taller, y el conflicto
-     * de unicidad permitia enumerar las cuentas de otros talleres.
+     * <p>With global uniqueness, a workshop could not register an employee using an email
+     * already registered in another workshop, and unique constraint violations leaked
+     * user enumeration across tenants.
      */
     @Column(nullable = false, length = 255)
     private String email;
@@ -46,24 +46,23 @@ public class UserJpaEntity {
     private Boolean mfaEnabled;
 
     /**
-     * Control de concurrencia optimista. Dos escrituras concurrentes sobre la
-     * misma fila no pueden ambas tener exito: la segunda recibe un conflicto
-     * explicito, en lugar de pisar a la primera.
+     * Optimistic locking version. Prevents concurrent writes from overwriting each other
+     * without detection.
      */
     @Version
     @Column(name = "version", nullable = false)
     private Long version;
 
     /**
-     * Secreto del segundo factor, CIFRADO. El texto plano no se guarda
-     * nunca: quien lo lea puede generar codigos validos.
+     * Encrypted second-factor secret. Plaintext is never stored in persistence to
+     * prevent unauthorized TOTP generation from database dumps.
      */
     @Column(name = "mfa_secret_ciphertext")
     private String mfaSecretCiphertext;
 
     /**
-     * Contador del ultimo codigo de segundo factor aceptado. Impide que un
-     * codigo se use dos veces dentro de su ventana de validez.
+     * Time-step counter of the last accepted TOTP code. Prevents replay attacks
+     * within the validity window.
      */
     @Column(name = "mfa_last_code_counter")
     private Long mfaLastCodeCounter;
@@ -78,16 +77,14 @@ public class UserJpaEntity {
     private Instant createdAt;
 
     /**
-     * Asignaciones de rol del usuario.
+     * Role assignments for the user.
      *
-     * <p>La tabla user_roles tiene clave primaria compuesta (user_id, role_id,
-     * tenant_id), de modo que no puede representarse con una @ManyToMany: su
-     * @JoinTable solo admite dos claves foraneas y la columna tenant_id nunca
-     * se escribia. Se declara como una coleccion de la entidad de asignacion.
+     * <p>The {@code user_roles} table uses a composite primary key (user_id, role_id, tenant_id),
+     * which cannot be mapped via simple {@code @ManyToMany} because {@code @JoinTable} cannot
+     * populate the additional {@code tenant_id} column required by multi-tenant RLS.
      *
-     * <p>La columna user_id no se escribe desde aqui porque forma parte de la
-     * clave embebida de UserRoleJpaEntity: Hibernate escribirla dos veces
-     * produciria un INSERT con la misma columna duplicada.
+     * <p>The {@code user_id} column is marked read-only on this mapping because it is already
+     * managed by the embedded identifier in {@link UserRoleJpaEntity}.
      */
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", insertable = false, updatable = false)

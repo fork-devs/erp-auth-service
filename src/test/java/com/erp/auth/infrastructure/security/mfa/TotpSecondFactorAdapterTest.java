@@ -14,12 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * La verificacion del segundo factor.
+ * Second-factor authentication verification test suite.
  *
- * <p>Un codigo se acepta dentro de su intervalo y en el siguiente, para que
- * un reloj de usuario desajustado no impida entrar. Fuera de esa ventana se
- * rechaza: una tolerancia amplia permitiria que un codigo capturado se
- * usara varias veces.
+ * <p>Codes are accepted within their time step window and adjacent interval (+/- 1 time step)
+ * to accommodate user clock drift. Codes outside this window are rejected to prevent replay attacks.
  */
 class TotpSecondFactorAdapterTest {
 
@@ -63,7 +61,7 @@ class TotpSecondFactorAdapterTest {
         Instant instante = Instant.ofEpochSecond(1_700_000_000L);
         String codigo = codigoEn(instante);
 
-        // Dos intervalos despues, el codigo ya no vale.
+        // Two intervals later, code is no longer valid.
         Instant dosIntervalosDespues = instante.plusMillis(2 * INTERVAL_MILLIS);
 
         assertFalse(adapter.verify(secret, codigo, dosIntervalosDespues).isPresent(),

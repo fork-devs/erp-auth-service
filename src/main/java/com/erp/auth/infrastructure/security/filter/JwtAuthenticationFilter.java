@@ -42,10 +42,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * El emisor y la audiencia se comprueban contra los valores
-     * configurados. Un token correctamente firmado pero emitido para otro
-     * emisor, o para otra audiencia, se rechaza: la firma demuestra que lo
-     * emitio alguien con la clave, no que sea para este servicio.
+     * Validates that token issuer and audience match service configuration.
+     * Tokens signed by this key but issued for different issuers or audiences
+     * are rejected.
      */
     private boolean emisorYAudienciaCorrectos(SignedJWT signedJWT) {
         try {
@@ -83,19 +82,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         String tenantIdClaim = (String) signedJWT.getJWTClaimsSet().getClaim("tenant_id");
                         List<?> rolesList = (List<?>) signedJWT.getJWTClaimsSet().getClaim("roles");
 
-                        // Un token sin roles NO se acepta con un rol por
-                        // defecto: se rechaza. Asignar un rol que el token no
-                        // declara es concede un privilegio que nadie ha
-                        // awarding.
+                        // Tokens without roles are rejected rather than granted a default role,
+                        // preventing unintended privilege assignment.
                         if (rolesList == null || rolesList.isEmpty()) {
                             response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
                                     "El token no declara roles");
                             return;
                         }
 
-                        // Un token revocado se rechaza aunque su expiracion no
-                        // haya vencido: cerrar la sesion tiene que invalidar
-                        // la credencial, no solo el token de refresco.
+                        // Revoked tokens are rejected even if unexpired: session termination
+                        // must immediately invalidate access tokens.
                         String tokenId = signedJWT.getJWTClaimsSet().getJWTID();
                         if (tokenId != null && revokedTokenRepositoryPort.isRevoked(UUID.fromString(tokenId))) {
                             response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
@@ -109,10 +105,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             } catch (IllegalArgumentException ignored) {}
                         }
 
-                        // La cabecera X-Tenant-ID es una pista, nunca una
-                        // autoridad: si viene, se contrasta con el tenant del
-                        // token y la peticion se rechaza cuando no coinciden.
-                        // Ver docs/doc-estado-implementacion.md, hallazgo P0 5.2.
+                        // X-Tenant-ID header is advisory, never authoritative: when provided,
+                        // it must match the tenant in the token claim or be rejected.
+                        // See docs/doc-estado-implementacion.md, finding P0 5.2.
                         if (tenantHeader != null && !tenantHeader.trim().isEmpty()) {
                             UUID requestedTenantId;
                             try {
@@ -142,7 +137,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     }
                 }
             } catch (Exception e) {
-                // Token inválido o corrupto, se continúa la cadena sin autenticar
+                // Invalid or malformed token; proceed through filter chain unauthenticated
             }
         }
 

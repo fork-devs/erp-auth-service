@@ -42,16 +42,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * El token de restablecimiento de contrasena llega a su destinatario, y no
- * a quien lo pide.
+ * Password reset tokens are delivered exclusively to the account owner via notification,
+ * never directly in the HTTP response.
  *
- * <p>El caso de uso devolvia el token y el controlador lo descartaba: el
- * token se generaba y se perdia. El flujo era, por tanto, inutilizable, y
- * la unica forma de hacer que funcionara era devolverlo en la respuesta,
- * con lo que cualquiera podria restablecer la contrasena de cualquier
- * cuenta.
- *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P1 6.21.
+ * <p>Returning tokens in the HTTP response would allow arbitrary users to reset
+ * passwords of other accounts.
  */
 class PasswordResetNotificationTest extends AbstractPostgresIntegrationTest {
 
@@ -66,7 +61,7 @@ class PasswordResetNotificationTest extends AbstractPostgresIntegrationTest {
     @Autowired
     private UserRepositoryPort userRepositoryPort;
 
-    /** Notificaciones entregadas durante el test. */
+    /** Notifications delivered during the test. */
     private List<NotificationMessage> entregadas;
 
     @Autowired
@@ -170,7 +165,7 @@ class PasswordResetNotificationTest extends AbstractPostgresIntegrationTest {
     }
 
     /**
-     * Controlador con un puerto de notificacion que registra lo entregado.
+     * Controller instance configured with an in-memory notification port that captures deliveries.
      */
     private MockMvc mockMvc() {
         NotificationPort registro = entregadas::add;

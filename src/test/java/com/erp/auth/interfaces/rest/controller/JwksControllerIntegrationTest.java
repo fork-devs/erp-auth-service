@@ -25,7 +25,7 @@ class JwksControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // El material de firma persiste: se carga, no se genera.
+        // Persistent signing key material: loaded from configuration, never generated on the fly.
         mockMvc = MockMvcBuilders.standaloneSetup(
                 new JwksController(adaptadorCon(claveVigente(), ""))).build();
     }
@@ -101,7 +101,7 @@ class JwksControllerIntegrationTest {
     }
 
     /**
-     * Adaptador con la clave vigente y, opcionalmente, la anterior.
+     * Test adapter providing active key and optionally previous key.
      */
     private NimbusJwtTokenSignerAdapter adaptadorCon(String publicaAnterior, String privadaAnterior) {
         RsaKeyPairManager manager = privadaAnterior.isEmpty()

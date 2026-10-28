@@ -24,14 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * La identidad de la cuenta queda acotada al taller.
+ * Verifies that user account identity and email uniqueness are scoped per tenant.
  *
- * <p>El correo era UNIQUE global: una sola cuenta podia existir en toda la
- * plataforma. Eso impedia registrar a un empleado con el mismo correo que
- * tiene en otro taller, y el conflicto de unicidad permitia enumerar las
- * cuentas ajenas.
- *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P1 6.22.
+ * <p>See docs/doc-estado-implementacion.md, finding P1 6.22.
  */
 class EmailUniquenessPerTenantTest extends AbstractPostgresIntegrationTest {
 
@@ -97,11 +92,10 @@ class EmailUniquenessPerTenantTest extends AbstractPostgresIntegrationTest {
         RegisterUserService servicio = servicioDeRegistro();
         String correo = "ajeno-" + UUID.randomUUID() + "@taller.pe";
 
-        // El correo ya existe en OTRO taller.
+        // Email exists in another workshop tenant.
         crearUsuario(correo, TALLER_B);
 
-        // En el taller propio, el correo esta libre: el registro debe
-        // funcionar, y no debe insinuar que el correo existe en otro sitio.
+        // In caller's own workshop, email is available: registration succeeds without leaking cross-tenant existence.
         assertDoesNotThrow(() -> {
             try (TenantContextScope scope = TenantContextScope.forTenant(TALLER_A)) {
                 servicio.register(new RegisterUserCommand(

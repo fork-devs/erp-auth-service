@@ -8,23 +8,19 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Arranca una instancia real de PostgreSQL en proceso, para los tests que
- * necesitan verificar el comportamiento de la base de datos y no su
- * simulacion: Row-Level Security, FORCE ROW LEVEL SECURITY, SET LOCAL y
- * restricciones NOT NULL.
+ * Starts an in-process real PostgreSQL instance for tests requiring verification
+ * of actual database behavior rather than simulations: Row-Level Security,
+ * FORCE ROW LEVEL SECURITY, SET LOCAL, and NOT NULL constraints.
  *
- * <p>El entorno de ejecucion no dispone de Docker, de modo que Testcontainers
- * no es viable. {@code embedded-postgres} descarga y arranca una distribucion
- * real de PostgreSQL como proceso nativo.
+ * <p>The execution environment does not have Docker, so Testcontainers is not viable.
+ * {@code embedded-postgres} downloads and starts a real PostgreSQL distribution
+ * as a native process.
  *
- * <p>Se mantienen dos credenciales distintas, que es el punto que la suite
- * necesita verificar:
+ * <p>Two distinct credentials are maintained, which is what the test suite verifies:
  * <ul>
- *   <li>El <strong>propietario</strong>, con el que corren las migraciones de
- *       Flyway. Es el owner de las tablas.</li>
- *   <li>El <strong>rol de aplicacion</strong> {@code erp_app}, sin privilegios
- *       de propietario, con el que conecta la aplicacion. Es el unico sujeto a
- *       la politica de aislamiento.</li>
+ *   <li>The <strong>owner</strong>, under which Flyway migrations run and who owns the tables.</li>
+ *   <li>The <strong>application role</strong> {@code erp_app}, without owner privileges,
+ *       used by the application connection. It is the only role subject to the isolation policy.</li>
  * </ul>
  */
 public final class EmbeddedPostgresSupport {
@@ -103,16 +99,14 @@ public final class EmbeddedPostgresSupport {
     }
 
     /**
-     * Conexion como el propietario, para las comprobaciones que deben ver todas
-     * las filas ignorando la politica de aislamiento.
+     * Connection as the owner, for checks that must inspect all rows ignoring the isolation policy.
      */
     public static Connection openOwnerConnection() throws SQLException {
         return java.sql.DriverManager.getConnection(jdbcUrl(), ownerUser, OWNER_PASSWORD);
     }
 
     /**
-     * Conexion como el rol de aplicacion, que es el unico sujeto a la politica
-     * de aislamiento.
+     * Connection as the application role, which is the only role subject to the isolation policy.
      */
     public static Connection openAppConnection() throws SQLException {
         return java.sql.DriverManager.getConnection(jdbcUrl(), APP_ROLE, APP_PASSWORD);

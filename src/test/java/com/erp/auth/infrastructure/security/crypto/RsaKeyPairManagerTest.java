@@ -16,13 +16,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * El material de firma persiste y su identificador se deriva del material.
+ * Verifies that RSA signing keys persist and key IDs derive deterministically from key material.
  *
- * <p>Una clave efimera hace que cada reinicio invalide todos los tokens
- * emitidos, lo que rompe el escalado horizontal: con varias replicas, cada
- * una firma con una clave distinta y ninguna acepta los tokens de las demas.
+ * <p>Ephemeral keys invalidate tokens on restart and break horizontal scaling across replicas.
  *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgos P0 5.6 y P1 6.1.
+ * <p>See docs/doc-estado-implementacion.md, findings P0 5.6 and P1 6.1.
  */
 class RsaKeyPairManagerTest {
 

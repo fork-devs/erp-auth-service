@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * La politica de contrasenas: longitud minima y rechazo de las mas usadas.
+ * Password policy tests: minimum length and common password rejection.
  */
 class PasswordPolicyTest {
 
@@ -29,8 +29,8 @@ class PasswordPolicyTest {
     @Test
     @DisplayName("Una contrasena de la lista de las mas usadas se rechaza")
     void unaContrasenaDeLaListaSeRechaza() {
-        // La lista protege a las implantaciones que bajan el minimo: con el
-        // minimo por defecto, esas contrasenas ya se rechazarian por cortas.
+        // The blocklist protects deployments with a lowered minimum length: with
+        // default settings, these passwords would already be rejected for being too short.
         PasswordPolicy conMinimoBajo = new PasswordPolicy(8);
 
         assertTrue(conMinimoBajo.reject("password").isPresent(),
@@ -65,9 +65,8 @@ class PasswordPolicyTest {
     @Test
     @DisplayName("El factor de coste de BCrypt es parametrizable")
     void elFactorDeCosteDeBcryptEsParametrizable() {
-        // Con un coste alto, el hash de la misma contrasena es distinto: es
-        // la senal de que el codificador se ha construido con el factor
-        // configurado.
+        // With distinct cost factors, hashes differ and verify that the encoder
+        // is constructed with the configured strength parameter.
         BCryptPasswordEncoderAdapter barato = new BCryptPasswordEncoderAdapter(4);
         BCryptPasswordEncoderAdapter caro = new BCryptPasswordEncoderAdapter(6);
 

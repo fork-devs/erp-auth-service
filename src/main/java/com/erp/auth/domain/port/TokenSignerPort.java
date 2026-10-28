@@ -8,51 +8,45 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Emision de credenciales.
+ * Credential token issuance and claims management.
  *
- * <p>Los tres tipos de token que emite el servicio comparten el mismo
- * conjunto de claims: emisor, **audiencia**, **identificador unico**
- * ({@code jti}), tiempo de emision y tiempo de expiracion. El identificador
- * unico es lo que permite revocar un token concreto, y la audiencia es lo que
- * impide que un token emitido para un servicio se acepte en otro.
+ * <p>All token types issued by the service share standard claims: issuer,
+ * **audience**, **unique identifier** ({@code jti}), issued-at time, and expiration time.
+ * The unique identifier enables granular revocation of individual tokens, and the audience
+ * guarantees that a token issued for this service cannot be accepted elsewhere.
  */
 public interface TokenSignerPort {
 
     /**
-     * Token de acceso. Lleva ademas el sujeto, el taller, el correo, el
-     * nombre y el conjunto de roles.
+     * Issues an access token containing subject, tenant, email, full name, and assigned roles.
      */
     String generateAccessToken(User user);
 
     /**
-     * Token de refresco. Lleva el sujeto, el taller y los roles: es lo que
-     * permite al servicio saber a quien pertenece sin consultar la base de
-     * datos.
+     * Issues a refresh token containing subject, tenant, and roles, allowing the service
+     * to identify ownership without querying the database.
      */
     String generateRefreshToken(User user);
 
     /**
-     * Token de restablecimiento de contrasena.
+     * Issues a password reset token.
      *
-     * <p>NO lleva el sujeto: el token viaja por correo, y un token que
-     * revelara la identidad de su titular permitiria a quien lo obtuviera
-     * saber a que usuario corresponde. La fila de la base de datos, que se
-     * localiza por el hash del token, es la que dice a que usuario pertenece.
+     * <p>Does NOT include the subject claim: because reset tokens travel over email,
+     * embedding identity would expose user data. The database row, indexed by the token hash,
+     * maps the token to its corresponding user.
      */
     String generatePasswordResetToken(UUID userId);
 
     String hashToken(String rawToken);
 
     /**
-     * Identificador unico del token emitido, tal como va en su claim
-     * {@code jti}. Es lo que hay que registrar para revocar ese token
-     * concreto.
+     * Extracts the unique token identifier matching the {@code jti} claim, used to record
+     * revocation in the registry.
      */
     String extractTokenId(String token);
 
     /**
-     * Identidad de un token emitido: identificador unico, titular y fecha de
-     * expiracion. Es lo que hace falta para revocarlo.
+     * Extracts the token identity (unique ID, subject, and expiration) needed for revocation.
      */
     TokenIdentity extractIdentity(String token);
 
@@ -65,8 +59,7 @@ public interface TokenSignerPort {
     Map<String, Object> getJwksPublicKeySet();
 
     /**
-     * Audiencia para la que se emiten los tokens. Los verificadores la
-     * comprueban: un token emitido para otra audiencia se rechaza.
+     * Returns the intended audience for issued tokens, verified by resource servers.
      */
     String getAudience();
 }

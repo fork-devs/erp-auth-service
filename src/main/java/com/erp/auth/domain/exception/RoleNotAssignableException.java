@@ -3,10 +3,10 @@ package com.erp.auth.domain.exception;
 import com.erp.auth.domain.model.RoleCode;
 
 /**
- * Se lanza cuando un principal intenta conceder un rol que su propio rol no
- * le permite conceder, o cuando su rol no le permite crear usuarios.
+ * Thrown when an actor attempts to grant a role that their own role does not
+ * permit them to assign, or when their role does not allow user creation at all.
  *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P0 5.1.
+ * <p>See docs/doc-estado-implementacion.md, finding P0 5.1.
  */
 public class RoleNotAssignableException extends DomainException {
 

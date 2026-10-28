@@ -17,9 +17,9 @@ public interface SpringDataRecoveryCodeRepository extends JpaRepository<Recovery
     Optional<RecoveryCodeJpaEntity> findByUserIdAndCodeHash(UUID userId, String codeHash);
 
     /**
-     * Marca el codigo como usado SOLO si no lo estaba. La condicion va en la
-     * propia sentencia: dos usos concurrentes del mismo codigo no pueden
-     * conseguir que ambos lomarked.
+     * Marks the recovery code as used ONLY if currently unused.
+     * Enforced within the atomic query condition to ensure concurrent requests
+     * cannot double-spend the same recovery code.
      */
     @Modifying
     @Query("UPDATE RecoveryCodeJpaEntity r SET r.usedAt = :now "

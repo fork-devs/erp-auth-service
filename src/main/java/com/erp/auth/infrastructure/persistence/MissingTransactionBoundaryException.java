@@ -1,16 +1,14 @@
 package com.erp.auth.infrastructure.persistence;
 
 /**
- * Excepcion de infraestructura: una operacion de persistencia se ha invocado
- * sin un limite transaccional.
+ * Infrastructure exception thrown when a persistence operation is invoked
+ * outside an active transaction boundary.
  *
- * <p>Los adaptadores de persistencia no abren su propia transaccion: se unen
- * a la que abre la capa de aplicacion. Si se invocan sin ella, cada
- * escritura se confirmaria por separado y una operacion que necesita ser
- * atomica no lo seria. Por eso se rechaza de forma explicita en lugar de
- * confirmarse en silencio.
+ * <p>Persistence adapters join the transaction demarcated by the application layer
+ * rather than opening their own. If invoked without one, sequential writes would commit
+ * independently and break atomicity guarantees.
  *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgos P0 5.3 y P0 5.8.
+ * <p>See docs/doc-estado-implementacion.md, findings P0 5.3 and P0 5.8.
  */
 public class MissingTransactionBoundaryException extends RuntimeException {
 

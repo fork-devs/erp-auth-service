@@ -24,13 +24,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Contrato de los claims del token.
+ * Contract test for JWT claims structure and content.
  *
- * <p>El token de acceso lleva el conjunto de roles como array, la audiencia
- * para la que se emite y un identificador unico. El token de refresco lleva
- * el mismo conjunto de claims.
+ * <p>Access tokens contain roles array, audience, and unique token identifier (jti).
+ * Refresh tokens maintain matching claims structure.
  *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgos P0 5.7 y P1 6.20.
+ * <p>See docs/doc-estado-implementacion.md, findings P0 5.7 and P1 6.20.
  */
 class TokenClaimsContractTest {
 

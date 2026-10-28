@@ -28,17 +28,14 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Base de los tests de atomicidad de las operaciones de autenticacion.
+ * Base test suite for transaction atomicity of authentication operations.
  *
- * <p>Cada operacion escribe en mas de un almacen: rotar un token revoca el
- * anterior y crea el nuevo; restablecer una contrasena consume el token,
- * cambia la clave y revoca las sesiones; iniciar sesion restablece el
- * contador de intentos y emite el token. Sin un limite transaccional comun,
- * un fallo entre esas escrituras deja al usuario en un estado que el sistema
- * no puede recuperar: sin sesion, con el token consumido y la contrasena sin
- * cambiar.
+ * <p>Authentication operations span multiple repositories: token rotation revokes
+ * previous tokens and creates new ones; password reset consumes tokens, updates hashes,
+ * and revokes active sessions; login resets attempt counters and issues tokens.
+ * Without unified transaction boundaries, partial failures cause unrecoverable state.
  *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P0 5.3.
+ * <p>See docs/doc-estado-implementacion.md, finding P0 5.3.
  */
 abstract class AbstractAuthAtomicityTest extends AbstractPostgresIntegrationTest {
 
@@ -67,10 +64,9 @@ abstract class AbstractAuthAtomicityTest extends AbstractPostgresIntegrationTest
     protected PasswordEncoderPort passwordEncoderPort;
 
     /**
-     * Se espian los repositorios de Spring Data, y no los puertos: el punto
-     * de corte del aspecto de aislamiento cubre los adaptadores, de modo que
-     * espiar un puerto exigiria un contexto de taller para la propia
-     * operacion de espiado.
+     * Spring Data repositories are spied directly rather than domain ports:
+     * the tenant RLS aspect pointcut targets adapters, so spying a port would
+     * require tenant context for the verification invocation itself.
      */
     @MockitoSpyBean
     protected SpringDataRefreshTokenRepository springDataRefreshTokenRepository;
@@ -79,8 +75,7 @@ abstract class AbstractAuthAtomicityTest extends AbstractPostgresIntegrationTest
     protected SpringDataUserRepository springDataUserRepository;
 
     /**
-     * El correo es unico en toda la base, de modo que cada test necesita el
-     * suyo: si no, el segundo test chocaria con el usuario del primero.
+     * Generates a unique email per test execution to prevent cross-test collisions.
      */
     protected String correo;
 
@@ -88,8 +83,7 @@ abstract class AbstractAuthAtomicityTest extends AbstractPostgresIntegrationTest
     void prepararUsuario() {
         correo = "atomico-" + UUID.randomUUID() + "@taller.pe";
 
-        // El rol se toma del catalogo sembrado: la escritura de la asignacion
-        // referencia la fila real, no una copia desatendida.
+        // Role is resolved from seeded catalog so the assignment references a managed row.
         Role admin = roleRepositoryPort.findByCode(RoleCode.ADMIN_TALLER)
                 .orElseThrow(() -> new AssertionError("El rol ADMIN_TALLER deberia estar sembrado"));
         User user = User.create(

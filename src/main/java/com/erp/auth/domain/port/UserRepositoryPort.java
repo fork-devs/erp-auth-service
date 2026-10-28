@@ -15,12 +15,12 @@ public interface UserRepositoryPort {
     boolean existsByEmailAndTenantId(Email email, TenantId tenantId);
 
     /**
-     * Incrementa el contador de intentos fallidos de forma ATOMICA, y bloquea
-     * la cuenta cuando el contador alcanza el maximo.
+     * Atomically increments the failed login attempt counter and locks the account
+     * once the configured threshold is reached.
      *
-     * <p>El incremento se hace en la base de datos, no con una
-     * lectura-modificacion-escritura: dos intentos concurrentes sobre la misma
-     * cuenta no pueden partir del mismo valor, de modo que ninguno se pierde.
+     * <p>The increment is executed directly in the database rather than via
+     * read-modify-write, ensuring concurrent login attempts do not overwrite
+     * each other's increments.
      */
     void incrementFailedAttempts(UUID id, int maxAttempts, java.time.Duration lockDuration);
     List<User> findAllByTenantId(TenantId tenantId);

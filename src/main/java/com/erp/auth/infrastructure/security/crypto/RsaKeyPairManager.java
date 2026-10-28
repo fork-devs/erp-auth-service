@@ -25,31 +25,25 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Gestion del material criptografico con el que se firman los tokens.
+ * Management of cryptographic key material used for signing JWT tokens.
  *
- * <p>El material **persiste**: se lee de la fuente configurada al arrancar,
- * y no se genera en memoria. Una clave efimera hace que cada reinicio del
- * servicio invalide todos los tokens emitidos, lo que rompe el escalado
- * horizontal: con varias replicas, cada una firma con una clave distinta y
- * ninguna acepta los tokens de las demas.
+ * <p>Key material is **persistent**: read from the configured environment/secret store
+ * at startup rather than generated ephemeral in-memory. Ephemeral keys invalidate tokens
+ * on every restart and break horizontal scaling across multiple instances.
  *
- * <p>El identificador de la clave ({@code kid}) se **deriva del material**:
- * es el hash del modulo de la clave publica. Asi, el mismo material produce
- * siempre el mismo identificador, y dos materiales distintos nunca lo
- * comparten. Un identificador configurado a mano puede quedar desincronizado
- * del material que realmente se usa, que es como los tokens dejan de
- * validarse sin que nada lo indique.
+ * <p>The key identifier ({@code kid}) is **derived directly from the key material**:
+ * computed as the SHA-256 hash of the RSA public key modulus. This prevents {@code kid}
+ * and key material desynchronization.
  *
- * <p>Se admite una clave anterior alongside de la vigente, para el
- * solapamiento de la rotacion: durante la ventana de transicion, el
- * servicio firma con la nueva y acepta y publica la antigua.
+ * <p>Supports graceful key rotation by holding both the active signing key and an optional
+ * previous key during transition windows (signing with new, verifying and publishing both).
  *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgos P0 5.6 y P1 6.1.
+ * <p>See docs/doc-estado-implementacion.md, findings P0 5.6 and P1 6.1.
  */
 @Component
 public class RsaKeyPairManager {
 
-    /** Longitud en bytes del hash del modulo que forma el identificador. */
+    /** Byte length of the public modulus hash used as key identifier. */
     private static final int KEY_ID_BYTES = 16;
 
     private final RSAKey currentJwk;
@@ -106,22 +100,26 @@ public class RsaKeyPairManager {
     }
 
     /**
-     * Identificador de la clave vigente, derivado de su material.
+     * Key identifier of the active signing key, derived from its public key material.
+     *
+     * @return key identifier ({@code kid})
      */
     public String getKeyId() {
         return currentJwk.getKeyID();
     }
 
     /**
-     * Conjunto de claves publicas que se publica: la vigente y, durante la
-     * ventana de solapamiento, la anterior.
+     * Set of public JWKs published via JWKS: current active key and, during
+     * rotation overlap, the previous key.
+     *
+     * @return JWK set as JSON object map
      */
     public Map<String, Object> getJwksPublicKeySet() {
         JWKSet jwkSet = new JWKSet(publishedJwks);
         return jwkSet.toJSONObject();
     }
 
-    // ------------------------------------------------------------- interno
+    // ------------------------------------------------------------- internal helpers
 
     private RSAKey load(String privateKeyPem, String publicKeyPem, String descripcion) {
         try {
@@ -154,12 +152,13 @@ public class RsaKeyPairManager {
     }
 
     /**
-     * Identificador derivado del material: hash del modulo publico.
+     * Computes the key identifier derived from the public key material modulus hash.
      *
-     * <p>El mismo material produce siempre el mismo identificador, y dos
-     * materiales distintos nunca lo comparten. No hay forma de que el
-     * identificador y la clave se desincronicen, porque el primero se calcula
-     * a partir del segundo.
+     * <p>The same key material always generates the same key ID, ensuring consistency
+     * without relying on manually maintained configuration strings.
+     *
+     * @param publicKey RSA public key
+     * @return URL-safe Base64-encoded key ID
      */
     public static String deriveKeyId(RSAPublicKey publicKey) {
         try {
@@ -194,8 +193,12 @@ public class RsaKeyPairManager {
     }
 
     /**
-     * Deriva la clave publica de la privada. Permite configurar solo la
-     * privada, que es lo que se puede guardar en un almacen de secretos.
+     * Derives RSA public key from private CRT key. Allows configuring only the private
+     * key in secret management systems.
+     *
+     * @param privateKey RSA private key
+     * @return derived RSA public key
+     * @throws Exception if public key parameters cannot be extracted
      */
     private static PublicKey derivePublicKey(PrivateKey privateKey) throws Exception {
         if (!(privateKey instanceof RSAPrivateKey rsaPrivateKey)) {
@@ -225,8 +228,7 @@ public class RsaKeyPairManager {
     }
 
     /**
-     * Genera un par de claves y lo escribe en el formato que espera la
-     * configuracion. Es la forma de emitir el material vigente una sola vez.
+     * Generates an RSA key pair and formats it as expected by application configuration.
      */
     public static final class Generator {
 

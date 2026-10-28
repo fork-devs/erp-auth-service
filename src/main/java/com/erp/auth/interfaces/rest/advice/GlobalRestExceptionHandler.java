@@ -31,18 +31,15 @@ public class GlobalRestExceptionHandler {
             org.slf4j.LoggerFactory.getLogger(GlobalRestExceptionHandler.class);
 
     /**
-     * La cuenta bloqueada responde IGUAL que las credenciales invalidas.
+     * Account lockout returns an identical response to invalid credentials.
      *
-     * <p>La comprobacion del bloqueo ocurre ANTES que la de la contrasena, de
-     * modo que un atacante que solo conozca el correo de una victima
-     * distingue "esta bloqueada" de "no existe": eso es enumerar cuentas. La
-     * respuesta unificada cierra el vectors; el motivo real queda en el
-     * registro de eventos de autenticacion, que no ve el atacante.
+     * <p>Returning uniform 401 ProblemDetail responses prevents account enumeration
+     * by attackers probing email addresses. The specific reason is logged securely
+     * in the security event log.
      */
     @ExceptionHandler(AccountLockedException.class)
     public ResponseEntity<ProblemDetail> handleAccountLocked(AccountLockedException ex) {
-        // La excepcion se registra con su traza, y la respuesta al cliente
-        // no cambia: el diagnostico va al registro, no al consumidor.
+        // Log the exception details internally while returning a uniform response to the client
         log.warn("Cuenta bloqueada: {}", ex.getMessage(), ex);
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
         problem.setTitle("Credenciales Inválidas");
@@ -94,10 +91,8 @@ public class GlobalRestExceptionHandler {
     }
 
     /**
-     * La denegacion de la seguridad a nivel de metodo se resuelve aqui y no en
-     * el filtro de seguridad: el resolutor de excepciones del dispatcher la
-     * intercepta antes de que llegue al filtro, de modo que sin este
-     * mapeo un acceso denegado se responderia con un 500 en lugar de un 403.
+     * Maps method-level security access denials to HTTP 403 Forbidden.
+     * Prevents unhandled AccessDeniedException from falling through to a generic 500 error.
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException ex) {
@@ -156,8 +151,7 @@ public class GlobalRestExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGeneralException(Exception ex) {
-        // La traza va al registro. Antes se perdia: el cliente recibia un
-        // error generico y nadie podia saber que habia ocurrido, ni por que.
+        // Log full exception stack trace internally for diagnostics while returning generic error
         log.error("Error no controlado: {}", ex.getMessage(), ex);
 
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Ha ocurrido un error interno en el servidor.");

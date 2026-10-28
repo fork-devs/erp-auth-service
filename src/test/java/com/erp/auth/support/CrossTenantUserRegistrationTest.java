@@ -22,13 +22,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Aislamiento entre talleres en el alta de usuarios: los tres vectores de
- * cruce tienen que resultar en denegacion.
+ * Cross-tenant isolation verification during user registration: all cross-tenant
+ * vectors must result in denial.
  *
- * <p>El atacante es el actor ADMIN_TALLER del taller A; la victima es el
- * taller B.
- *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgos P0 5.1 y P0 5.2.
+ * <p>See docs/doc-estado-implementacion.md, findings P0 5.1 and P0 5.2.
  */
 @SpringBootTest
 @AutoConfigureMockMvc

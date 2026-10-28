@@ -3,29 +3,27 @@ package com.erp.auth.infrastructure.security.crypto;
 import java.security.KeyPair;
 
 /**
- * Herramienta de linea de comandos que emite el material de firma vigente.
+ * Command-line utility to generate persistent RSA key material for JWT signing.
  *
- * <p>El material se genera **una sola vez** y se guarda en el almacen de
- * secretos del despliegue. El servicio lo lee al arrancar; no lo genera.
+ * <p>Key material is generated **once** and stored in the deployment secrets manager.
+ * The service reads the keys at startup rather than generating ephemeral keys in-memory.
  *
- * <p>Uso:
+ * <p>Usage:
  *
  * <pre>
  *   ./mvnw -q compile exec:java \
  *       -Dexec.mainClass=com.erp.auth.infrastructure.security.crypto.KeyMaterialGenerator
  * </pre>
  *
- * <p>La salida esta pensada para pegarse en un fichero de variables de
- * entorno o en un gestor de secretos:
+ * <p>Output format is ready to paste into environment variables or secret vaults:
  *
  * <pre>
  *   JWT_PRIVATE_KEY_PEM="""..."""
  *   JWT_PUBLIC_KEY_PEM="""..."""
  * </pre>
  *
- * <p>El identificador de la clave ({@code kid}) no se configura: se deriva del
- * material, de modo que no puede quedar desincronizado de la clave que
- * realmente se usa.
+ * <p>The key identifier ({@code kid}) is derived directly from the key material modulo hash,
+ * preventing key-id desynchronization.
  */
 public final class KeyMaterialGenerator {
 

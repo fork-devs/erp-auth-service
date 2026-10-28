@@ -12,11 +12,11 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 
 /**
- * Revocacion de tokens de acceso.
+ * Access token revocation service.
  *
- * <p>La revocacion se registra con la fecha de expiracion del token, de modo
- * que la entrada pueda limpiarse sola cuando el token caduque: un registro de
- * revocacion que no caduca seria una tabla que crece sin limite.
+ * <p>Revocation is recorded alongside the token's expiration timestamp, allowing
+ * the entry to be automatically purged once the token has naturally expired and
+ * preventing unbounded table growth.
  */
 public class AccessTokenRevocationService implements RevokeAccessTokenUseCase {
 
@@ -45,9 +45,8 @@ public class AccessTokenRevocationService implements RevokeAccessTokenUseCase {
         try {
             identity = tokenSignerPort.extractIdentity(accessToken);
         } catch (Exception e) {
-            // Un token que no se puede leer no se puede revocar, pero tampoco
-            // es un error: lo que se revoca es una credencial que ya no
-            // sirve para nada.
+            // A token that cannot be parsed cannot be revoked, but is not an error:
+            // the credential is invalid or malformed and cannot be used anyway.
             log.debug("El token presentado no se pudo leer, no hay nada que revocar: {}", e.getMessage());
             return;
         }

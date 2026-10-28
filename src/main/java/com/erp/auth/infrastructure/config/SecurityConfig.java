@@ -34,7 +34,7 @@ public class SecurityConfig {
                 .cors(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Endpoints públicos
+                        // Public endpoints
                         .requestMatchers(
                                 "/api/v1/auth/**",
                                 "/.well-known/jwks.json",
@@ -45,7 +45,7 @@ public class SecurityConfig {
                                 "/actuator/health",
                                 "/actuator/health/**"
                         ).permitAll()
-                        // Endpoints protegidos
+                        // Protected endpoints
                         .requestMatchers("/api/v1/users/**").authenticated()
                         .anyRequest().authenticated()
                 )

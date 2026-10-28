@@ -1,8 +1,8 @@
 package com.erp.auth.domain.exception;
 
 /**
- * El codigo de segundo factor no es valido: no corresponde al secreto
- * enrolado, ha caducado, o ya se ha usado.
+ * Thrown when a second-factor authentication code is invalid: it does not match
+ * the enrolled secret, has expired, or has already been consumed.
  */
 public class InvalidSecondFactorCodeException extends DomainException {
 

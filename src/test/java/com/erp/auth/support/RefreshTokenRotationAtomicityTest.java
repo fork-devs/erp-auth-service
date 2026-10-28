@@ -13,13 +13,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * La rotacion del token de refresco es atomica.
+ * Refresh token rotation is atomic.
  *
- * <p>Revocar el token anterior y emitir el nuevo son dos escrituras. Sin un
- * limite transaccional comun, un fallo entre ellas deja al usuario sin
- * sesion: el token viejo ya revocado y el nuevo nunca creado.
- *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P0 5.3.
+ * <p>Revoking the previous token and issuing a new one are two writes. Without
+ * a shared transaction boundary, a failure between them leaves the user stranded:
+ * the old token is revoked while the replacement is never created.
  */
 class RefreshTokenRotationAtomicityTest extends AbstractAuthAtomicityTest {
 

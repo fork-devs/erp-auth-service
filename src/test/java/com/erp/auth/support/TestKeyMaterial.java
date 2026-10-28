@@ -5,14 +5,14 @@ import com.erp.auth.infrastructure.security.crypto.RsaKeyPairManager;
 import java.security.KeyPair;
 
 /**
- * Material de firma para los tests.
+ * Signing key material for tests.
  *
- * <p>El servicio de autenticacion ya **no genera** claves en memoria: las
- * lee de la fuente configurada y falla al arrancar si no estan. Los tests
- * arrancan el contexto de Spring, de modo que necesitan material valido.
+ * <p>The authentication service does not generate in-memory keys on the fly:
+ * it reads configured key material and fails to boot if missing. Tests start
+ * the Spring context, so they require valid key material.
  *
- * <p>Se genera una vez por ejecucion de la suite, y es el mismo para todos
- * los tests: asi, un token emitido en un test lo puede validar otro.
+ * <p>Key material is generated once per test suite execution and shared across
+ * tests, ensuring tokens issued in one test can be verified in another.
  */
 public final class TestKeyMaterial {
 

@@ -3,19 +3,16 @@ package com.erp.auth.domain.port;
 import java.util.function.Supplier;
 
 /**
- * Limite transaccional de una operacion de negocio.
+ * Transaction boundary for domain and application operations.
  *
- * <p>Es una abstraccion del dominio, sin dependencias de framework, para que
- * la capa de aplicacion pueda exigir que una operacion que escribe en varios
- * repositorios se confirme de forma conjunta sin importar como se
- * implementa la transaccion.
+ * <p>A domain-level abstraction without framework dependencies, enabling the
+ * application layer to enforce atomic operations spanning multiple repository
+ * writes regardless of the underlying transactional mechanism.
  *
- * <p>Sin el, cada llamada a un repositorio abre su propia transaccion: dos
- * escrituras consecutivas son dos transacciones distintas, y una operacion
- * que necesita ser atomica no lo puede ser. La rotacion del token de
- * refresco es el caso claro: si la revocacion del token anterior se confirma
- * y la creacion del nuevo falla, el usuario se queda sin ningun token
- * valido, pese a haber iniciado sesion correctamente.
+ * <p>Without an explicit unit of work, each repository call commits independently:
+ * sequential writes become separate transactions, breaking atomicity guarantees.
+ * Refresh token rotation is a primary example: if revoking the old token succeeds
+ * but issuing the new token fails, the session is stranded without any valid token.
  */
 public interface UnitOfWork {
 

@@ -17,12 +17,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * El registro de eventos de autenticacion.
+ * Verifies security event audit logging schema and behavior.
  *
- * <p>El esquema no admite contrasenas, tokens ni secretos: no hay ningun
- * parametro para ellos. Un registro de autenticacion es un documento de
- * auditoria, y un documento de auditoria con credenciales es un almacen de
- * credenciales.
+ * <p>Disallows passwords, tokens, and secrets from all log formats.
  */
 class AuthEventLoggerTest {
 

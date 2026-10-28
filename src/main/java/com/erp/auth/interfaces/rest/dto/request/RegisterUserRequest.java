@@ -6,15 +6,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * Alta de un usuario del taller.
+ * User registration request for a workshop tenant.
  *
- * <p>NO acepta el identificador de taller: el sistema lo deduce del
- * principal autenticado, de modo que el cliente no puede crear usuarios en
- * otro taller.
+ * <p>The tenant ID is not accepted from the request body: the system resolves it
+ * from the authenticated principal to prevent cross-tenant user creation.
  *
- * <p>El rol que se quiere conceder se declara de forma acotada, con un unico
- * valor del catalogo. El sistema solo lo asigna si el rol del principal tiene
- * permiso para concederlo; en caso contrario, la peticion se rechaza.
+ * <p>The requested role is evaluated against the assignable role matrix of the caller's role;
+ * unauthorized role grants are rejected.
  */
 public record RegisterUserRequest(
         @NotBlank(message = "El correo electrónico es obligatorio")

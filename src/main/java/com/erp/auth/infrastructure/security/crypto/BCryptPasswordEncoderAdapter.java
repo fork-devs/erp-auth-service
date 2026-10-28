@@ -12,10 +12,8 @@ public class BCryptPasswordEncoderAdapter implements PasswordEncoderPort {
     private final PasswordEncoder passwordEncoder;
 
     /**
-     * El factor de coste es configurable, con el valor actual (12) como
-     * defecto. Un coste alto hace la verificacion lenta, lo que a su vez es
-     * la defensa contra la fuerza bruta: conviene poder subirlo sin
-     * recompilar.
+     * BCrypt cost factor is configurable, defaulting to 12.
+     * Higher cost factors slow down verification, increasing defense against brute force.
      */
     public BCryptPasswordEncoderAdapter(
             @Value("${erp.security.password.bcrypt-cost:12}") int bcryptCost) {
