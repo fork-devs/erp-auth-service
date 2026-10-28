@@ -7,10 +7,10 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public record ForgotPasswordRequest(
-        @NotBlank(message = "El correo electrónico es obligatorio")
-        @Email(message = "Formato de correo inválido")
+        @NotBlank(message = "{validation.auth.forgot-password.email.not-blank}")
+        @Email(message = "{validation.auth.forgot-password.email.format}")
         String email,
 
-        @NotNull(message = "El identificador de taller es obligatorio")
+        @NotNull(message = "{validation.auth.forgot-password.tenant-id.not-null}")
         UUID tenantId
 ) {}

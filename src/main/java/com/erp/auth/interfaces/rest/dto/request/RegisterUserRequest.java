@@ -15,15 +15,15 @@ import jakarta.validation.constraints.Size;
  * unauthorized role grants are rejected.
  */
 public record RegisterUserRequest(
-        @NotBlank(message = "El correo electrónico es obligatorio")
-        @Email(message = "Formato de correo inválido")
+        @NotBlank(message = "{validation.auth.register-user.email.not-blank}")
+        @Email(message = "{validation.auth.register-user.email.format}")
         String email,
 
-        @NotBlank(message = "La contraseña es obligatoria")
-        @Size(min = 12, message = "La contraseña debe tener al menos 12 caracteres")
+        @NotBlank(message = "{validation.auth.register-user.password.not-blank}")
+        @Size(min = 12, message = "{validation.auth.register-user.password.size}")
         String password,
 
-        @NotBlank(message = "El nombre completo es obligatorio")
+        @NotBlank(message = "{validation.auth.register-user.full-name.not-blank}")
         String fullName,
 
         RoleCode role

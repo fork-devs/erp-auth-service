@@ -9,7 +9,7 @@ import jakarta.validation.constraints.NotBlank;
  * Secrets are never transmitted in request bodies.
  */
 public record SecondFactorRequest(
-        @NotBlank(message = "El codigo de segundo factor es obligatorio")
+        @NotBlank(message = "{validation.auth.second-factor.code.not-blank}")
         String code
 ) {
 }
