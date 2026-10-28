@@ -1,45 +1,39 @@
 package com.erp.auth.domain.port;
 
 /**
- * Segundo factor de autenticacion: codigos de un solo uso temporizados.
+ * Two-factor authentication: time-based one-time passwords (TOTP).
  *
- * <p>Es un puerto del dominio: no depende de ninguna biblioteca concreta de
- * verificacion, ni de framework. La implementacion de infraestructura es la
- * que sabe como se comprueba un codigo.
+ * <p>This is a domain port decoupled from any specific verification library
+ * or framework. The infrastructure implementation handles code verification mechanics.
  *
- * <p>Las operaciones de enrolar un secreto y de verificar un codigo son las
- * unicas que el dominio necesita: el resto (persistir el secreto, registrar
- * el ultimo codigo aceptado) es de la infraestructura.
+ * <p>Secret enrollment and code verification are the only operations required
+ * by the domain; persistence and replay tracking belong to infrastructure ports.
  */
 public interface SecondFactorPort {
 
     /**
-     * Genera un secreto nuevo y su enlace de enrolamiento.
+     * Generates a new secret and its enrollment URI.
      *
-     * @return el secreto en Base32, que es lo que se muestra al usuario
+     * @return the Base32 secret displayed to the user along with its otpauth URI
      */
     SecondFactorSecret enroll();
 
     /**
-     * Verifica un codigo contra un secreto.
+     * Verifies a code against a secret.
      *
-     * @param secret  el secreto enrolado por el usuario
-     * @param code    el codigo que introduce el usuario
-     * @param at      el instante en el que se verifica, para que la
-     *                comprobacion sea determinista y verificable
-     * @return el contador del intervalo aceptado, o vacio si el codigo no es
-     *         valido. El contador es lo que permite impedir que un mismo
-     *         codigo se use dos veces: un codigo vale durante su intervalo y
-     *         el siguiente.
+     * @param secret  the secret enrolled by the user
+     * @param code    the code submitted by the user
+     * @param at      the instant at which verification takes place, ensuring deterministic evaluation
+     * @return the accepted time-step counter, or empty if the code is invalid.
+     *         The counter prevents replay attacks within the valid time window.
      */
     java.util.Optional<Long> verify(String secret, String code, java.time.Instant at);
 
     /**
-     * Secreto de segundo factor y su enlace de enrolamiento.
+     * Second-factor secret and its enrollment URI.
      *
-     * @param secret el secreto en Base32
-     * @param uri    el enlace otpauth:// con el que la aplicacion
-     *               autenticadora se enrola
+     * @param secret the secret in Base32
+     * @param uri    the otpauth:// URI used by authenticator apps to enroll
      */
     record SecondFactorSecret(String secret, String uri) {
     }

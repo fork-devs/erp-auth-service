@@ -1,12 +1,11 @@
 package com.erp.auth.domain.exception;
 
 /**
- * Se lanza cuando una operacion que requiere aislamiento por taller se
- * ejecuta sin contexto de tenant establecido.
+ * Thrown when an operation that requires workshop tenant isolation is executed
+ * without an established tenant context.
  *
- * <p>El aislamiento no se relaxes de forma silenciosa: una operacion sin
- * contexto no se ejecuta sin filtro, se rechaza. Ver
- * docs/doc-estado-implementacion.md, hallazgo P1 6.6.
+ * <p>Isolation does not fail open: an operation without context is rejected rather
+ * than executed without tenant filters. See docs/doc-estado-implementacion.md, finding P1 6.6.
  */
 public class TenantContextMissingException extends DomainException {
 

@@ -1,25 +1,23 @@
 package com.erp.auth.domain.model;
 
 /**
- * Politica de contrasenas.
+ * Password policy.
  *
- * <p>Dos reglas, y las dos por encima de la costumbre:
+ * <p>Two rules enforced above conventional practices:
  *
  * <ul>
- *   <li>Una longitud minima parametrica, con un valor por defecto de catorce
- *       caracteres. Por debajo de ocho, un atacante con capacidad de fuerza
- *       bruta la resuelve en un tiempo ridiculo.</li>
- *   <li>Un rechazo de las contrasenas mas usadas. Una contrasena como
- *       "123456" no esta protected por ninguna longitud: aparece en la
- *       primera pagina de cualquier diccionario.</li>
+ *   <li>A parametric minimum length, defaulting to fourteen characters.
+ *       Below eight characters, brute force attacks can crack passwords very quickly.</li>
+ *   <li>Rejection of the most common passwords. A password such as
+ *       "123456" is never protected by length: it appears at the top
+ *       of every password dictionary list.</li>
  * </ul>
  */
 public final class PasswordPolicy {
 
     /**
-     * Contrasenas mas usadas. La lista es corta a proposito: cubre las que
-     * aparecen en la cima de cualquier filtrado de contrasenas, sin llegar a
-     * ser un diccionario.
+     * Most common passwords. The list is intentionally concise: it covers
+     * entries at the top of common password leak dumps, without being an exhaustive dictionary.
      */
     private static final java.util.Set<String> MAS_USADAS = java.util.Set.of(
             "123456", "123456789", "12345678", "1234567890", "password", "contrasena",
@@ -39,9 +37,10 @@ public final class PasswordPolicy {
     }
 
     /**
-     * Comprueba una contrasena.
+     * Validates a password against this policy.
      *
-     * @return el motivo del rechazo, o vacio si la contrasena es aceptable
+     * @param password the password to evaluate
+     * @return rejection reason, or empty if the password meets the policy
      */
     public java.util.Optional<String> reject(String password) {
         if (password == null || password.isBlank()) {

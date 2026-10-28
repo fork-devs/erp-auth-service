@@ -29,8 +29,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * El tenant efectivo se deriva del token verificado, nunca de una cabecera del
- * cliente. Ver docs/doc-estado-implementacion.md, hallazgo P0 5.2.
+ * Verifies that effective tenant ID is derived strictly from verified tokens,
+ * never from untrusted client headers. See docs/doc-estado-implementacion.md, finding P0 5.2.
  */
 class JwtAuthenticationFilterTenantSourceTest {
 
@@ -44,8 +44,8 @@ class JwtAuthenticationFilterTenantSourceTest {
     private JwtAuthenticationFilter filter;
 
     /**
-     * El filtro limpia el contexto al terminar la cadena, de modo que el tenant
-     * observado durante la peticion se captura con un FilterChain propio.
+     * Filter chain interceptor capturing the tenant bound during request execution
+     * before thread-local cleanup.
      */
     private jakarta.servlet.FilterChain capturingChain() {
         return (request, response) -> tenantSeenDuringChain = TenantContextHolder.getTenantId();
@@ -53,7 +53,7 @@ class JwtAuthenticationFilterTenantSourceTest {
 
     @BeforeEach
     void setUp() {
-        // El material de firma persiste: se carga, no se genera.
+        // Persistent signing key material: loaded from configuration, never generated on the fly.
         keyPairManager = new RsaKeyPairManager(
                 TestKeyMaterial.privateKeyPem(), TestKeyMaterial.publicKeyPem(), "", "");
         signer = new NimbusJwtTokenSignerAdapter(

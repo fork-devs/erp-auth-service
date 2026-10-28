@@ -16,10 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * El segundo factor se habilita y se deshabilita en el dominio.
- *
- * <p>El campo mfaEnabled se fijaba en falso al construir el usuario y no
- * habia ninguna manera de cambiarlo: el segundo factor no existia.
+ * Verifies enabling and disabling second-factor authentication in the domain aggregate.
  */
 class UserSecondFactorTest {
 

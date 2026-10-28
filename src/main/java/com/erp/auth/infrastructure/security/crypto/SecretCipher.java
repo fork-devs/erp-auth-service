@@ -11,18 +11,16 @@ import java.security.SecureRandom;
 import java.util.Base64;
 
 /**
- * Cifrado del secreto del segundo factor.
+ * Symmetric encryption cipher for second-factor secrets.
  *
- * <p>Un secreto TOTP se verifica a partir del material compartido: quien lo
- * lea puede generar codigos validos. Guardarlo en claro en la tabla seria
- * guardar una credencial mas, con la diferencia de que no caduca.
+ * <p>TOTP secrets are shared verification material: storing them in plaintext
+ * exposes perpetual credentials.
  *
- * <p>Se usa AES-GCM: cada cifrado usa un vector de inicializacion distinto,
- * de modo que el mismo secreto no produce el mismo texto cifrado dos veces, y
- * el texto alteration lo invalida.
+ * <p>AES-GCM (256-bit) is used with a unique random initialization vector (IV)
+ * per encryption operation, providing both confidentiality and authentication.
  *
- * <p>La clave viene de la configuracion. Si no esta, el arranque falla: sin
- * ella, el secreto se guardaria sin cifrar de hecho.
+ * <p>The key is loaded from configuration; missing configuration causes startup
+ * failure to ensure secrets are never stored unencrypted.
  */
 @Component
 public class SecretCipher {

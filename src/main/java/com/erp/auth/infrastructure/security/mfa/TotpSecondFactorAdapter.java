@@ -11,24 +11,20 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * Verificacion de codigos de un solo uso temporizados (TOTP).
+ * Time-based one-time password (TOTP) verification adapter.
  *
- * <p>Se admite una ventana de un intervalo a cada lado del instante actual:
- * un reloj de usuario desajustado por unos segundos no debe impedir entrar,
- * pero la tolerancia es de UN intervalo, no mas: una ventana amplia permitiria
- * que un codigo capturado se usara varias veces.
+ * <p>Supports a time window tolerance of one interval (+/- 30 seconds) around the current time
+ * to accommodate client clock drift while preventing excessive replay opportunities.
  *
- * <p>La biblioteca calcula el codigo de un instante, pero no la ventana de
- * tolerancia, de modo que esta se implementa aqui: se comparan los codigos
- * esperados de los intervalos anterior, actual y siguiente.
+ * <p>Validates expected codes for the previous, current, and next time steps.
  */
 @Component
 public class TotpSecondFactorAdapter implements SecondFactorPort {
 
-    /** Numero de intervalos de tolerancia a cada lado del instante actual. */
+    /** Number of tolerance intervals on either side of the current time step. */
     private static final int WINDOW_TOLERANCE = 1;
 
-    /** Duracion de un intervalo, en milisegundos. */
+    /** Duration of a single TOTP time step, in milliseconds. */
     private static final long INTERVAL_MILLIS = 30_000L;
 
     private static final String ISSUER = "DriveOS";
@@ -40,9 +36,7 @@ public class TotpSecondFactorAdapter implements SecondFactorPort {
     public SecondFactorSecret enroll() {
         try {
             GoogleAuthenticatorKey key = authenticator.createCredentials();
-            // El enlace otpauth:// es el que entiende la aplicacion
-            // autenticadora. El otro metodo de la biblioteca devuelve la URL
-            // de una imagen de codigo QR, que es otra cosa.
+            // Use the standard otpauth:// URI supported by authenticator apps
             String uri = GoogleAuthenticatorQRGenerator.getOtpAuthTotpURL(key.getKey(), ISSUER, key);
             return new SecondFactorSecret(key.getKey(), uri);
         } catch (Exception e) {
@@ -81,7 +75,9 @@ public class TotpSecondFactorAdapter implements SecondFactorPort {
     }
 
     /**
-     * Genera un codigo de recuperacion de un solo uso.
+     * Generates a random single-use recovery code.
+     *
+     * @return formatted recovery code string
      */
     public String generarCodigoDeRecuperacion() {
         byte[] bytes = new byte[10];

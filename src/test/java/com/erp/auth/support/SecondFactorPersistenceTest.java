@@ -27,14 +27,11 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * El secreto del segundo factor se guarda cifrado, y los codigos de
- * recuperacion son de un solo uso.
+ * Second-factor secrets are persisted encrypted, and recovery codes are single-use.
  *
- * <p>Un secreto TOTP se verifica a partir del material compartido: quien lo
- * lea puede generar codigos validos. Un codigo de recuperacion es una
- * credencial: se guarda su hash, y se invalida en el momento del uso.
- *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgos P1 6.18.
+ * <p>TOTP secrets are verified from shared material: exposing the plaintext allows
+ * generating valid codes. Recovery codes are sensitive credentials: their hashes are
+ * stored and invalidated immediately upon first use.
  */
 class SecondFactorPersistenceTest extends AbstractPostgresIntegrationTest {
 
@@ -60,8 +57,8 @@ class SecondFactorPersistenceTest extends AbstractPostgresIntegrationTest {
     private UUID userId;
 
     /**
-     * La operacion, dentro del contexto de taller y de una transaccion: es
-     * lo que hace la aplicacion en produccion.
+     * Executes the operation within tenant context and an active transaction,
+     * mirroring production application execution.
      */
     private <T> T enTransaccion(java.util.function.Supplier<T> operacion) {
         try (TenantContextScope scope = TenantContextScope.forTenant(TALLER)) {
@@ -77,8 +74,8 @@ class SecondFactorPersistenceTest extends AbstractPostgresIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // El segundo factor pertenece a un usuario: la clave foranea lo
-        // exige, y una fila huerfana no seria representativa.
+        // Second factor belongs to a user: foreign key constraint requires it,
+        // and an orphaned row would not be representative.
         Role admin = roleRepositoryPort.findByCode(RoleCode.ADMIN_TALLER)
                 .orElseThrow(() -> new AssertionError("El rol ADMIN_TALLER deberia estar sembrado"));
         User user = User.create(
@@ -97,11 +94,10 @@ class SecondFactorPersistenceTest extends AbstractPostgresIntegrationTest {
     @Test
     @DisplayName("El secreto se guarda cifrado: una lectura directa de la tabla no muestra el valor en claro")
     void elSecretoSeGuardaCifrado() throws Exception {
-        // El puerto recibe el secreto en claro: el cifrado es de la
-        // infraestructura.
+        // The port receives plaintext secret: encryption is handled by infrastructure.
         enTransaccion(() -> secondFactorRepositoryPort.storeSecret(userId, SECRETO));
 
-        // Lectura directa de la tabla, como el propietario.
+        // Direct read from the table as the database owner.
         try (var connection = EmbeddedPostgresSupport.openOwnerConnection();
              var statement = connection.createStatement();
              var rs = statement.executeQuery(

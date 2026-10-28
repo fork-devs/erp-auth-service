@@ -88,8 +88,7 @@ public class SecondFactorPersistenceAdapter implements SecondFactorRepositoryPor
 
         int marcadas = recoveryCodeRepository.markUsedIfNotUsed(userId, hashedCode, Instant.now());
         if (marcadas == 0) {
-            // El codigo ya se habia usado: un codigo de recuperacion es de un
-            // solo uso.
+            // Code was already used: recovery codes are single-use credentials.
             return Optional.empty();
         }
 
@@ -97,7 +96,7 @@ public class SecondFactorPersistenceAdapter implements SecondFactorRepositoryPor
     }
 
     /**
-     * Elimina los codigos de recuperacion caducados.
+     * Purges expired recovery codes.
      */
     public int deleteExpiredRecoveryCodes(Instant now) {
         transactionGuard.requireActiveTransaction("deleteExpiredRecoveryCodes");

@@ -3,17 +3,13 @@ package com.erp.auth.infrastructure.persistence.rls;
 import java.util.UUID;
 
 /**
- * Contexto de tenant de la peticion en curso.
+ * Thread-local holder for the active request's tenant context.
  *
- * <p>Solo se establece desde un token verificado o desde el tenant de
- * arranque de los flujos de autenticacion, y se limpia al terminar la
- * peticion.
+ * <p>Set exclusively from verified tokens or initial authentication flows, and cleared
+ * upon request completion.
  *
- * <p>No existe ningun mecanismo para eludir el aislamiento: el hueco
- * {@code app.bypass_rls} que permitia desactivar la politica de
- * Row-Level Security con una session variable se ha eliminado, porque era
- * una instruccion SQL susceptible de activar y de desactivar el aislamiento
- * por completo. Ver docs/doc-estado-implementacion.md, hallazgo P1 6.6.
+ * <p>Fails closed with no bypass mechanism: the former {@code app.bypass_rls} session variable
+ * has been removed. See docs/doc-estado-implementacion.md, finding P1 6.6.
  */
 public final class TenantContextHolder {
 

@@ -4,32 +4,32 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Registro de tokens de acceso revocados.
+ * Registry of revoked access tokens.
  *
- * <p>Un token de acceso solo queda invalidado por su expiracion, y su
- * ventana de expiracion es de quince minutos. Registrar la revocacion
- * permite cerrar la sesion de verdad: la credencial deja de aceptarse aunque
- * no haya expirado.
+ * <p>An access token is otherwise only invalidated upon reaching its expiration time
+ * (a 15-minute window). Recording revocations allows true session termination:
+ * the credential is rejected immediately, even if unexpired.
  *
- * <p>Las entradas se identifican por el identificador unico del token
- * ({@code jti}), que es unico por si mismo.
+ * <p>Entries are identified by the token's unique identifier ({@code jti}),
+ * which is globally unique.
  */
 public interface RevokedTokenRepositoryPort {
 
     /**
-     * Registra la revocacion de un token. Registrar dos veces el mismo
-     * token no es un error: la revocacion es idempotente.
+     * Records token revocation. Revoking the same token multiple times is idempotent.
      */
     void revoke(UUID tokenId, UUID userId, Instant expiresAt);
 
     /**
-     * Indica si el token ha sido revocado.
+     * Checks whether the token has been revoked.
      */
     boolean isRevoked(UUID tokenId);
 
     /**
-     * Elimina las entradas cuyo token ya ha expirado. Devuelve el numero de
-     * entradas eliminadas.
+     * Purges entries whose tokens have already expired naturally.
+     *
+     * @param now current timestamp
+     * @return the number of purged entries
      */
     int deleteExpired(Instant now);
 }

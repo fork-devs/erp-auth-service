@@ -25,7 +25,7 @@ class JwksControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // El material de firma persiste: se carga, no se genera.
+        // Persistent signing key material: loaded from configuration, never generated on the fly.
         mockMvc = MockMvcBuilders.standaloneSetup(
                 new JwksController(adaptadorCon(claveVigente(), ""))).build();
     }
@@ -79,6 +79,17 @@ class JwksControllerIntegrationTest {
         assertNotEquals(primerKid, segundoKid, "Las dos claves deben tener identificadores distintos");
     }
 
+    @Test
+    @DisplayName("GET /.well-known/openid-configuration debe retornar metadata OIDC estándar")
+    void shouldReturnOpenIdConfiguration() throws Exception {
+        mockMvc.perform(get("/.well-known/openid-configuration")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.issuer").value("https://auth.erp-automotriz.com"))
+                .andExpect(jsonPath("$.jwks_uri").value("https://auth.erp-automotriz.com/.well-known/jwks.json"))
+                .andExpect(jsonPath("$.id_token_signing_alg_values_supported[0]").value("RS256"));
+    }
+
     private static String valorDe(String json, int indice) {
         com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
         try {
@@ -90,7 +101,7 @@ class JwksControllerIntegrationTest {
     }
 
     /**
-     * Adaptador con la clave vigente y, opcionalmente, la anterior.
+     * Test adapter providing active key and optionally previous key.
      */
     private NimbusJwtTokenSignerAdapter adaptadorCon(String publicaAnterior, String privadaAnterior) {
         RsaKeyPairManager manager = privadaAnterior.isEmpty()

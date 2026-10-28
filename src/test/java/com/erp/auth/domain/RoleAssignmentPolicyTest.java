@@ -13,9 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Matriz de roles concedibles: nadie concede un privilegio superior al suyo.
+ * Assignable role matrix test: no actor may grant privileges exceeding their own.
  *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P0 5.1.
+ * <p>See docs/doc-estado-implementacion.md, finding P0 5.1.
  */
 class RoleAssignmentPolicyTest {
 

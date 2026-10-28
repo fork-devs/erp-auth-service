@@ -4,12 +4,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Identidad de un token de acceso.
+ * Identity of an access token.
  *
- * <p>Es lo que se necesita para revocarlo: su identificador unico, que es
- * la clave del registro de revocacion, su titular, y la fecha en que caduca
- * el token, que es la que permite limpiar el registro cuando ya no sirve
- * para nada.
+ * <p>Represents the data required to revoke it: its unique identifier (the key
+ * in the revocation registry), its owner, and its expiration timestamp, which
+ * allows cleaning up the registry once the token has naturally expired.
  */
 public record TokenIdentity(
         UUID tokenId,

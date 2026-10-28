@@ -16,11 +16,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * El puerto del segundo factor no arrastra dependencias al dominio.
+ * Verifies that the second-factor domain port does not leak infrastructure dependencies.
  *
- * <p>El dominio no depende de framework ni de la biblioteca concreta de
- * verificacion: eso es lo que permite que la implementacion cambie sin
- * tocar los casos de uso.
+ * <p>The domain remains decoupled from frameworks and concrete TOTP libraries,
+ * ensuring implementations can be swapped without modifying use cases.
  */
 class SecondFactorPortPurityTest {
 

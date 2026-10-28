@@ -22,11 +22,11 @@ public interface SpringDataUserRepository extends JpaRepository<UserJpaEntity, U
     boolean existsByEmailAndTenantId(String email, UUID tenantId);
 
     /**
-     * Estado del segundo factor de un usuario.
+     * Second-factor authentication state projection for a user.
      *
-     * <p>Es una PROYECCION y no la entidad: leer la entidad la adjuntaria al
-     * contexto de persistencia, y el guardado posterior construiria otra
-     * instancia del mismo identificador, que Hibernate rechazaria.
+     * <p>Retrieved as a PROJECTION rather than the full entity to avoid attaching
+     * the entity to the Hibernate persistence context, preventing detached-entity
+     * conflict during subsequent updates.
      */
     @Query("SELECT u.mfaSecretCiphertext AS mfaSecretCiphertext, "
             + "u.mfaLastCodeCounter AS mfaLastCodeCounter, u.version AS version "
@@ -34,13 +34,9 @@ public interface SpringDataUserRepository extends JpaRepository<UserJpaEntity, U
     java.util.Optional<UserState> findUserState(@Param("id") UUID id);
 
     /**
-     * Estado de la fila que el modelo de dominio no lleva: el secreto del
-     * segundo factor, el contador del ultimo codigo aceptado y la version de
-     * concurrencia optimista.
-     *
-     * <p>Es una PROYECCION y no la entidad: leer la entidad la adjuntaria al
-     * contexto de persistencia, y el guardado posterior construiria otra
-     * instancia del mismo identificador, que Hibernate rechazaria.
+     * User state projection holding infrastructure-specific row attributes absent
+     * from the domain model: encrypted 2FA secret, last accepted code counter, and
+     * optimistic concurrency version.
      */
     interface UserState {
         String getMfaSecretCiphertext();
@@ -51,17 +47,13 @@ public interface SpringDataUserRepository extends JpaRepository<UserJpaEntity, U
     }
 
     /**
-     * Incrementa el contador de intentos fallidos EN LA BASE DE DATOS.
+     * Atomically increments the failed login attempt counter directly in the database.
      *
-     * <p>El incremento es atomico: dos intentos concurrentes sobre la misma
-     * cuenta no pueden partir del mismo valor, de modo que ninguno se pierde.
-     * Con un lectura-modificacion-escritura, los dos leian el mismo contador
-     * y escribian el mismo incremento, y la cuenta se quedaba sin bloqueo
-     * tras muchos intentos.
+     * <p>The increment is executed as an atomic SQL statement: concurrent failed attempts
+     * cannot overwrite each other, preventing lost updates.
      *
-     * <p>El bloqueo se aplica en la misma sentencia: cuando el contador
-     * alcanza el maximo, la cuenta queda bloqueada hasta el instante
-     * indicado.
+     * <p>The lockout condition is evaluated in the same atomic statement: when the
+     * counter reaches {@code maxAttempts}, the account is locked until {@code lockedUntil}.
      */
     @Modifying
     @Query("UPDATE UserJpaEntity u SET u.failedAttempts = u.failedAttempts + 1, "

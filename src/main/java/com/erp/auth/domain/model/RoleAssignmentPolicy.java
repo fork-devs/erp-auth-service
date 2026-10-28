@@ -4,14 +4,13 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * Matriz de roles que un principal puede conceder al crear un usuario.
+ * Role assignment matrix specifying which roles a principal may grant when creating a user.
  *
- * <p>El principio es que nadie puede conceder un privilegio superior al
- * suyo: un SUPERADMIN puede conceder cualquier rol, un ADMIN_TALLER solo
- * puede conceder roles de su ambito, y un ASESOR o un MECANICO no pueden
- * crear usuarios en absoluto.
+ * <p>The guiding principle is that no actor can grant privileges exceeding their own:
+ * a SUPERADMIN can grant any role, an ADMIN_TALLER can only grant roles within their workshop
+ * scope, and an ASESOR or MECANICO cannot create users at all.
  *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P0 5.1.
+ * <p>See docs/doc-estado-implementacion.md, finding P0 5.1.
  */
 public final class RoleAssignmentPolicy {
 
@@ -19,8 +18,11 @@ public final class RoleAssignmentPolicy {
     }
 
     /**
-     * Roles que el actor puede conceder. Un conjunto vacio significa que el
-     * actor no puede crear usuarios.
+     * Returns the roles that the actor is authorized to grant. An empty set indicates
+     * that the actor is not allowed to create users.
+     *
+     * @param actorRole the role of the acting principal
+     * @return the set of assignable roles
      */
     public static Set<RoleCode> assignableRolesFor(RoleCode actorRole) {
         if (actorRole == null) {
@@ -34,8 +36,11 @@ public final class RoleAssignmentPolicy {
     }
 
     /**
-     * Rol por defecto que se concede cuando el actor puede crear usuarios y
-     * no se pide uno concreto.
+     * Default role granted when the actor is authorized to create users and no specific
+     * role was requested.
+     *
+     * @param actorRole the role of the acting principal
+     * @return the default role, or null if the actor cannot create users
      */
     public static RoleCode defaultRoleFor(RoleCode actorRole) {
         if (!assignableRolesFor(actorRole).isEmpty()) {

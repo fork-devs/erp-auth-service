@@ -164,7 +164,10 @@ public class UserController {
     }
 
     /**
-     * Identificador del principal autenticado.
+     * Resolves the authenticated user identifier from the security context.
+     *
+     * @param authentication the current authentication token
+     * @return authenticated user UUID
      */
     private UUID usuarioAutenticado(Authentication authentication) {
         return UUID.fromString(authentication.getName());
@@ -180,8 +183,10 @@ public class UserController {
     }
 
     /**
-     * El rol del principal se toma de las autoridades que el filtro de
-     * autenticacion deposita en el contexto de seguridad.
+     * Resolves the primary role of the principal from the granted authorities in the security context.
+     *
+     * @param authentication the current authentication token
+     * @return the resolved RoleCode, or null if unassigned
      */
     private RoleCode actorRoleFrom(Authentication authentication) {
         if (authentication == null || authentication.getAuthorities() == null) {

@@ -71,13 +71,10 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
             throw new TokenExpiredException();
         }
 
-        // La rotacion se confirma como una sola operacion. Antes, revocar el
-        // token anterior y crear el nuevo eran dos escrituras en dos
-        // transacciones: si la segunda fallaba, el usuario se quedaba sin
-        // ningun token valido pese a haber iniciado sesion correctamente, y
-        // el token anterior, ya revocado, no servia para volver a entrar.
+        // Rotation is committed as a single atomic operation: revoking the
+        // previous token and issuing the new token must succeed together.
         return unitOfWork.callInTransaction(() -> {
-            // Rotacion estricta: revocar token anterior
+            // Strict rotation: revoke previous token
             token.revoke();
             refreshTokenRepositoryPort.save(token);
 
@@ -88,7 +85,7 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
                 throw new AccountLockedException(user.getLockedUntil());
             }
 
-            // Generar nuevo Access Token y nuevo Refresh Token
+            // Generate new Access Token and Refresh Token
             String newAccessToken = tokenSignerPort.generateAccessToken(user);
             String newRawRefreshToken = tokenSignerPort.generateRefreshToken(user);
             String newRefreshTokenHash = tokenSignerPort.hashToken(newRawRefreshToken);

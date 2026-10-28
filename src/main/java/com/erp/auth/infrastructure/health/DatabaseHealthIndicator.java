@@ -10,12 +10,10 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 /**
- * Comprobacion de salud de la base de datos.
+ * Health indicator for database connectivity.
  *
- * <p>No se limita a decir que hay una conexion configurada: abre una, ejecuta
- * una consulta y la cierra. Un servicio cuyo pool de conexiones esta roto
- * esta vivo, pero no sirve de nada, y la comprobacion de salud tiene que
- * distinguir los dos casos.
+ * <p>Actively borrows a connection from the pool, executes a ping query, and releases it,
+ * verifying that the connection pool is functional and responsive.
  */
 @Component("database")
 public class DatabaseHealthIndicator implements HealthIndicator {

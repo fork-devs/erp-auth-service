@@ -66,17 +66,15 @@ public class PasswordResetService implements PasswordResetUseCase {
         Optional<User> userOpt = userRepositoryPort.findByEmailAndTenantId(email, new TenantId(command.tenantId()));
 
         if (userOpt.isEmpty()) {
-            // Silencioso para prevenir enumeracion de usuarios: la respuesta
-            // es la misma que en el caso de una cuenta existente, y no se
-            // entrega ninguna notificacion.
+            // Silent return to prevent user enumeration: response matches
+            // existing account behavior, and no notification is sent.
             return;
         }
 
         User user = userOpt.get();
 
-        // Invalidar los tokens anteriores y emitir el nuevo es una sola
-        // operacion: si el guardado fallara tras invalidar, el usuario se
-        // quedaria sin ninguna via de recuperacion.
+        // Invalidation of previous tokens and issuance of the new token occur
+        // atomically: failure after invalidation would strand the user without recovery options.
         unitOfWork.runInTransaction(() -> {
             passwordResetTokenRepositoryPort.invalidateAllByUserId(user.getId());
 
@@ -88,9 +86,8 @@ public class PasswordResetService implements PasswordResetUseCase {
                     tokenHash, expiresAt);
             passwordResetTokenRepositoryPort.save(resetToken);
 
-            // El token se entrega al destinatario, no se devuelve. Es la
-            // unica forma de que llegue a quien puede usarlo: devolverlo en
-            // la respuesta de la API se lo entregaria a quien la pide.
+            // Deliver token to recipient rather than returning it in API response.
+            // Direct return would expose credentials to whoever invoked the endpoint.
             AuthEventLogger.registrar("restablecimiento_solicitado", user.getTenantId().getValue(), user.getId(),
                     null, "ok", Map.of());
             notificationPort.deliver(NotificationMessage.of(
@@ -118,14 +115,9 @@ public class PasswordResetService implements PasswordResetUseCase {
             throw new TokenExpiredException();
         }
 
-        // El restablecimiento se confirma como una sola operacion: marcar el
-        // token como usado, cambiar la contrasena y revocar los refresh
-        // tokens son tres escrituras que deben ocurrir juntas.
-        //
-        // Antes, si la escritura de la contrasena fallaba tras marcar el
-        // token como usado, el usuario se quedaba con un token consumido y
-        // sin poder cambiar la contrasena: un fallo que no se podia reintentar
-        // sin pedir un token nuevo.
+        // Reset is committed as a single atomic operation: marking the token
+        // as used, changing the password, and revoking existing refresh tokens
+        // must succeed together.
         unitOfWork.runInTransaction(() -> {
             resetToken.markAsUsed();
             passwordResetTokenRepositoryPort.save(resetToken);
@@ -138,7 +130,7 @@ public class PasswordResetService implements PasswordResetUseCase {
             user.recordSuccessfulLogin();
             userRepositoryPort.save(user);
 
-            // Revocar todos los refresh tokens existentes por seguridad
+            // Revoke all existing refresh tokens for security
             refreshTokenRepositoryPort.revokeAllByUserId(user.getId());
         });
     }

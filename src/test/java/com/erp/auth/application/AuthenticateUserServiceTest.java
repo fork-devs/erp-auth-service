@@ -120,10 +120,9 @@ class AuthenticateUserServiceTest {
 
         assertThrows(InvalidCredentialsException.class, () -> authenticateUserService.authenticate(command));
 
-        // El contador se incrementa EN LA BASE DE DATOS, de forma atomica: dos
-        // intentos concurrentes no pueden partir del mismo valor. El test
-        // verifica que se pide el incremento, no que se haga un guardado
-        // desde el objeto de dominio.
+        // The counter is incremented ATOMICALLY IN THE DATABASE: two concurrent
+        // attempts cannot start from the same value. The test verifies that the
+        // atomic increment method is invoked rather than an in-memory update.
         verify(userRepositoryPort, times(1)).incrementFailedAttempts(
                 eq(sampleUser.getId()), eq(5), eq(Duration.ofMinutes(15)));
         verify(userRepositoryPort, never()).save(sampleUser);
@@ -139,10 +138,9 @@ class AuthenticateUserServiceTest {
 
         assertThrows(AccountLockedException.class, () -> authenticateUserService.authenticate(command));
 
-        // La contrasena se verifica TAMBIEN cuando la cuenta esta
-        // bloqueada. Si no se verificara, el tiempo de respuesta delataria
-        // el estado de la cuenta: un atacante que solo conozca el correo
-        // distinguiria "esta bloqueada" de "no existe".
+        // The password is ALSO verified when the account is locked. If not verified,
+        // response time differences would reveal account state, allowing attackers
+        // to distinguish "locked" from "nonexistent".
         verify(passwordEncoderPort, times(1)).matches(rawPassword, sampleUser.getPasswordHash().getValue());
     }
 }

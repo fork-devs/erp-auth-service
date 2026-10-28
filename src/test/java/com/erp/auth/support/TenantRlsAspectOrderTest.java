@@ -22,15 +22,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * El aspecto de Row-Level Security debe ejecutar el SET LOCAL DENTRO de la
- * transaccion. Fuera de ella el SET LOCAL no tiene efecto y la consulta se
- * ejecutaria sin el filtro de aislamiento.
+ * The Row-Level Security aspect must execute SET LOCAL WITHIN the transaction.
+ * Outside a transaction, SET LOCAL has no session scope effect and queries would execute
+ * without the tenant isolation filter.
  *
- * <p>El test NO establece el valor de sesion a mano: lo hace el propio
- * aspecto, a partir del contexto de tenant de la aplicacion. Si el orden de
- * los advice no fuera el correcto, la lectura no devolveria la fila.
- *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P1 6.6.
+ * <p>The test does NOT manually execute SQL session variables: the aspect itself applies
+ * them based on application tenant context. If advice ordering were incorrect,
+ * subsequent reads would fail to find matching rows.
  */
 class TenantRlsAspectOrderTest extends AbstractPostgresIntegrationTest {
 
@@ -59,9 +57,8 @@ class TenantRlsAspectOrderTest extends AbstractPostgresIntegrationTest {
         UUID userId = UUID.randomUUID();
         crearUsuario(asesor.getId(), userId, TENANT_PROPIO, "orden@driveos.pe");
 
-        // El contexto de la APLICACION es lo unico que se establece: el valor de
-        // sesion lo pone el aspecto, y solo puede ponerlo dentro de la
-        // transaccion.
+        // Only application tenant context is explicitly set; the aspect sets the SQL session
+        // variable, which can only take effect inside the active transaction.
         Optional<?> encontrado = conTenant(TENANT_PROPIO,
                 () -> userRepositoryPort.findByIdAndTenantId(userId, new TenantId(TENANT_PROPIO)));
 

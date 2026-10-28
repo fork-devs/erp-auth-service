@@ -3,21 +3,19 @@ package com.erp.auth.application.usecase;
 import java.util.UUID;
 
 /**
- * Enrolamiento del segundo factor.
+ * Second-factor authentication enrollment.
  *
- * <p>Genera el secreto y los codigos de recuperacion, y los entrega al
- * usuario por el canal de notificacion. NO se devuelven en la respuesta de la
- * API: devolver el secreto por la API es devolver la credencial a quien la
- * pide.
+ * <p>Generates the secret and recovery codes, delivering them to the user via
+ * the notification channel. Credentials are NOT returned in the API response
+ * to prevent leakage to unauthorized requesters.
  */
 public interface EnrollSecondFactorUseCase {
 
     /**
-     * Genera el secreto y los codigos de recuperacion, y los entrega al
-     * usuario por su direccion de correo.
+     * Generates secret and recovery codes and delivers them to the user's registered email.
      *
-     * @param userId   el usuario que se enrola
-     * @param tenantId el taller al que pertenece
+     * @param userId the user being enrolled
+     * @param tenantId the workshop tenant they belong to
      */
     void enroll(UUID userId, UUID tenantId);
 }

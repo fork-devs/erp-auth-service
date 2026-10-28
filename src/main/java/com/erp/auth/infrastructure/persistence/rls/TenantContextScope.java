@@ -3,18 +3,13 @@ package com.erp.auth.infrastructure.persistence.rls;
 import java.util.UUID;
 
 /**
- * Establece el contexto de tenant durante el ambito de una operacion y lo
- * restaura al terminar.
+ * Scopes tenant context for the duration of a block and restores previous context upon close.
  *
- * <p>Se usa en los flujos de ARRANQUE (inicio de sesion, renovacion de token y
- * restablecimiento de contraseña), donde todavia no existe un token de acceso
- * verificado del que deducir el tenant.
+ * <p>Used during bootstrap flows (login, token refresh, password reset) where a verified
+ * access token is not yet present to provide the tenant context.
  *
- * <p>En esos flujos el tenant lo declara el cliente y funciona como FILTRO,
- * nunca como autoridad: la politica de Row-Level Security exige que la fila
- * buscada pertenezca a ese tenant, de modo que declararlo no puede ampliar el
- * acceso, solo acotarlo. En cuanto la fila se ha localisation, el tenant
- * autoritativo es el de la propia fila.
+ * <p>In these flows, the client-provided tenant acts strictly as a filter rather than an authority:
+ * Row-Level Security requires rows to match this tenant, narrowing access rather than broadening it.
  */
 public final class TenantContextScope implements AutoCloseable {
 

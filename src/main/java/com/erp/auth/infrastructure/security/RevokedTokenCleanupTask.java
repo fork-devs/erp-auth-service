@@ -10,12 +10,11 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 
 /**
- * Limpieza del registro de tokens revocados.
+ * Periodic cleanup task for revoked access tokens.
  *
- * <p>Una revocacion solo tiene sentido mientras el token podria aceptarse.
- * Una vez que el token ha expirado, su entrada ya no sirve para nada: la
- * verificacion lo rechazara por expiracion. Conservarlas seria una tabla que
- * crece sin limite.
+ * <p>Revocation records are only necessary while a token could otherwise be accepted.
+ * Once a token reaches its natural expiration timestamp, verification fails anyway,
+ * allowing expired revocation entries to be pruned to prevent table growth.
  */
 @Component
 public class RevokedTokenCleanupTask {

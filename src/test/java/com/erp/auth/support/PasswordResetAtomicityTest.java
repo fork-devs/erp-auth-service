@@ -13,14 +13,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * El restablecimiento de la contrasena es atomico.
+ * Password reset operations are atomic.
  *
- * <p>Marcar el token como usado, cambiar la contrasena y revocar las
- * sesiones son tres escrituras. Sin un limite transaccional comun, un fallo
- * entre ellas deja al usuario con el token consumido y la contrasena sin
- * cambiar: un estado del que no se puede salir sin pedir un token nuevo.
- *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P0 5.3.
+ * <p>Marking the token as used, updating the password hash, and revoking
+ * existing sessions constitute three distinct writes. Without a common transaction
+ * boundary, a failure between them leaves the token consumed while the password
+ * remains unchanged, requiring the user to request a new token.
  */
 class PasswordResetAtomicityTest extends AbstractAuthAtomicityTest {
 

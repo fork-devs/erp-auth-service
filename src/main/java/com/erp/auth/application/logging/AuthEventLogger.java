@@ -9,24 +9,20 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Registro estructurado de los eventos de seguridad.
+ * Structured security event logging.
  *
- * <p>Todos los eventos de autenticacion se emiten con el MISMO esquema, de
- * forma que un registro se puede leer de un vistazo y se puede consultar de
- * forma automatizada:
+ * <p>All authentication events are logged using a consistent key-value schema
+ * for readability and automated log parsing:
  *
  * <pre>
  * evento=login_fallido tenant_id=... user_id=... trace_id=... resultado=fallo timestamp=...
  * </pre>
  *
- * <p>El esquema NO admite contrasenas, tokens ni secretos: no hay ningun
- * parametro para ellos, de modo que no se pueden colar por descuido. Un
- * registro de autenticacion es un documento de auditoria, y un documento de
- * auditoria que contiene credenciales es un almacen de credenciales.
+ * <p>The schema strictly disallows passwords, tokens, or secrets: no parameters
+ * accept credentials, ensuring audit logs never leak sensitive authentication material.
  *
- * <p>El registro va al logger {@code SECURITY}, separado del registro de
- * aplicacion, de modo que se pueda filtrar, retener o enviar a otro destino
- * sin tocar el resto.
+ * <p>Emitted via the dedicated {@code SECURITY} logger to enable separate retention,
+ * filtering, and routing.
  */
 public final class AuthEventLogger {
 
@@ -36,14 +32,14 @@ public final class AuthEventLogger {
     }
 
     /**
-     * Registra un evento de seguridad.
+     * Logs a security event.
      *
-     * @param evento    nombre del evento, en snake_case
-     * @param tenantId  taller al que pertenece el principal, si se sabe
-     * @param userId    principal afectado, si se sabe
-     * @param traceId   identificador de traza de la peticion, si se sabe
-     * @param resultado {@code ok} o {@code fallo}
-     * @param extra     atributos adicionales, que no pueden contener credenciales
+     * @param evento    event name in snake_case
+     * @param tenantId  workshop tenant identifier, if known
+     * @param userId    affected user identifier, if known
+     * @param traceId   request trace identifier, if known
+     * @param resultado event outcome ({@code ok} or {@code fallo})
+     * @param extra     additional non-sensitive attributes
      */
     public static void registrar(String evento,
                                   UUID tenantId,
@@ -55,8 +51,15 @@ public final class AuthEventLogger {
     }
 
     /**
-     * La linea del evento. Es publica para que se pueda comprobar sin
-     * depender del sistema de registro.
+     * Formats the event key-value log string. Exposed publicly for testing.
+     *
+     * @param evento    event name
+     * @param tenantId  tenant identifier
+     * @param userId    user identifier
+     * @param traceId   trace identifier
+     * @param resultado outcome
+     * @param extra     extra key-value pairs
+     * @return formatted log line
      */
     public static String formatear(String evento,
                                    UUID tenantId,

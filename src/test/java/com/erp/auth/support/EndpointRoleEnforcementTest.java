@@ -29,14 +29,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Los endpoints declaran el rol que exigen, y se aplican.
+ * Endpoints declare their required role, and authorization rules are enforced.
  *
- * <p>Un endpoint sin rol declarado es un endpoint accesible a cualquier
- * principal autenticado, y a veces a cualquiera sin autenticar. La
- * declaracion explicita hace que el contrato sea visible y que un descuido
- * se note.
- *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P1 6.19.
+ * <p>An endpoint without an explicit role declaration is accessible to any
+ * authenticated principal, and potentially to unauthenticated callers. Explicit
+ * declaration ensures that the contract is visible and omissions are caught.
  */
 @SpringBootTest
 class EndpointRoleEnforcementTest extends AbstractPostgresIntegrationTest {
@@ -71,8 +68,8 @@ class EndpointRoleEnforcementTest extends AbstractPostgresIntegrationTest {
                 .apply(org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers
                         .springSecurity())
                 .build();
-        // El correo es unico por taller, de modo que cada test necesita el
-        // suyo: la base de datos es compartida.
+        // Email must be unique per tenant, so each test generates a unique one
+        // against the shared database.
         String sufijo = UUID.randomUUID().toString().substring(0, 8);
         tokenMecanico = crearUsuario("mecanico-" + sufijo + "@taller.pe", RoleCode.MECANICO);
         tokenAdmin = crearUsuario("admin-" + sufijo + "@taller.pe", RoleCode.ADMIN_TALLER);

@@ -87,9 +87,8 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
     public String generatePasswordResetToken(UUID userId) {
         Instant now = Instant.now();
 
-        // Sin sujeto: el token viaja por correo y no debe revelar a quien
-        // corresponde. Quien lo presenta se localiza por su hash, que es lo
-        // que lleva a la fila de la base de datos.
+        // Omit subject: password reset tokens travel over email and must not expose
+        // user identity in transit. The token hash maps to the database record.
         JWTClaimsSet.Builder claims = baseClaims(now, now.plus(passwordResetTokenDuration))
                 .claim("purpose", "PASSWORD_RESET");
 
@@ -156,13 +155,11 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
     }
 
     /**
-     * Claims comunes a los tres tipos de token: emisor, **audiencia**,
-     * **identificador unico** ({@code jti}), tiempo de emision y tiempo de
-     * expiracion.
+     * Claims common to all issued token types: issuer, **audience**,
+     * **unique identifier** ({@code jti}), issued-at time, and expiration time.
      *
-     * <p>El identificador unico se genera en cada emision: es lo que permite
-     * revocar un token concreto, en lugar de revocar "todos los tokens de
-     * este usuario".
+     * <p>A fresh unique identifier is generated for every token, enabling selective
+     * revocation of individual tokens rather than invalidating all user sessions.
      */
     private JWTClaimsSet.Builder baseClaims(Instant issuedAt, Instant expiresAt) {
         return new JWTClaimsSet.Builder()

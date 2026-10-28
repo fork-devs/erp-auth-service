@@ -46,13 +46,13 @@ public final class UserPersistenceMapper {
     }
 
     /**
-     * Los roles del dominio se traducen a asignaciones de rol. El tenant de la
-     * asignacion es el del usuario: la columna tenant_id de user_roles es una
-     * copia del tenant del usuario y no un dato independiente.
+     * Maps domain roles to role assignment entities. The tenant for each assignment
+     * matches the user's tenant: the tenant_id column in user_roles mirrors the user tenant.
      *
-     * @param managedRoles los roles ya gestionados por la sesion, indexados por
-     *                     identificador. Se exigen gestionados porque la
-     *                     referencia debe apuntar a la fila real del catalogo.
+     * @param domain the user domain aggregate
+     * @param managedRoles entities already managed by the current session, ensuring references
+     *                     attach to real catalog rows
+     * @return populated UserJpaEntity
      */
     public static UserJpaEntity toEntity(User domain, Set<RoleJpaEntity> managedRoles) {
         if (domain == null) return null;

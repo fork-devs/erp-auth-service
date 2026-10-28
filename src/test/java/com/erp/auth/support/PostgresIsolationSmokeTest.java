@@ -16,9 +16,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Comprueba que la base de datos de los tests es PostgreSQL real con el
- * aislamiento de fila activo, y que el rol con el que conecta la aplicacion
- * esta sujeto a ese aislamiento.
+ * Verifies that the test database is a real PostgreSQL instance with active
+ * Row-Level Security, and that the application database role is subject to that isolation.
  */
 class PostgresIsolationSmokeTest extends AbstractPostgresIntegrationTest {
 
@@ -54,28 +53,28 @@ class PostgresIsolationSmokeTest extends AbstractPostgresIntegrationTest {
     void laPoliticaDeAislamientoEstaActivaYEsFailClosed() throws Exception {
         try (Connection connection = EmbeddedPostgresSupport.openAppConnection();
              Statement statement = connection.createStatement()) {
-            // Sin contexto de tenant, la escritura se rechaza: el aislamiento
-            // es fail-closed tambien en la escritura, no solo en la lectura.
+            // Without tenant context, writes are rejected: isolation is fail-closed
+            // for write operations as well as reads.
             assertThrows(SQLException.class, () -> statement.execute(
                     "INSERT INTO users (id, tenant_id, email, password_hash) VALUES "
                     + "('11111111-1111-1111-1111-111111111111', "
                     + "'22222222-2222-2222-2222-222222222222', 'a@b.com', 'hash')"));
 
-            // Con el contexto del tenant propietario, la escritura prospera.
+            // With the owner tenant context, the insert succeeds.
             statement.execute("BEGIN");
             statement.execute("SET LOCAL app.tenant_id = '22222222-2222-2222-2222-222222222222'");
             statement.execute("INSERT INTO users (id, tenant_id, email, password_hash) VALUES "
                     + "('11111111-1111-1111-1111-111111111111', "
                     + "'22222222-2222-2222-2222-222222222222', 'a@b.com', 'hash')");
 
-            // Con el contexto del tenant propietario, se ve su fila.
+            // With the owner tenant context, its row is visible.
             try (ResultSet rs = statement.executeQuery("SELECT count(*) FROM users")) {
                 rs.next();
                 assertEquals(1, rs.getInt(1), "Con el contexto del tenant debe verse su fila");
             }
             statement.execute("COMMIT");
 
-            // Al cerrar la transaccion se pierde el contexto: no se ve ninguna fila.
+            // Once the transaction ends, the context is cleared and no rows are visible.
             try (ResultSet rs = statement.executeQuery("SELECT count(*) FROM users")) {
                 rs.next();
                 assertEquals(0, rs.getInt(1), "Sin app.tenant_id no debe verse ninguna fila");

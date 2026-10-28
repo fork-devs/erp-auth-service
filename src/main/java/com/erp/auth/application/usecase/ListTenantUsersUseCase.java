@@ -6,10 +6,9 @@ import com.erp.auth.domain.valueobject.TenantId;
 import java.util.List;
 
 /**
- * Listado de los usuarios de un taller.
+ * Use case to list all users belonging to a workshop tenant.
  *
- * <p>Existe como caso de uso para que el controlador REST no dependa
- * directamente de un puerto de dominio.
+ * <p>Decouples the REST interface from direct domain port access.
  */
 public interface ListTenantUsersUseCase {
 

@@ -7,18 +7,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Implementacion por defecto del puerto de notificacion: deja constancia de
- * la entrega, pero no envia nada.
+ * Default fallback implementation of the notification port: records delivery attempts
+ * in application logs without external dispatch.
  *
- * <p>Es un marcador de posicion explicito: sin un proveedor de correo
- * conectado, el token de restablecimiento tiene que llegar a su destinatario
- * por otra via. Que conste la entrega permite saber que el flujo se ha
- * recorrido entero.
+ * <p>Acts as an explicit placeholder when no external email/SMS provider is configured.
  *
- * <p>El cuerpo del mensaje NO se registra. En el caso del token de
- * restablecimiento, el cuerpo ES la credencial: escribirla en el registro
- * entregaria el token a cualquiera que pueda leerlo, que es lo mismo que no
- * haber revocado nada.
+ * <p>Message bodies are deliberately NOT logged. For password reset notifications,
+ * the body contains the credential token; logging it would leak sensitive tokens into logs.
  */
 @Component
 public class LoggingNotificationAdapter implements NotificationPort {

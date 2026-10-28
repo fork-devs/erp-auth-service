@@ -19,12 +19,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * El enrolamiento del segundo factor no expone el secreto ni los codigos de
- * recuperacion en la respuesta.
+ * Second-factor enrollment responses do not expose secrets or recovery codes.
  *
- * <p>Son credenciales: la respuesta la ve quien pide el enrolamiento, y con
- * el secreto podría generar codigos validos sin necesidad del telefono del
- * usuario.
+ * <p>These are sensitive credentials: exposing the secret in the HTTP response
+ * would allow generating valid TOTP tokens without access to the user's authenticator app.
  */
 class SecondFactorEnrollmentResponseTest {
 
@@ -34,8 +32,8 @@ class SecondFactorEnrollmentResponseTest {
         UUID usuarioId = UUID.randomUUID();
         java.util.List<String> entregadas = new java.util.ArrayList<>();
 
-        // El caso de uso no devuelve nada: el secreto y los codigos salen por
-        // el canal de notificacion.
+        // The use case does not return secrets in response: the secret and recovery codes
+        // are dispatched out-of-band via notification.
         UserController controller = new UserController(
                 null,
                 null,
@@ -62,8 +60,7 @@ class SecondFactorEnrollmentResponseTest {
 
         assertFalse(respuesta.contains("otpauth://"),
                 "La respuesta no debe contener el enlace de enrolamiento: " + respuesta);
-        // El secreto es una cadena Base32 de 32 caracteres. La respuesta no
-        // debe contener ninguna cadena de ese tipo.
+        // The secret is a 32-character Base32 string; ensure the response does not contain it.
         assertFalse(respuesta.matches(".*[A-Z2-7]{16,}.*"),
                 "La respuesta no debe contener el secreto: " + respuesta);
         assertFalse(respuesta.matches(".*[0-9A-F]{10}-[0-9A-F]{10}.*"),

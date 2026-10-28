@@ -30,9 +30,9 @@ import java.util.stream.Collectors;
 public class AuthenticateUserService implements AuthenticateUserUseCase {
 
     /**
-     * Hash de un texto que no corresponde a ninguna cuenta. Se usa para
-     * igualar el tiempo de respuesta cuando la cuenta no existe: verificar
-     * contra el es lo que cuesta el tiempo del hash.
+     * Dummy password hash not corresponding to any real account. Used to equalize
+     * response latency when an account does not exist: verifying against it consumes
+     * equivalent hashing time and prevents account enumeration via timing attacks.
      */
     private static final String HASH_SENUELO =
             "$2a$12$RAmvlO5s9LG2urup52BBsuDqh0/WakqD.ufHw41ey9CHK10OyvEb2";
@@ -69,11 +69,11 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
     }
 
     /**
-     * Indica si la cuenta ha quedado bloqueada tras el ultimo intento.
+     * Determines whether the account is currently locked following the latest attempt.
      *
-     * <p>Se consulta a la base de datos, y no al objeto de dominio: el
-     * contador se incremento alli, en una sentencia atomica, de modo que el
-     * valor que se consulta es el que queda.
+     * <p>Queries the database directly rather than reading from the in-memory domain model:
+     * the failed attempts counter was incremented via an atomic database query, ensuring
+     * the retrieved state reflects concurrent updates.
      */
     private boolean cuentaBloqueada(UUID userId, TenantId tenantId) {
         return userRepositoryPort.findByIdAndTenantId(userId, tenantId)
@@ -82,12 +82,11 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
     }
 
     /**
-     * Verifica el codigo de segundo factor.
+     * Verifies the submitted second-factor authentication code.
      *
-     * <p>El codigo se acepta si corresponde al secreto enrolado Y no se ha
-     * usado antes: un codigo vale durante su intervalo y el siguiente, de modo
-     * que sin registrar el ultimo intervalo aceptado el mismo codigo podria
-     * usarse dos veces.
+     * <p>The code is accepted if it matches the enrolled secret AND has not been used before.
+     * A TOTP code is valid for its interval and the subsequent window; tracking the last accepted
+     * counter prevents replay attacks within the validity window.
      */
     private boolean segundoFactorValido(User user, String codigo) {
         if (codigo == null || codigo.isBlank()) {
@@ -106,7 +105,7 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
 
         Long ultimo = secondFactorRepositoryPort.findLastAcceptedCounter(user.getId()).orElse(-1L);
         if (contador.get() <= ultimo) {
-            // El codigo ya se habia usado.
+            // The code was already used.
             return false;
         }
 
@@ -129,11 +128,10 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
         Optional<User> userOpt = userRepositoryPort.findByEmailAndTenantId(email, new TenantId(command.tenantId()));
 
         if (userOpt.isEmpty()) {
-            // Cuando la cuenta no existe, se verifica la contrasena contra un
-            // hash SENUELO. Sin esa verificacion, el tiempo de respuesta
-            // delata si la cuenta existe: la busqueda de una cuenta
-            // inexistente es inmediata, y la de una existente cuesta el tiempo
-            // del hash. La diferencia basta para enumerar las cuentas.
+            // When the account does not exist, check the password against a dummy hash.
+            // Without this check, response time differences would reveal whether an account exists:
+            // missing accounts would return immediately while existing accounts incur BCrypt work.
+            // Equalizing the execution time prevents account enumeration.
             passwordEncoderPort.matches(command.password(), HASH_SENUELO);
             AuthEventLogger.registrar("login_fallido", command.tenantId(), null, null, "fallo",
                     Map.of("motivo", "cuenta_inexistente"));
@@ -142,30 +140,23 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
 
         User user = userOpt.get();
 
-        // La contrasena se verifica SIEMPRE, antes de responder por
-        // cualquier motivo. Si la cuenta esta bloqueada y se respondiera
-        // sin verificar, el tiempo de respuesta delataria el estado de la
-        // cuenta: un atacante que solo conozca el correo distingue
-        // "esta bloqueada" de "no existe".
+        // Always verify the password before rejecting the request for any reason.
+        // If the account is locked and rejected early without verifying, response times
+        // would reveal account state: an attacker could distinguish "locked" from "nonexistent".
         boolean passwordMatches = passwordEncoderPort.matches(command.password(), user.getPasswordHash().getValue());
 
-        // Verificar si la cuenta está bloqueada por intentos fallidos (QA-5)
+        // Verify whether the account is locked due to failed attempts (QA-5)
         if (user.isAccountLocked()) {
             throw new AccountLockedException(user.getLockedUntil());
         }
 
         if (!passwordMatches) {
-            // El intento fallido se confirma en SU PROPIA transaccion. No puede
-            // ir dentro del limite transaccional del inicio de sesion: la
-            // autenticacion fallida lanza una excepcion, y una excepcion
-            // dentro de ese limite revertiria el contador, con lo que la
-            // cuenta nunca se bloquearia por muchos intentos que se hagan.
+            // Failed attempts are committed in their OWN transaction. They cannot share
+            // the login transaction boundary: failed authentication throws an exception,
+            // which would roll back the attempt counter and prevent accounts from ever locking.
             //
-            // El incremento es ATOMICO en la base de datos: dos intentos
-            // concurrentes no pueden partir del mismo valor, de modo que
-            // ninguno se pierde. Con una lectura-modificacion-escritura, los
-            // dos leian el mismo contador y escribian el mismo incremento, y
-            // la cuenta se quedaba sin bloqueo tras muchos intentos.
+            // The increment is ATOMIC in the database: concurrent attempts do not overwrite
+            // each other's increments, avoiding lost updates common in read-modify-write patterns.
             unitOfWork.runInTransaction(() -> userRepositoryPort.incrementFailedAttempts(
                     user.getId(), maxFailedAttempts, lockDuration));
 
@@ -179,9 +170,8 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
             throw new InvalidCredentialsException();
         }
 
-        // Cuando la cuenta tiene el segundo factor habilitado, no se emiten
-        // credenciales sin un codigo valido. Un codigo incorrecto es un
-        // intento fallido mas: cuenta para el bloqueo.
+        // When 2FA is enabled, credentials are not issued without a valid code.
+        // An invalid code is treated as an authentication failure and counts toward lockout.
         if (user.isMfaEnabled() && !segundoFactorValido(user, command.secondFactorCode())) {
             user.recordFailedAttempt(maxFailedAttempts, lockDuration);
             unitOfWork.runInTransaction(() -> userRepositoryPort.save(user));
@@ -192,23 +182,18 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
             throw new InvalidSecondFactorCodeException();
         }
 
-        // El inicio de sesion se confirma como una sola operacion: el
-        // contador de intentos y la creacion del refresh token van juntos.
-        //
-        // Antes, si la creacion del token fallaba tras restablecer el
-        // contador, el usuario veia su cuenta como desbloqueada y sus
-        // intentos como zerados, sin haber recibido ningun token: el sistema
-        // afirmaba un acceso que nunca llego a darle.
+        // Successful login is committed as a single atomic operation: resetting the
+        // attempt counter and issuing the refresh token occur together within one transaction.
         AuthEventLogger.registrar("login_correcto", command.tenantId(), user.getId(), null, "ok", Map.of());
         return unitOfWork.callInTransaction(() -> {
-            // Login exitoso: restablecer intentos fallidos
+            // Successful login: reset failed attempts counter
             user.recordSuccessfulLogin();
             userRepositoryPort.save(user);
 
-            // Generar Access Token (JWT firmado con RS256, 15 min)
+            // Generate Access Token (RS256-signed JWT, 15 min)
             String accessToken = tokenSignerPort.generateAccessToken(user);
 
-            // Generar Refresh Token con hash criptografico
+            // Generate Refresh Token with cryptographic hash
             String rawRefreshToken = tokenSignerPort.generateRefreshToken(user);
             String refreshTokenHash = tokenSignerPort.hashToken(rawRefreshToken);
             Instant refreshTokenExpiry = Instant.now().plus(tokenSignerPort.getRefreshTokenDuration());
