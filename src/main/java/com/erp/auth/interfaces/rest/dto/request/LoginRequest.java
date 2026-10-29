@@ -8,14 +8,14 @@ import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
 public record LoginRequest(
-        @NotBlank(message = "El correo electrónico es obligatorio")
-        @Email(message = "Formato de correo inválido")
+        @NotBlank(message = "{validation.auth.login.email.not-blank}")
+        @Email(message = "{validation.auth.login.email.format}")
         String email,
 
-        @NotBlank(message = "La contraseña es obligatoria")
-        @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
+        @NotBlank(message = "{validation.auth.login.password.not-blank}")
+        @Size(min = 6, message = "{validation.auth.login.password.size}")
         String password,
 
-        @NotNull(message = "El identificador de taller es obligatorio")
+        @NotNull(message = "{validation.auth.login.tenant-id.not-null}")
         UUID tenantId
 ) {}
