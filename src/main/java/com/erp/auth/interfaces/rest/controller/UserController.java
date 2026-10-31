@@ -61,7 +61,7 @@ public class UserController {
     }
 
     @PostMapping("/me/second-factor")
-    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER', 'ASESOR', 'MECANICO')")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'WORKSHOP_ADMIN', 'ADMIN_TALLER', 'SERVICE_ADVISOR', 'ASESOR', 'TECHNICIAN', 'MECANICO')")
     @Operation(summary = "Enrolar el segundo factor de autenticacion",
             description = "Genera el secreto y los codigos de recuperacion, y los entrega por el canal de "
                     + "notificacion. La respuesta NO contiene el secreto ni los codigos: son credenciales.")
@@ -76,7 +76,7 @@ public class UserController {
     }
 
     @PostMapping("/me/second-factor/confirm")
-    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER', 'ASESOR', 'MECANICO')")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'WORKSHOP_ADMIN', 'ADMIN_TALLER', 'SERVICE_ADVISOR', 'ASESOR', 'TECHNICIAN', 'MECANICO')")
     @Operation(summary = "Confirmar el enrolamiento del segundo factor",
             description = "Habilita el segundo factor cuando el codigo es valido")
     public ResponseEntity<MessageResponse> confirmSecondFactor(@Valid @RequestBody SecondFactorRequest request,
@@ -90,7 +90,7 @@ public class UserController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER')")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'WORKSHOP_ADMIN', 'ADMIN_TALLER')")
     @Operation(summary = "Registrar nuevo usuario",
             description = "Crea un usuario dentro del taller del principal autenticado. "
                     + "El rol solicitado solo se asigna si el rol del principal tiene permiso para concederlo.")
@@ -125,7 +125,7 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER', 'ASESOR', 'MECANICO')")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'WORKSHOP_ADMIN', 'ADMIN_TALLER', 'SERVICE_ADVISOR', 'ASESOR', 'TECHNICIAN', 'MECANICO')")
     @Operation(summary = "Perfil del usuario autenticado", description = "Retorna los datos del usuario correspondiente al token JWT actual")
     public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
@@ -143,7 +143,7 @@ public class UserController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER')")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'WORKSHOP_ADMIN', 'ADMIN_TALLER')")
     @Operation(summary = "Listar usuarios del taller", description = "Retorna los usuarios del taller del principal autenticado")
     public ResponseEntity<List<UserResponse>> listUsersByTenant() {
         TenantId tenantId = tenantIdFromContext();

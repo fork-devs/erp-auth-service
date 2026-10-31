@@ -7,10 +7,10 @@ import java.util.Set;
  * Role assignment matrix specifying which roles a principal may grant when creating a user.
  *
  * <p>The guiding principle is that no actor can grant privileges exceeding their own:
- * a SUPERADMIN can grant any role, an ADMIN_TALLER can only grant roles within their workshop
- * scope, and an ASESOR or MECANICO cannot create users at all.
+ * a SUPERADMIN can grant any role, a WORKSHOP_ADMIN / ADMIN_TALLER can only grant roles within their workshop
+ * scope, and an advisor, technician, or customer cannot create users at all.
  *
- * <p>See docs/doc-estado-implementacion.md, finding P0 5.1.
+ * <p>Supports canonical English roles and legacy Spanish aliases for backward compatibility.
  */
 public final class RoleAssignmentPolicy {
 
@@ -31,7 +31,16 @@ public final class RoleAssignmentPolicy {
         return switch (actorRole) {
             case SUPERADMIN -> EnumSet.allOf(RoleCode.class);
             case ADMIN_TALLER -> EnumSet.of(RoleCode.ADMIN_TALLER, RoleCode.ASESOR, RoleCode.MECANICO);
-            case ASESOR, MECANICO -> Set.of();
+            case WORKSHOP_ADMIN -> EnumSet.of(
+                    RoleCode.WORKSHOP_ADMIN,
+                    RoleCode.SERVICE_ADVISOR,
+                    RoleCode.TECHNICIAN,
+                    RoleCode.CUSTOMER,
+                    RoleCode.ADMIN_TALLER,
+                    RoleCode.ASESOR,
+                    RoleCode.MECANICO
+            );
+            case ASESOR, MECANICO, SERVICE_ADVISOR, TECHNICIAN, CUSTOMER -> Set.of();
         };
     }
 
@@ -43,8 +52,11 @@ public final class RoleAssignmentPolicy {
      * @return the default role, or null if the actor cannot create users
      */
     public static RoleCode defaultRoleFor(RoleCode actorRole) {
-        if (!assignableRolesFor(actorRole).isEmpty()) {
+        if (actorRole == RoleCode.ADMIN_TALLER) {
             return RoleCode.ASESOR;
+        }
+        if (!assignableRolesFor(actorRole).isEmpty()) {
+            return RoleCode.SERVICE_ADVISOR;
         }
         return null;
     }

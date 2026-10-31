@@ -103,7 +103,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER', 'ASESOR', 'MECANICO')")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'WORKSHOP_ADMIN', 'ADMIN_TALLER', 'SERVICE_ADVISOR', 'ASESOR', 'TECHNICIAN', 'MECANICO')")
     @Operation(summary = "Cerrar sesión", description = "Revoca el Access Token presentado y el Refresh Token activo")
     public ResponseEntity<MessageResponse> logout(
             @Valid @RequestBody RefreshTokenRequest request,
