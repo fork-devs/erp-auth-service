@@ -10,8 +10,11 @@ import java.util.UUID;
 
 public interface UserRepositoryPort {
     User save(User user);
+    Optional<User> findById(UUID id);
     Optional<User> findByIdAndTenantId(UUID id, TenantId tenantId);
+    Optional<User> findByEmail(Email email);
     Optional<User> findByEmailAndTenantId(Email email, TenantId tenantId);
+    boolean existsByEmail(Email email);
     boolean existsByEmailAndTenantId(Email email, TenantId tenantId);
 
     /**

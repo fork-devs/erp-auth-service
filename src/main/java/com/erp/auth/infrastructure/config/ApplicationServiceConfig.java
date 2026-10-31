@@ -1,14 +1,19 @@
 package com.erp.auth.infrastructure.config;
 
 import com.erp.auth.application.service.AuthenticateUserService;
+import com.erp.auth.application.service.GoogleAuthenticationService;
+import com.erp.auth.application.service.OtpService;
 import com.erp.auth.application.service.PasswordResetService;
 import com.erp.auth.application.service.AccessTokenRevocationService;
 import com.erp.auth.application.service.RefreshTokenService;
 import com.erp.auth.application.service.SecondFactorEnrollmentService;
 import com.erp.auth.application.service.ListTenantUsersService;
 import com.erp.auth.application.service.RegisterUserService;
+import com.erp.auth.application.service.UserSelfService;
 import com.erp.auth.domain.model.PasswordPolicy;
+import com.erp.auth.domain.port.GoogleTokenVerifierPort;
 import com.erp.auth.domain.port.NotificationPort;
+import com.erp.auth.domain.port.OtpVerificationRepositoryPort;
 import com.erp.auth.domain.port.SecondFactorPort;
 import com.erp.auth.domain.port.SecondFactorRepositoryPort;
 import com.erp.auth.domain.port.PasswordEncoderPort;
@@ -139,6 +144,52 @@ public class ApplicationServiceConfig {
                 passwordEncoderPort,
                 tokenSignerPort,
                 notificationPort,
+                unitOfWork
+        );
+    }
+
+    @Bean
+    public OtpService otpService(
+            OtpVerificationRepositoryPort otpVerificationRepositoryPort,
+            NotificationPort notificationPort,
+            UnitOfWork unitOfWork) {
+        return new OtpService(otpVerificationRepositoryPort, notificationPort, unitOfWork);
+    }
+
+    @Bean
+    public GoogleAuthenticationService googleAuthenticationService(
+            GoogleTokenVerifierPort googleTokenVerifierPort,
+            UserRepositoryPort userRepositoryPort,
+            RoleRepositoryPort roleRepositoryPort,
+            RefreshTokenRepositoryPort refreshTokenRepositoryPort,
+            PasswordEncoderPort passwordEncoderPort,
+            TokenSignerPort tokenSignerPort,
+            UnitOfWork unitOfWork) {
+        return new GoogleAuthenticationService(
+                googleTokenVerifierPort,
+                userRepositoryPort,
+                roleRepositoryPort,
+                refreshTokenRepositoryPort,
+                passwordEncoderPort,
+                tokenSignerPort,
+                unitOfWork
+        );
+    }
+
+    @Bean
+    public UserSelfService userSelfService(
+            UserRepositoryPort userRepositoryPort,
+            RefreshTokenRepositoryPort refreshTokenRepositoryPort,
+            PasswordEncoderPort passwordEncoderPort,
+            TokenSignerPort tokenSignerPort,
+            PasswordPolicy passwordPolicy,
+            UnitOfWork unitOfWork) {
+        return new UserSelfService(
+                userRepositoryPort,
+                refreshTokenRepositoryPort,
+                passwordEncoderPort,
+                tokenSignerPort,
+                passwordPolicy,
                 unitOfWork
         );
     }

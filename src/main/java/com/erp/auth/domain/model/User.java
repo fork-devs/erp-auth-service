@@ -16,7 +16,7 @@ import java.util.UUID;
 public class User implements Serializable {
     private final UUID id;
     private final TenantId tenantId;
-    private final Email email;
+    private Email email;
     private PasswordHash passwordHash;
     private String fullName;
     private boolean mfaEnabled;
@@ -99,6 +99,13 @@ public class User implements Serializable {
             throw new IllegalArgumentException("La nueva contraseña no puede ser nula");
         }
         this.passwordHash = newPasswordHash;
+    }
+
+    public void changeEmail(Email newEmail) {
+        if (newEmail == null) {
+            throw new IllegalArgumentException("El nuevo correo no puede ser nulo");
+        }
+        this.email = newEmail;
     }
 
     public void updateFullName(String fullName) {

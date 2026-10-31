@@ -17,9 +17,13 @@ public interface SpringDataUserRepository extends JpaRepository<UserJpaEntity, U
 
     Optional<UserJpaEntity> findByEmailAndTenantId(String email, UUID tenantId);
 
+    Optional<UserJpaEntity> findByEmail(String email);
+
     Optional<UserJpaEntity> findByIdAndTenantId(UUID id, UUID tenantId);
 
     boolean existsByEmailAndTenantId(String email, UUID tenantId);
+
+    boolean existsByEmail(String email);
 
     /**
      * Second-factor authentication state projection for a user.

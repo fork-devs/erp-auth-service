@@ -1,18 +1,27 @@
 package com.erp.auth.interfaces.rest.controller;
 
 import com.erp.auth.application.dto.command.RegisterUserCommand;
+import com.erp.auth.application.dto.command.UpdateUserEmailCommand;
+import com.erp.auth.application.dto.command.UpdateUserPasswordCommand;
+import com.erp.auth.application.dto.result.AuthResult;
 import com.erp.auth.application.dto.result.UserResult;
 import com.erp.auth.application.usecase.ConfirmSecondFactorEnrollmentUseCase;
 import com.erp.auth.application.usecase.EnrollSecondFactorUseCase;
+import com.erp.auth.application.usecase.GetUserByIdUseCase;
 import com.erp.auth.application.usecase.GetUserProfileUseCase;
 import com.erp.auth.application.usecase.ListTenantUsersUseCase;
 import com.erp.auth.application.usecase.RegisterUserUseCase;
+import com.erp.auth.application.usecase.UpdateUserEmailUseCase;
+import com.erp.auth.application.usecase.UpdateUserPasswordUseCase;
 import com.erp.auth.domain.exception.TenantContextMissingException;
 import com.erp.auth.domain.model.RoleCode;
 import com.erp.auth.domain.valueobject.TenantId;
 import com.erp.auth.infrastructure.persistence.rls.TenantContextHolder;
 import com.erp.auth.interfaces.rest.dto.request.RegisterUserRequest;
 import com.erp.auth.interfaces.rest.dto.request.SecondFactorRequest;
+import com.erp.auth.interfaces.rest.dto.request.UpdateEmailRequest;
+import com.erp.auth.interfaces.rest.dto.request.UpdatePasswordRequest;
+import com.erp.auth.interfaces.rest.dto.response.AuthResponse;
 import com.erp.auth.interfaces.rest.dto.response.MessageResponse;
 import com.erp.auth.interfaces.rest.dto.response.UserResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,7 +33,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,6 +57,9 @@ public class UserController {
     private final ListTenantUsersUseCase listTenantUsersUseCase;
     private final EnrollSecondFactorUseCase enrollSecondFactorUseCase;
     private final ConfirmSecondFactorEnrollmentUseCase confirmSecondFactorEnrollmentUseCase;
+    private final GetUserByIdUseCase getUserByIdUseCase;
+    private final UpdateUserEmailUseCase updateUserEmailUseCase;
+    private final UpdateUserPasswordUseCase updateUserPasswordUseCase;
 
     public UserController(
             RegisterUserUseCase registerUserUseCase,
@@ -53,11 +67,28 @@ public class UserController {
             ListTenantUsersUseCase listTenantUsersUseCase,
             EnrollSecondFactorUseCase enrollSecondFactorUseCase,
             ConfirmSecondFactorEnrollmentUseCase confirmSecondFactorEnrollmentUseCase) {
+        this(registerUserUseCase, getUserProfileUseCase, listTenantUsersUseCase,
+                enrollSecondFactorUseCase, confirmSecondFactorEnrollmentUseCase, null, null, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public UserController(
+            RegisterUserUseCase registerUserUseCase,
+            GetUserProfileUseCase getUserProfileUseCase,
+            ListTenantUsersUseCase listTenantUsersUseCase,
+            EnrollSecondFactorUseCase enrollSecondFactorUseCase,
+            ConfirmSecondFactorEnrollmentUseCase confirmSecondFactorEnrollmentUseCase,
+            GetUserByIdUseCase getUserByIdUseCase,
+            UpdateUserEmailUseCase updateUserEmailUseCase,
+            UpdateUserPasswordUseCase updateUserPasswordUseCase) {
         this.registerUserUseCase = registerUserUseCase;
         this.getUserProfileUseCase = getUserProfileUseCase;
         this.listTenantUsersUseCase = listTenantUsersUseCase;
         this.enrollSecondFactorUseCase = enrollSecondFactorUseCase;
         this.confirmSecondFactorEnrollmentUseCase = confirmSecondFactorEnrollmentUseCase;
+        this.getUserByIdUseCase = getUserByIdUseCase;
+        this.updateUserEmailUseCase = updateUserEmailUseCase;
+        this.updateUserPasswordUseCase = updateUserPasswordUseCase;
     }
 
     @PostMapping("/me/second-factor")
@@ -161,6 +192,55 @@ public class UserController {
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(users);
+    }
+
+    @GetMapping("/{userId}")
+    @PreAuthorize("isAuthenticated() and @userSecurityService.isCurrentUser(#userId)")
+    @Operation(summary = "Obtener usuario por ID", description = "Retorna los datos del usuario especificado si es el propio usuario o ADMIN")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable("userId") UUID userId) {
+        UserResult result = getUserByIdUseCase.getUserById(userId);
+        return ResponseEntity.ok(new UserResponse(
+                result.id(),
+                result.tenantId(),
+                result.email(),
+                result.fullName(),
+                result.mfaEnabled(),
+                result.roles(),
+                result.createdAt()
+        ));
+    }
+
+    @PutMapping("/{userId}/email")
+    @PreAuthorize("isAuthenticated() and @userSecurityService.isCurrentUser(#userId)")
+    @Operation(summary = "Actualizar email de usuario", description = "Actualiza el correo y reemite nuevo par de tokens")
+    public ResponseEntity<AuthResponse> updateEmail(
+            @PathVariable("userId") UUID userId,
+            @Valid @RequestBody UpdateEmailRequest request) {
+        AuthResult result = updateUserEmailUseCase.updateEmail(
+                new UpdateUserEmailCommand(userId, request.email()));
+        return ResponseEntity.ok(new AuthResponse(
+                result.accessToken(),
+                result.accessTokenId(),
+                result.refreshToken(),
+                result.tokenType(),
+                result.expiresInSeconds(),
+                result.userId(),
+                result.tenantId(),
+                result.email(),
+                result.fullName(),
+                result.roles()
+        ));
+    }
+
+    @PutMapping("/{userId}/password")
+    @PreAuthorize("isAuthenticated() and @userSecurityService.isCurrentUser(#userId)")
+    @Operation(summary = "Actualizar contraseña de usuario", description = "Cambia la clave verificando la actual y revoca sesiones en todos los dispositivos")
+    public ResponseEntity<MessageResponse> updatePassword(
+            @PathVariable("userId") UUID userId,
+            @Valid @RequestBody UpdatePasswordRequest request) {
+        updateUserPasswordUseCase.updatePassword(
+                new UpdateUserPasswordCommand(userId, request.currentPassword(), request.newPassword()));
+        return ResponseEntity.ok(MessageResponse.of("Password updated successfully"));
     }
 
     /**

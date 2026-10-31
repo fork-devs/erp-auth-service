@@ -2,14 +2,19 @@ package com.erp.auth.interfaces.rest.advice;
 
 import com.erp.auth.domain.exception.AccountLockedException;
 import com.erp.auth.domain.exception.DomainException;
+import com.erp.auth.domain.exception.GoogleAuthenticationException;
 import com.erp.auth.domain.exception.InvalidCredentialsException;
+import com.erp.auth.domain.exception.InvalidOtpException;
 import com.erp.auth.domain.exception.InvalidTokenException;
+import com.erp.auth.domain.exception.OtpExpiredException;
+import com.erp.auth.domain.exception.OtpMaxAttemptsExceededException;
 import com.erp.auth.domain.exception.TokenExpiredException;
 import com.erp.auth.domain.exception.RoleNotAssignableException;
 import com.erp.auth.domain.exception.TenantContextMissingException;
 import com.erp.auth.domain.exception.TokenRevokedException;
 import com.erp.auth.domain.exception.UserAlreadyExistsException;
 import com.erp.auth.domain.exception.UserNotFoundException;
+import com.erp.auth.domain.exception.WeakPasswordException;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
@@ -163,6 +168,38 @@ public class GlobalRestExceptionHandler {
         problem.setProperty("errorCode", ex.getErrorCode());
         problem.setProperty("timestamp", Instant.now());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
+    }
+
+    @ExceptionHandler({InvalidOtpException.class, OtpExpiredException.class, GoogleAuthenticationException.class})
+    public ResponseEntity<ProblemDetail> handleAuthValidationExceptions(DomainException ex) {
+        log.warn("Error de autenticacion IAM: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+        problem.setTitle("Autenticación Fallida");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/unauthorized"));
+        problem.setProperty("errorCode", ex.getErrorCode());
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+    }
+
+    @ExceptionHandler(OtpMaxAttemptsExceededException.class)
+    public ResponseEntity<ProblemDetail> handleOtpMaxAttempts(OtpMaxAttemptsExceededException ex) {
+        log.warn("Exceso de intentos OTP: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+        problem.setTitle("Límite de Intentos Excedido");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/rate-limited"));
+        problem.setProperty("errorCode", ex.getErrorCode());
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(problem);
+    }
+
+    @ExceptionHandler(WeakPasswordException.class)
+    public ResponseEntity<ProblemDetail> handleWeakPassword(WeakPasswordException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setTitle("Contraseña Débil");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/weak-password"));
+        problem.setProperty("errorCode", ex.getErrorCode());
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
