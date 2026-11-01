@@ -37,6 +37,7 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers(
                                 "/api/v1/auth/**",
+                                "/api/v1/authentication/**",
                                 "/.well-known/jwks.json",
                                 "/.well-known/openid-configuration",
                                 "/v3/api-docs/**",
@@ -45,6 +46,7 @@ public class SecurityConfig {
                                 "/actuator/health",
                                 "/actuator/health/**"
                         ).permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/users").permitAll()
                         // Protected endpoints
                         .requestMatchers("/api/v1/users/**").authenticated()
                         .anyRequest().authenticated()
