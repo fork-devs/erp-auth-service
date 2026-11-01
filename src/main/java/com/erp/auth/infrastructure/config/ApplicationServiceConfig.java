@@ -154,13 +154,12 @@ public class ApplicationServiceConfig {
             @Value("${erp.notification.brevo.api-key:}") String brevoApiKey,
             @Value("${erp.notification.brevo.sender-email:no-reply@driveos.pe}") String senderEmail,
             @Value("${erp.notification.brevo.sender-name:DriveOS Workshop}") String senderName,
-            @Value("${erp.notification.brevo.enabled:true}") boolean brevoEnabled,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+            @Value("${erp.notification.brevo.enabled:true}") boolean brevoEnabled) {
         if (brevoEnabled && !brevoApiKey.isBlank() && !brevoApiKey.startsWith("test_")) {
             return new com.erp.auth.infrastructure.adapter.notification.BrevoEmailAdapter(
                     brevoApiKey, senderEmail, senderName, true,
                     java.net.http.HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(6)).build(),
-                    objectMapper);
+                    new com.fasterxml.jackson.databind.ObjectMapper());
         }
         return new com.erp.auth.infrastructure.adapter.notification.LoggingNotificationAdapter();
     }
