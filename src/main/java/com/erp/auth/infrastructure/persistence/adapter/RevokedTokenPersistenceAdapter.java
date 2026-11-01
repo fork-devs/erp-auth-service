@@ -26,8 +26,7 @@ public class RevokedTokenPersistenceAdapter implements RevokedTokenRepositoryPor
     public void revoke(UUID tokenId, UUID userId, Instant expiresAt) {
         transactionGuard.requireActiveTransaction("revokeToken");
         if (repository.existsById(tokenId)) {
-            // La revocacion es idempotente: cerrar la sesion dos veces no
-            // puede fallar.
+            // Revocation is idempotent: closing a session twice must not fail.
             return;
         }
         repository.save(new RevokedTokenJpaEntity(tokenId, userId, expiresAt, Instant.now()));

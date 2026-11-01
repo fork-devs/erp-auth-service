@@ -54,9 +54,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    // El inicio de sesion es publico por definicion: no hay principal al
-    // que exigirle un rol. El resto de los flujos de arranque, por el mismo
-    // motivo.
+    // Authentication flows are public by definition: no authenticated principal exists yet.
     @PreAuthorize("permitAll()")
     @Operation(summary = "Iniciar sesión", description = "Valida credenciales, aplica control de fuerza bruta y emite Access Token (JWT 15m) + Refresh Token")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -105,7 +103,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER', 'ASESOR', 'MECANICO')")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'WORKSHOP_ADMIN', 'ADMIN_TALLER', 'SERVICE_ADVISOR', 'ASESOR', 'TECHNICIAN', 'MECANICO')")
     @Operation(summary = "Cerrar sesión", description = "Revoca el Access Token presentado y el Refresh Token activo")
     public ResponseEntity<MessageResponse> logout(
             @Valid @RequestBody RefreshTokenRequest request,
@@ -114,9 +112,8 @@ public class AuthController {
             revokeTokenUseCase.revokeToken(request.refreshToken());
         }
 
-        // El token de acceso viaja en la cabecera Authorization. Es el que
-        // se presenta en cada peticion, y revocar solo el token de refresco
-        // dejaba viva la credencial hasta que expirara.
+        // The access token arrives in the Authorization header. Revoking both the
+        // presented access token and the refresh token guarantees immediate session termination.
         if (authorization != null && authorization.startsWith("Bearer ")) {
             revokeAccessTokenUseCase.revokeAccessToken(authorization.substring(7).trim());
         }

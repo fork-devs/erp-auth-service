@@ -16,7 +16,7 @@ import java.util.UUID;
 public class User implements Serializable {
     private final UUID id;
     private final TenantId tenantId;
-    private final Email email;
+    private Email email;
     private PasswordHash passwordHash;
     private String fullName;
     private boolean mfaEnabled;
@@ -74,7 +74,7 @@ public class User implements Serializable {
             return false;
         }
         if (Instant.now().isAfter(lockedUntil)) {
-            // El bloqueo ya expiró
+            // Lockout period has expired
             this.lockedUntil = null;
             this.failedAttempts = 0;
             return false;
@@ -99,6 +99,13 @@ public class User implements Serializable {
             throw new IllegalArgumentException("La nueva contraseña no puede ser nula");
         }
         this.passwordHash = newPasswordHash;
+    }
+
+    public void changeEmail(Email newEmail) {
+        if (newEmail == null) {
+            throw new IllegalArgumentException("El nuevo correo no puede ser nulo");
+        }
+        this.email = newEmail;
     }
 
     public void updateFullName(String fullName) {
@@ -140,18 +147,14 @@ public class User implements Serializable {
     }
 
     /**
-     * Habilita el segundo factor.
-     *
-     * <p>El campo mfaEnabled se fijaba en falso al construir el usuario y no
-     * habia ninguna manera de cambiarlo: el segundo factor no existia.
+     * Enables second-factor authentication for the user.
      */
     public void enableSecondFactor() {
         this.mfaEnabled = true;
     }
 
     /**
-     * Deshabilita el segundo factor. Exige el secreto enrolado: sin el, el
-     * usuario se quedaria sin la forma de volver a activarlo.
+     * Disables second-factor authentication for the user.
      */
     public void disableSecondFactor() {
         this.mfaEnabled = false;

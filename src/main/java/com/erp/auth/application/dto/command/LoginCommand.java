@@ -7,8 +7,8 @@ public record LoginCommand(
         String password,
         UUID tenantId,
         /**
-         * Codigo del segundo factor. Obligatorio cuando la cuenta lo tiene
-         * habilitado; se ignora cuando no lo tiene.
+         * Second-factor authentication code. Mandatory when the account has 2FA enabled;
+         * ignored otherwise.
          */
         String secondFactorCode
 ) {

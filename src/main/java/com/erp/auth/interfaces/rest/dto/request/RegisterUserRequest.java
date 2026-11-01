@@ -6,26 +6,24 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * Alta de un usuario del taller.
+ * User registration request for a workshop tenant.
  *
- * <p>NO acepta el identificador de taller: el sistema lo deduce del
- * principal autenticado, de modo que el cliente no puede crear usuarios en
- * otro taller.
+ * <p>The tenant ID is not accepted from the request body: the system resolves it
+ * from the authenticated principal to prevent cross-tenant user creation.
  *
- * <p>El rol que se quiere conceder se declara de forma acotada, con un unico
- * valor del catalogo. El sistema solo lo asigna si el rol del principal tiene
- * permiso para concederlo; en caso contrario, la peticion se rechaza.
+ * <p>The requested role is evaluated against the assignable role matrix of the caller's role;
+ * unauthorized role grants are rejected.
  */
 public record RegisterUserRequest(
-        @NotBlank(message = "El correo electrónico es obligatorio")
-        @Email(message = "Formato de correo inválido")
+        @NotBlank(message = "{validation.auth.register-user.email.not-blank}")
+        @Email(message = "{validation.auth.register-user.email.format}")
         String email,
 
-        @NotBlank(message = "La contraseña es obligatoria")
-        @Size(min = 12, message = "La contraseña debe tener al menos 12 caracteres")
+        @NotBlank(message = "{validation.auth.register-user.password.not-blank}")
+        @Size(min = 12, message = "{validation.auth.register-user.password.size}")
         String password,
 
-        @NotBlank(message = "El nombre completo es obligatorio")
+        @NotBlank(message = "{validation.auth.register-user.full-name.not-blank}")
         String fullName,
 
         RoleCode role

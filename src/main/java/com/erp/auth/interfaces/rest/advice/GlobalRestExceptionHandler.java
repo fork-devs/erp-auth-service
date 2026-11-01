@@ -2,14 +2,21 @@ package com.erp.auth.interfaces.rest.advice;
 
 import com.erp.auth.domain.exception.AccountLockedException;
 import com.erp.auth.domain.exception.DomainException;
+import com.erp.auth.domain.exception.GoogleAuthenticationException;
 import com.erp.auth.domain.exception.InvalidCredentialsException;
+import com.erp.auth.domain.exception.InvalidOtpException;
 import com.erp.auth.domain.exception.InvalidTokenException;
+import com.erp.auth.domain.exception.OtpExpiredException;
+import com.erp.auth.domain.exception.OtpMaxAttemptsExceededException;
 import com.erp.auth.domain.exception.TokenExpiredException;
 import com.erp.auth.domain.exception.RoleNotAssignableException;
 import com.erp.auth.domain.exception.TenantContextMissingException;
 import com.erp.auth.domain.exception.TokenRevokedException;
 import com.erp.auth.domain.exception.UserAlreadyExistsException;
 import com.erp.auth.domain.exception.UserNotFoundException;
+import com.erp.auth.domain.exception.WeakPasswordException;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
@@ -22,6 +29,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.net.URI;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 @RestControllerAdvice
@@ -30,22 +38,39 @@ public class GlobalRestExceptionHandler {
     private static final org.slf4j.Logger log =
             org.slf4j.LoggerFactory.getLogger(GlobalRestExceptionHandler.class);
 
+    private final MessageSource messageSource;
+
+    public GlobalRestExceptionHandler() {
+        this(null);
+    }
+
+    public GlobalRestExceptionHandler(MessageSource messageSource) {
+        this.messageSource = messageSource;
+    }
+
+    private String getMessage(String code, String defaultMessage, Object... args) {
+        if (messageSource == null) {
+            return defaultMessage;
+        }
+        Locale locale = LocaleContextHolder.getLocale();
+        return messageSource.getMessage(code, args, defaultMessage, locale);
+    }
+
     /**
-     * La cuenta bloqueada responde IGUAL que las credenciales invalidas.
+     * Account lockout returns an identical response to invalid credentials.
      *
-     * <p>La comprobacion del bloqueo ocurre ANTES que la de la contrasena, de
-     * modo que un atacante que solo conozca el correo de una victima
-     * distingue "esta bloqueada" de "no existe": eso es enumerar cuentas. La
-     * respuesta unificada cierra el vectors; el motivo real queda en el
-     * registro de eventos de autenticacion, que no ve el atacante.
+     * <p>Returning uniform 401 ProblemDetail responses prevents account enumeration
+     * by attackers probing email addresses. The specific reason is logged securely
+     * in the security event log.
      */
     @ExceptionHandler(AccountLockedException.class)
     public ResponseEntity<ProblemDetail> handleAccountLocked(AccountLockedException ex) {
-        // La excepcion se registra con su traza, y la respuesta al cliente
-        // no cambia: el diagnostico va al registro, no al consumidor.
+        // Log the exception details internally while returning a uniform response to the client
         log.warn("Cuenta bloqueada: {}", ex.getMessage(), ex);
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
-        problem.setTitle("Credenciales Inválidas");
+        String detail = getMessage("error.auth.account-locked.detail", ex.getMessage());
+        String title = getMessage("error.auth.account-locked.title", "Credenciales Inválidas");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, detail);
+        problem.setTitle(title);
         problem.setType(URI.create("https://errors.erp-automotriz.com/auth/invalid-credentials"));
         problem.setProperty("errorCode", ex.getErrorCode());
         problem.setProperty("timestamp", Instant.now());
@@ -55,8 +80,10 @@ public class GlobalRestExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ProblemDetail> handleInvalidCredentials(InvalidCredentialsException ex) {
         log.info("Credenciales invalidas: {}", ex.getMessage());
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
-        problem.setTitle("Credenciales Inválidas");
+        String detail = getMessage("error.auth.invalid-credentials.detail", ex.getMessage());
+        String title = getMessage("error.auth.invalid-credentials.title", "Credenciales Inválidas");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, detail);
+        problem.setTitle(title);
         problem.setType(URI.create("https://errors.erp-automotriz.com/auth/invalid-credentials"));
         problem.setProperty("errorCode", ex.getErrorCode());
         problem.setProperty("timestamp", Instant.now());
@@ -65,8 +92,14 @@ public class GlobalRestExceptionHandler {
 
     @ExceptionHandler({InvalidTokenException.class, TokenExpiredException.class, TokenRevokedException.class})
     public ResponseEntity<ProblemDetail> handleTokenExceptions(DomainException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
-        problem.setTitle("Token No Válido");
+        String detailKey = ex instanceof TokenExpiredException ? "error.auth.token-expired.detail" :
+                (ex instanceof TokenRevokedException ? "error.auth.token-revoked.detail" : "error.auth.token-invalid.detail");
+        String titleKey = ex instanceof TokenExpiredException ? "error.auth.token-expired.title" :
+                (ex instanceof TokenRevokedException ? "error.auth.token-revoked.title" : "error.auth.token-invalid.title");
+        String detail = getMessage(detailKey, ex.getMessage());
+        String title = getMessage(titleKey, "Token No Válido");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, detail);
+        problem.setTitle(title);
         problem.setType(URI.create("https://errors.erp-automotriz.com/auth/token-invalid"));
         problem.setProperty("errorCode", ex.getErrorCode());
         problem.setProperty("timestamp", Instant.now());
@@ -75,8 +108,10 @@ public class GlobalRestExceptionHandler {
 
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<ProblemDetail> handleUserAlreadyExists(UserAlreadyExistsException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
-        problem.setTitle("Usuario Ya Existe");
+        String detail = getMessage("error.auth.user-already-exists.detail", ex.getMessage());
+        String title = getMessage("error.auth.user-already-exists.title", "Usuario Ya Existe");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, detail);
+        problem.setTitle(title);
         problem.setType(URI.create("https://errors.erp-automotriz.com/auth/user-conflict"));
         problem.setProperty("errorCode", ex.getErrorCode());
         problem.setProperty("timestamp", Instant.now());
@@ -85,8 +120,10 @@ public class GlobalRestExceptionHandler {
 
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ProblemDetail> handleUserNotFound(UserNotFoundException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
-        problem.setTitle("Usuario No Encontrado");
+        String detail = getMessage("error.auth.user-not-found.detail", ex.getMessage());
+        String title = getMessage("error.auth.user-not-found.title", "Usuario No Encontrado");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, detail);
+        problem.setTitle(title);
         problem.setType(URI.create("https://errors.erp-automotriz.com/auth/user-not-found"));
         problem.setProperty("errorCode", ex.getErrorCode());
         problem.setProperty("timestamp", Instant.now());
@@ -94,16 +131,15 @@ public class GlobalRestExceptionHandler {
     }
 
     /**
-     * La denegacion de la seguridad a nivel de metodo se resuelve aqui y no en
-     * el filtro de seguridad: el resolutor de excepciones del dispatcher la
-     * intercepta antes de que llegue al filtro, de modo que sin este
-     * mapeo un acceso denegado se responderia con un 500 en lugar de un 403.
+     * Maps method-level security access denials to HTTP 403 Forbidden.
+     * Prevents unhandled AccessDeniedException from falling through to a generic 500 error.
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN,
-                "No tiene permisos para realizar esta operacion.");
-        problem.setTitle("Acceso Denegado");
+        String detail = getMessage("error.auth.access-denied.detail", "No tiene permisos para realizar esta operacion.");
+        String title = getMessage("error.auth.access-denied.title", "Acceso Denegado");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, detail);
+        problem.setTitle(title);
         problem.setType(URI.create("https://errors.erp-automotriz.com/auth/access-denied"));
         problem.setProperty("errorCode", "AUTH_ACCESS_DENIED");
         problem.setProperty("timestamp", Instant.now());
@@ -112,8 +148,10 @@ public class GlobalRestExceptionHandler {
 
     @ExceptionHandler(RoleNotAssignableException.class)
     public ResponseEntity<ProblemDetail> handleRoleNotAssignable(RoleNotAssignableException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
-        problem.setTitle("Rol No Concedible");
+        String detail = getMessage("error.auth.role-not-assignable.detail", ex.getMessage());
+        String title = getMessage("error.auth.role-not-assignable.title", "Rol No Concedible");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, detail);
+        problem.setTitle(title);
         problem.setType(URI.create("https://errors.erp-automotriz.com/auth/role-not-assignable"));
         problem.setProperty("errorCode", ex.getErrorCode());
         problem.setProperty("timestamp", Instant.now());
@@ -122,18 +160,54 @@ public class GlobalRestExceptionHandler {
 
     @ExceptionHandler(TenantContextMissingException.class)
     public ResponseEntity<ProblemDetail> handleTenantContextMissing(TenantContextMissingException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
-        problem.setTitle("Contexto de Taller Ausente");
+        String detail = getMessage("error.auth.tenant-context-missing.detail", ex.getMessage());
+        String title = getMessage("error.auth.tenant-context-missing.title", "Contexto de Taller Ausente");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, detail);
+        problem.setTitle(title);
         problem.setType(URI.create("https://errors.erp-automotriz.com/auth/tenant-context-missing"));
         problem.setProperty("errorCode", ex.getErrorCode());
         problem.setProperty("timestamp", Instant.now());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
     }
 
+    @ExceptionHandler({InvalidOtpException.class, OtpExpiredException.class, GoogleAuthenticationException.class})
+    public ResponseEntity<ProblemDetail> handleAuthValidationExceptions(DomainException ex) {
+        log.warn("Error de autenticacion IAM: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+        problem.setTitle("Autenticación Fallida");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/unauthorized"));
+        problem.setProperty("errorCode", ex.getErrorCode());
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+    }
+
+    @ExceptionHandler(OtpMaxAttemptsExceededException.class)
+    public ResponseEntity<ProblemDetail> handleOtpMaxAttempts(OtpMaxAttemptsExceededException ex) {
+        log.warn("Exceso de intentos OTP: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+        problem.setTitle("Límite de Intentos Excedido");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/rate-limited"));
+        problem.setProperty("errorCode", ex.getErrorCode());
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(problem);
+    }
+
+    @ExceptionHandler(WeakPasswordException.class)
+    public ResponseEntity<ProblemDetail> handleWeakPassword(WeakPasswordException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setTitle("Contraseña Débil");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/weak-password"));
+        problem.setProperty("errorCode", ex.getErrorCode());
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ProblemDetail> handleValidationErrors(MethodArgumentNotValidException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Error de validación en la solicitud.");
-        problem.setTitle("Solicitud Inválida");
+        String detail = getMessage("error.auth.validation-error.detail", "Error de validación en la solicitud.");
+        String title = getMessage("error.auth.validation-error.title", "Solicitud Inválida");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+        problem.setTitle(title);
         problem.setType(URI.create("https://errors.erp-automotriz.com/auth/validation-error"));
 
         Map<String, String> fieldErrors = new HashMap<>();
@@ -142,26 +216,30 @@ public class GlobalRestExceptionHandler {
         }
 
         problem.setProperty("invalidParams", fieldErrors);
+        problem.setProperty("errorCode", "VALIDATION_ERROR");
         problem.setProperty("timestamp", Instant.now());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
-        problem.setTitle("Argumento Inválido");
+        String detail = getMessage("error.auth.invalid-argument.detail", ex.getMessage());
+        String title = getMessage("error.auth.invalid-argument.title", "Argumento Inválido");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+        problem.setTitle(title);
         problem.setProperty("timestamp", Instant.now());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGeneralException(Exception ex) {
-        // La traza va al registro. Antes se perdia: el cliente recibia un
-        // error generico y nadie podia saber que habia ocurrido, ni por que.
+        // Log full exception stack trace internally for diagnostics while returning generic error
         log.error("Error no controlado: {}", ex.getMessage(), ex);
 
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Ha ocurrido un error interno en el servidor.");
-        problem.setTitle("Error Interno");
+        String detail = getMessage("error.auth.internal-error.detail", "Ha ocurrido un error interno en el servidor.");
+        String title = getMessage("error.auth.internal-error.title", "Error Interno");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, detail);
+        problem.setTitle(title);
         problem.setProperty("timestamp", Instant.now());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problem);
     }

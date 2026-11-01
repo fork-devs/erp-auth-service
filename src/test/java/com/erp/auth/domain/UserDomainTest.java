@@ -29,14 +29,14 @@ class UserDomainTest {
         assertFalse(user.isAccountLocked(), "La cuenta debe iniciar desbloqueada");
         assertEquals(0, user.getFailedAttempts());
 
-        // Simular 4 intentos fallidos
+        // Simulate 4 failed attempts
         for (int i = 1; i <= 4; i++) {
             user.recordFailedAttempt(5, Duration.ofMinutes(15));
             assertEquals(i, user.getFailedAttempts());
             assertFalse(user.isAccountLocked(), "No debe bloquearse antes del 5to intento");
         }
 
-        // 5to intento fallido
+        // 5th failed attempt
         user.recordFailedAttempt(5, Duration.ofMinutes(15));
         assertEquals(5, user.getFailedAttempts());
         assertTrue(user.isAccountLocked(), "La cuenta debe estar bloqueada al 5to intento");

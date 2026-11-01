@@ -5,11 +5,11 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * Base de los tests de integracion del servicio de autenticacion.
+ * Base integration test for the authentication service.
  *
- * <p>Arranca PostgreSQL real en proceso y conecta la aplicacion con el rol de
- * runtime {@code erp_app}, que es el unico sujeto a la politica de
- * Row-Level Security. Las migraciones de Flyway las ejecuta el propietario.
+ * <p>Starts an embedded PostgreSQL process and connects with the runtime
+ * {@code erp_app} role, which is enforced by Row-Level Security policies.
+ * Flyway schema migrations run as the database owner.
  */
 @SpringBootTest
 public abstract class AbstractPostgresIntegrationTest {
@@ -21,7 +21,7 @@ public abstract class AbstractPostgresIntegrationTest {
         registry.add("spring.datasource.url", EmbeddedPostgresSupport::jdbcUrl);
         registry.add("spring.datasource.username", EmbeddedPostgresSupport::appRole);
         registry.add("spring.datasource.password", EmbeddedPostgresSupport::appPassword);
-        // El perfil de test por defecto fija el driver de H2, que no acepta la URL de PostgreSQL.
+        // Default test profile sets H2 driver; override explicitly for PostgreSQL connection.
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
 
         registry.add("spring.flyway.url", EmbeddedPostgresSupport::jdbcUrl);
@@ -32,8 +32,7 @@ public abstract class AbstractPostgresIntegrationTest {
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
         registry.add("spring.flyway.enabled", () -> "true");
 
-        // El material de firma persiste: el servicio lo lee de la fuente
-        // configurada y falla al arrancar si no esta.
+        // Persistent signing key material loaded from configuration.
         registry.add("erp.security.jwt.private-key-pem", TestKeyMaterial::privateKeyPem);
         registry.add("erp.security.jwt.public-key-pem", TestKeyMaterial::publicKeyPem);
     }

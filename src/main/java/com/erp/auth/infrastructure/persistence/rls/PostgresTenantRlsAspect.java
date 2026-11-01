@@ -13,13 +13,12 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.util.UUID;
 
 /**
- * Establece el contexto de tenant en la sesion de base de datos para que la
- * politica de Row-Level Security pueda filtrar las filas.
+ * Sets the tenant context on the PostgreSQL database session so Row-Level Security (RLS)
+ * policies can enforce tenant row filtering.
  *
- * <p>El aislamiento falla cerrado: si no hay transaccion activa, el
- * {@code SET LOCAL} no tendria efecto y la consulta se ejecutaria SIN
- * filtro, de modo que la operacion se rechaza en lugar de ejecutarse sin
- * aislamiento. Ver docs/doc-estado-implementacion.md, hallazgo P1 6.6.
+ * <p>Isolation fails closed: without an active transaction, {@code SET LOCAL} would have
+ * no effect and queries would execute unfiltered. Therefore operations are rejected
+ * rather than executed without isolation. See docs/doc-estado-implementacion.md, finding P1 6.6.
  */
 @Aspect
 @Component
@@ -34,9 +33,8 @@ public class PostgresTenantRlsAspect {
     }
 
     /**
-     * Toda operacion de persistencia debe correr dentro de una transaccion:
-     * fuera de ella, el contexto de tenant no se puede establecer y la
-     * politica de aislamiento no seria aplicable.
+     * Ensures all persistence operations run within an active transaction.
+     * Outside a transaction, tenant context cannot be bound via {@code SET LOCAL}.
      */
     @Before("execution(* com.erp.auth.infrastructure.persistence.adapter..*(..))")
     public void requireActiveTransaction() {
@@ -48,13 +46,11 @@ public class PostgresTenantRlsAspect {
     }
 
     /**
-     * Para las tablas que pertenecen a un taller, el contexto de tenant es
-     * obligatorio. Las tablas de catalogo global, como {@code roles}, quedan
-     * fuera: son comunes a todos los talleres.
+     * Enforces tenant context for tenant-owned tables. Global catalog tables (such as
+     * {@code roles}) are exempt as they are shared across all tenants.
      *
-     * <p>El valor se interpola en la sentencia porque {@code SET LOCAL} no
-     * admite parametros preparados. El valor es un UUID ya validado, de modo
-     * que no introduce una via de inyeccion.
+     * <p>The UUID value is interpolated into the statement because PostgreSQL {@code SET LOCAL}
+     * does not support parameterized queries; the pre-validated UUID prevents SQL injection.
      */
     @Before("execution(* com.erp.auth.infrastructure.persistence.adapter.UserPersistenceAdapter.*(..))"
             + " || execution(* com.erp.auth.infrastructure.persistence.adapter.RefreshTokenPersistenceAdapter.*(..))"

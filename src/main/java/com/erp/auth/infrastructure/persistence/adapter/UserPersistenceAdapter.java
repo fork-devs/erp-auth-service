@@ -47,22 +47,18 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
     }
 
     /**
-     * El estado del segundo factor NO viaja en el modelo de dominio: el
-     * secreto viaja cifrado y el contador del ultimo codigo aceptado son
-     * datos de la fila, no del agregado.
+     * Preserves second-factor authentication infrastructure state across entity updates.
      *
-     * <p>Sin preservarlos aqui, CUALQUIER guardado posterior del usuario
-     * los borraria: un intento de inicio de sesion fallido, un cambio de
-     * contrasena o un simple cambio de nombre dejarian el segundo factor sin
-     * secreto, y el usuario que lo hubiera enrolado se quedaria sin poder
-     * entrar.
+     * <p>Encrypted 2FA secrets and the last accepted code counter are infrastructure-level
+     * columns not modeled in the core domain aggregate. Preserving them here prevents
+     * standard domain save operations (such as password changes, login counters, or name updates)
+     * from inadvertently clearing active 2FA credentials.
      */
     private void preservarSegundoFactor(UserJpaEntity entity) {
         springDataUserRepository.findUserState(entity.getId()).ifPresent(estado -> {
             entity.setMfaSecretCiphertext(estado.getMfaSecretCiphertext());
             entity.setMfaLastCodeCounter(estado.getMfaLastCodeCounter());
-            // La version tiene que viajar: sin ella, Hibernate entiende que
-            // la entidad es nueva e inserta una fila en lugar de actualizarla.
+            // Retain the version attribute so Hibernate performs an UPDATE rather than an INSERT
             entity.setVersion(estado.getVersion());
         });
     }
@@ -76,8 +72,22 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<User> findById(UUID id) {
+        return springDataUserRepository.findById(id)
+                .map(UserPersistenceMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<User> findByIdAndTenantId(UUID id, TenantId tenantId) {
         return springDataUserRepository.findByIdAndTenantId(id, tenantId.getValue())
+                .map(UserPersistenceMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<User> findByEmail(Email email) {
+        return springDataUserRepository.findByEmail(email.getValue())
                 .map(UserPersistenceMapper::toDomain);
     }
 
@@ -86,6 +96,12 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
     public Optional<User> findByEmailAndTenantId(Email email, TenantId tenantId) {
         return springDataUserRepository.findByEmailAndTenantId(email.getValue(), tenantId.getValue())
                 .map(UserPersistenceMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsByEmail(Email email) {
+        return springDataUserRepository.existsByEmail(email.getValue());
     }
 
     @Override
@@ -109,9 +125,8 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
     }
 
     /**
-     * Los roles del dominio se resuelven contra el catalogo dentro de la misma
-     * transaccion, de modo que la asignacion referencie la fila real y no una
-     * copia desatendida.
+     * Resolves domain roles against catalog entities within the current transaction,
+     * ensuring assignments reference existing managed rows.
      */
     private Set<RoleJpaEntity> resolveManagedRoles(User user) {
         if (user.getRoles() == null || user.getRoles().isEmpty()) {

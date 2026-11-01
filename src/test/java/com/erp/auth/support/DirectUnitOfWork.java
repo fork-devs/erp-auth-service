@@ -5,12 +5,7 @@ import com.erp.auth.domain.port.UnitOfWork;
 import java.util.function.Supplier;
 
 /**
- * Limite transaccional de prueba: ejecuta la operacion en linea.
- *
- * <p>La demarcacion transaccional como tal se verifica en los tests de
- * integracion, contra PostgreSQL real. Aqui lo que importa es que el caso de
- * uso delega la atomicidad en el puerto y no en una llamada suelta a un
- * repositorio.
+ * Test unit of work implementation executing actions immediately in-line.
  */
 public final class DirectUnitOfWork implements UnitOfWork {
 

@@ -10,15 +10,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * El inicio de sesion es atomico.
+ * User login is atomic.
  *
- * <p>Restablecer el contador de intentos fallidos y emitir el refresh token
- * son dos escrituras. Sin un limite transaccional comun, un fallo entre
- * ellas deja el contador a cero y el acceso sin.token: el sistema afirma un
- * acceso que nunca llego a darle, y la cuenta vuelve a estar disponible para
- * intentos ilimitados.
- *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P0 5.3.
+ * <p>Resetting the failed attempts counter and issuing the refresh token
+ * are two writes. Without a common transaction boundary, a failure between
+ * them would leave the counter reset to zero without issuing the token,
+ * potentially resetting lockout limits inappropriately.
  */
 class LoginAtomicityTest extends AbstractAuthAtomicityTest {
 
@@ -27,12 +24,12 @@ class LoginAtomicityTest extends AbstractAuthAtomicityTest {
 
     @Test
     void unFalloAlPersistirElRefreshTokenNoDejaElContadorDeIntentosRestablecido() {
-        // Un intento fallido deja el contador en 1.
+        // A failed attempt leaves the counter at 1.
         assertThrows(RuntimeException.class, () -> iniciarSesion("ContrasenaEquivocada1!"));
         assertEquals(1, usuario().getFailedAttempts(), "El intento fallido debe quedar registrado");
 
-        // Ahora un inicio de sesion correcto cuyo token no llega a escribirse.
-        // El contador NO debe restablecerse: el acceso no llego a completarse.
+        // Now a successful login whose token fails to be persisted.
+        // The counter must NOT be reset: the authentication did not complete.
         falloAlEscribirElToken(new RuntimeException("no se puede escribir el token"));
 
         assertThrows(RuntimeException.class, () -> iniciarSesion(CONTRASENA));

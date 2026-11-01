@@ -1,18 +1,27 @@
 package com.erp.auth.interfaces.rest.controller;
 
 import com.erp.auth.application.dto.command.RegisterUserCommand;
+import com.erp.auth.application.dto.command.UpdateUserEmailCommand;
+import com.erp.auth.application.dto.command.UpdateUserPasswordCommand;
+import com.erp.auth.application.dto.result.AuthResult;
 import com.erp.auth.application.dto.result.UserResult;
 import com.erp.auth.application.usecase.ConfirmSecondFactorEnrollmentUseCase;
 import com.erp.auth.application.usecase.EnrollSecondFactorUseCase;
+import com.erp.auth.application.usecase.GetUserByIdUseCase;
 import com.erp.auth.application.usecase.GetUserProfileUseCase;
 import com.erp.auth.application.usecase.ListTenantUsersUseCase;
 import com.erp.auth.application.usecase.RegisterUserUseCase;
+import com.erp.auth.application.usecase.UpdateUserEmailUseCase;
+import com.erp.auth.application.usecase.UpdateUserPasswordUseCase;
 import com.erp.auth.domain.exception.TenantContextMissingException;
 import com.erp.auth.domain.model.RoleCode;
 import com.erp.auth.domain.valueobject.TenantId;
 import com.erp.auth.infrastructure.persistence.rls.TenantContextHolder;
 import com.erp.auth.interfaces.rest.dto.request.RegisterUserRequest;
 import com.erp.auth.interfaces.rest.dto.request.SecondFactorRequest;
+import com.erp.auth.interfaces.rest.dto.request.UpdateEmailRequest;
+import com.erp.auth.interfaces.rest.dto.request.UpdatePasswordRequest;
+import com.erp.auth.interfaces.rest.dto.response.AuthResponse;
 import com.erp.auth.interfaces.rest.dto.response.MessageResponse;
 import com.erp.auth.interfaces.rest.dto.response.UserResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,7 +33,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,6 +57,10 @@ public class UserController {
     private final ListTenantUsersUseCase listTenantUsersUseCase;
     private final EnrollSecondFactorUseCase enrollSecondFactorUseCase;
     private final ConfirmSecondFactorEnrollmentUseCase confirmSecondFactorEnrollmentUseCase;
+    private final GetUserByIdUseCase getUserByIdUseCase;
+    private final UpdateUserEmailUseCase updateUserEmailUseCase;
+    private final UpdateUserPasswordUseCase updateUserPasswordUseCase;
+    private final com.erp.auth.application.usecase.InviteUserUseCase inviteUserUseCase;
 
     public UserController(
             RegisterUserUseCase registerUserUseCase,
@@ -53,15 +68,48 @@ public class UserController {
             ListTenantUsersUseCase listTenantUsersUseCase,
             EnrollSecondFactorUseCase enrollSecondFactorUseCase,
             ConfirmSecondFactorEnrollmentUseCase confirmSecondFactorEnrollmentUseCase) {
+        this(registerUserUseCase, getUserProfileUseCase, listTenantUsersUseCase,
+                enrollSecondFactorUseCase, confirmSecondFactorEnrollmentUseCase, null, null, null, null);
+    }
+
+    public UserController(
+            RegisterUserUseCase registerUserUseCase,
+            GetUserProfileUseCase getUserProfileUseCase,
+            ListTenantUsersUseCase listTenantUsersUseCase,
+            EnrollSecondFactorUseCase enrollSecondFactorUseCase,
+            ConfirmSecondFactorEnrollmentUseCase confirmSecondFactorEnrollmentUseCase,
+            GetUserByIdUseCase getUserByIdUseCase,
+            UpdateUserEmailUseCase updateUserEmailUseCase,
+            UpdateUserPasswordUseCase updateUserPasswordUseCase) {
+        this(registerUserUseCase, getUserProfileUseCase, listTenantUsersUseCase,
+                enrollSecondFactorUseCase, confirmSecondFactorEnrollmentUseCase,
+                getUserByIdUseCase, updateUserEmailUseCase, updateUserPasswordUseCase, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public UserController(
+            RegisterUserUseCase registerUserUseCase,
+            GetUserProfileUseCase getUserProfileUseCase,
+            ListTenantUsersUseCase listTenantUsersUseCase,
+            EnrollSecondFactorUseCase enrollSecondFactorUseCase,
+            ConfirmSecondFactorEnrollmentUseCase confirmSecondFactorEnrollmentUseCase,
+            GetUserByIdUseCase getUserByIdUseCase,
+            UpdateUserEmailUseCase updateUserEmailUseCase,
+            UpdateUserPasswordUseCase updateUserPasswordUseCase,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) com.erp.auth.application.usecase.InviteUserUseCase inviteUserUseCase) {
         this.registerUserUseCase = registerUserUseCase;
         this.getUserProfileUseCase = getUserProfileUseCase;
         this.listTenantUsersUseCase = listTenantUsersUseCase;
         this.enrollSecondFactorUseCase = enrollSecondFactorUseCase;
         this.confirmSecondFactorEnrollmentUseCase = confirmSecondFactorEnrollmentUseCase;
+        this.getUserByIdUseCase = getUserByIdUseCase;
+        this.updateUserEmailUseCase = updateUserEmailUseCase;
+        this.updateUserPasswordUseCase = updateUserPasswordUseCase;
+        this.inviteUserUseCase = inviteUserUseCase;
     }
 
     @PostMapping("/me/second-factor")
-    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER', 'ASESOR', 'MECANICO')")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'WORKSHOP_ADMIN', 'ADMIN_TALLER', 'SERVICE_ADVISOR', 'ASESOR', 'TECHNICIAN', 'MECANICO')")
     @Operation(summary = "Enrolar el segundo factor de autenticacion",
             description = "Genera el secreto y los codigos de recuperacion, y los entrega por el canal de "
                     + "notificacion. La respuesta NO contiene el secreto ni los codigos: son credenciales.")
@@ -76,7 +124,7 @@ public class UserController {
     }
 
     @PostMapping("/me/second-factor/confirm")
-    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER', 'ASESOR', 'MECANICO')")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'WORKSHOP_ADMIN', 'ADMIN_TALLER', 'SERVICE_ADVISOR', 'ASESOR', 'TECHNICIAN', 'MECANICO')")
     @Operation(summary = "Confirmar el enrolamiento del segundo factor",
             description = "Habilita el segundo factor cuando el codigo es valido")
     public ResponseEntity<MessageResponse> confirmSecondFactor(@Valid @RequestBody SecondFactorRequest request,
@@ -90,7 +138,7 @@ public class UserController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER')")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'WORKSHOP_ADMIN', 'ADMIN_TALLER')")
     @Operation(summary = "Registrar nuevo usuario",
             description = "Crea un usuario dentro del taller del principal autenticado. "
                     + "El rol solicitado solo se asigna si el rol del principal tiene permiso para concederlo.")
@@ -124,8 +172,44 @@ public class UserController {
         ));
     }
 
+    @PostMapping("/invitations")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'WORKSHOP_ADMIN', 'ADMIN_TALLER')")
+    @Operation(summary = "Invitar nuevo colaborador por correo",
+            description = "Emite una invitación segura para que el colaborador active su cuenta mediante enlace")
+    public ResponseEntity<com.erp.auth.interfaces.rest.dto.response.InviteUserResponse> inviteUser(
+            @Valid @RequestBody com.erp.auth.interfaces.rest.dto.request.InviteUserRequest request,
+            Authentication authentication) {
+        if (inviteUserUseCase == null) {
+            throw new IllegalStateException("InviteUserUseCase is not configured");
+        }
+        TenantId tenantId = tenantIdFromContext();
+        RoleCode actorRole = actorRoleFrom(authentication);
+
+        com.erp.auth.application.dto.command.InviteUserCommand command =
+                new com.erp.auth.application.dto.command.InviteUserCommand(
+                        tenantId.getValue(),
+                        request.email(),
+                        request.fullName(),
+                        request.role(),
+                        actorRole
+                );
+        com.erp.auth.application.dto.result.InviteUserResult result = inviteUserUseCase.invite(command);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                new com.erp.auth.interfaces.rest.dto.response.InviteUserResponse(
+                        result.id(),
+                        result.tenantId(),
+                        result.email(),
+                        result.fullName(),
+                        result.role(),
+                        result.expiresAt(),
+                        result.invitationUrl()
+                )
+        );
+    }
+
     @GetMapping("/me")
-    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER', 'ASESOR', 'MECANICO')")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'WORKSHOP_ADMIN', 'ADMIN_TALLER', 'SERVICE_ADVISOR', 'ASESOR', 'TECHNICIAN', 'MECANICO')")
     @Operation(summary = "Perfil del usuario autenticado", description = "Retorna los datos del usuario correspondiente al token JWT actual")
     public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
@@ -143,7 +227,7 @@ public class UserController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPERADMIN', 'ADMIN_TALLER')")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'WORKSHOP_ADMIN', 'ADMIN_TALLER')")
     @Operation(summary = "Listar usuarios del taller", description = "Retorna los usuarios del taller del principal autenticado")
     public ResponseEntity<List<UserResponse>> listUsersByTenant() {
         TenantId tenantId = tenantIdFromContext();
@@ -163,8 +247,60 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    @GetMapping("/{userId}")
+    @PreAuthorize("isAuthenticated() and @userSecurityService.isCurrentUser(#userId)")
+    @Operation(summary = "Obtener usuario por ID", description = "Retorna los datos del usuario especificado si es el propio usuario o ADMIN")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable("userId") UUID userId) {
+        UserResult result = getUserByIdUseCase.getUserById(userId);
+        return ResponseEntity.ok(new UserResponse(
+                result.id(),
+                result.tenantId(),
+                result.email(),
+                result.fullName(),
+                result.mfaEnabled(),
+                result.roles(),
+                result.createdAt()
+        ));
+    }
+
+    @PutMapping("/{userId}/email")
+    @PreAuthorize("isAuthenticated() and @userSecurityService.isCurrentUser(#userId)")
+    @Operation(summary = "Actualizar email de usuario", description = "Actualiza el correo y reemite nuevo par de tokens")
+    public ResponseEntity<AuthResponse> updateEmail(
+            @PathVariable("userId") UUID userId,
+            @Valid @RequestBody UpdateEmailRequest request) {
+        AuthResult result = updateUserEmailUseCase.updateEmail(
+                new UpdateUserEmailCommand(userId, request.email()));
+        return ResponseEntity.ok(new AuthResponse(
+                result.accessToken(),
+                result.accessTokenId(),
+                result.refreshToken(),
+                result.tokenType(),
+                result.expiresInSeconds(),
+                result.userId(),
+                result.tenantId(),
+                result.email(),
+                result.fullName(),
+                result.roles()
+        ));
+    }
+
+    @PutMapping("/{userId}/password")
+    @PreAuthorize("isAuthenticated() and @userSecurityService.isCurrentUser(#userId)")
+    @Operation(summary = "Actualizar contraseña de usuario", description = "Cambia la clave verificando la actual y revoca sesiones en todos los dispositivos")
+    public ResponseEntity<MessageResponse> updatePassword(
+            @PathVariable("userId") UUID userId,
+            @Valid @RequestBody UpdatePasswordRequest request) {
+        updateUserPasswordUseCase.updatePassword(
+                new UpdateUserPasswordCommand(userId, request.currentPassword(), request.newPassword()));
+        return ResponseEntity.ok(MessageResponse.of("Password updated successfully"));
+    }
+
     /**
-     * Identificador del principal autenticado.
+     * Resolves the authenticated user identifier from the security context.
+     *
+     * @param authentication the current authentication token
+     * @return authenticated user UUID
      */
     private UUID usuarioAutenticado(Authentication authentication) {
         return UUID.fromString(authentication.getName());
@@ -180,8 +316,10 @@ public class UserController {
     }
 
     /**
-     * El rol del principal se toma de las autoridades que el filtro de
-     * autenticacion deposita en el contexto de seguridad.
+     * Resolves the primary role of the principal from the granted authorities in the security context.
+     *
+     * @param authentication the current authentication token
+     * @return the resolved RoleCode, or null if unassigned
      */
     private RoleCode actorRoleFrom(Authentication authentication) {
         if (authentication == null || authentication.getAuthorities() == null) {

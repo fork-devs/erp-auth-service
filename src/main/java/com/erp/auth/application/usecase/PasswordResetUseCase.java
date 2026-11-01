@@ -5,12 +5,12 @@ import com.erp.auth.application.dto.command.ResetPasswordCommand;
 
 public interface PasswordResetUseCase {
     /**
-     * Solicita el restablecimiento de la contrasena.
+     * Requests a password reset token.
      *
-     * <p>No devuelve el token: se entrega al destinatario por el puerto de
-     * notificacion. Devolverlo seria devolver la credencial a quien la pide,
-     * con lo que cualquiera podria restablecer la contrasena de cualquier
-     * cuenta.
+     * <p>The token is delivered securely to the recipient via the notification port
+     * rather than returned in the API response, preventing account takeover by unauthorized requesters.
+     *
+     * @param command forgot password command
      */
     void requestPasswordReset(ForgotPasswordCommand command);
 

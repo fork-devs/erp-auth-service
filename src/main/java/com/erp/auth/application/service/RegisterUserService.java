@@ -51,8 +51,8 @@ public class RegisterUserService implements RegisterUserUseCase, GetUserProfileU
             throw new IllegalArgumentException("Taller, correo y contraseña son obligatorios");
         }
 
-        // La politica se comprueba ANTES de tocar la base de datos: una
-        // contrasena corta o demasiado usada no merece una escritura.
+        // Validate password policy BEFORE database operations: weak or
+        // common passwords fail fast without unnecessary queries.
         passwordPolicy.reject(command.password()).ifPresent(motivo -> {
             throw new WeakPasswordException(motivo);
         });
@@ -72,19 +72,16 @@ public class RegisterUserService implements RegisterUserUseCase, GetUserProfileU
         PasswordHash passwordHash = PasswordHash.of(passwordEncoderPort.encode(command.password()));
         User user = User.create(tenantId, email, passwordHash, command.fullName(), roles);
 
-        // El alta confirma la escritura del usuario dentro de un limite
-        // transaccional explicito, como el resto de las escrituras del
-        // servicio: los adaptadores de persistencia se unen a la transaccion
-        // en curso y no abren una propia.
+        // User registration commits within an explicit transaction boundary:
+        // persistence adapters join the active transaction rather than managing their own.
         User savedUser = unitOfWork.callInTransaction(() -> userRepositoryPort.save(user));
 
         return toUserResult(savedUser);
     }
 
     /**
-     * Los roles que se conceden son los que el actor tiene permitidos. Un rol
-     * solicitado fuera de ese conjunto se rechaza: nadie concede un
-     * privilegio superior al suyo.
+     * Resolves assignable roles based on the actor's permissions. Any requested role
+     * exceeding actor authority is rejected to prevent privilege escalation.
      */
     private Set<RoleCode> resolveAssignableRoles(RegisterUserCommand command) {
         Set<RoleCode> permitted = RoleAssignmentPolicy.assignableRolesFor(command.actorRole());

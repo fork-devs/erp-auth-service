@@ -11,16 +11,14 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 /**
- * Asignacion de un rol a un usuario dentro de un taller.
+ * Represents the assignment of a role to a user within a specific tenant workshop.
  *
- * <p>La tabla {@code user_roles} tiene clave primaria compuesta
- * (user_id, role_id, tenant_id). No puede representarse con una
- * {@code @ManyToMany} de Hibernate: el {@code @JoinTable} solo admite las dos
- * claves foraneas de la asociacion, de modo que la columna {@code tenant_id}
- * nunca se escribia y el INSERT fallaba contra su restriccion NOT NULL.
- * Ver docs/doc-estado-implementacion.md, hallazgo P0 5.5.
+ * <p>The {@code user_roles} table has a composite primary key (user_id, role_id, tenant_id).
+ * It cannot be represented as a standard Hibernate {@code @ManyToMany} mapping because
+ * {@code @JoinTable} does not populate the tenant foreign key column required by the schema
+ * and RLS policies. See docs/doc-estado-implementacion.md, finding P0 5.5.
  *
- * <p>Por eso la tabla se declara como entidad propia, con su clave embebida.
+ * <p>Explicit entity mapping with {@link UserRoleId} ensures all columns are correctly persisted.
  */
 @Entity
 @Table(name = "user_roles")

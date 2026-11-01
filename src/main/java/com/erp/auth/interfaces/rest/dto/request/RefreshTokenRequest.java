@@ -6,9 +6,9 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public record RefreshTokenRequest(
-        @NotBlank(message = "El token de actualización es obligatorio")
+        @NotBlank(message = "{validation.auth.refresh-token.token.not-blank}")
         String refreshToken,
 
-        @NotNull(message = "El identificador de taller es obligatorio")
+        @NotNull(message = "{validation.auth.refresh-token.tenant-id.not-null}")
         UUID tenantId
 ) {}

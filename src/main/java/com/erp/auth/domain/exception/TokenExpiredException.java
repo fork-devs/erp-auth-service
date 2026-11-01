@@ -4,4 +4,8 @@ public class TokenExpiredException extends DomainException {
     public TokenExpiredException() {
         super("AUTH_TOKEN_EXPIRED", "El token ha expirado. Por favor inicie sesión nuevamente.");
     }
+
+    public TokenExpiredException(String message) {
+        super("AUTH_TOKEN_EXPIRED", message);
+    }
 }

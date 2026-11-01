@@ -1,5 +1,6 @@
 server:
   port: ${SERVER_PORT:8081}
+  forward-headers-strategy: framework
   servlet:
     context-path: /
 
@@ -87,6 +88,12 @@ erp:
     rate-limit:
       max-failed-attempts: ${AUTH_MAX_FAILED_ATTEMPTS:5}
       lock-duration-minutes: ${AUTH_LOCK_DURATION_MINUTES:15}
+  notification:
+    brevo:
+      api-key: ${BREVO_API_KEY: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}
+      sender-email: ${BREVO_SENDER_EMAIL:no-reply@driveos.pe}
+      sender-name: ${BREVO_SENDER_NAME:DriveOS Workshop}
+      enabled: ${BREVO_ENABLED:true}
 
 springdoc:
   api-docs:
@@ -114,6 +121,8 @@ management:
       # dice "OK" y no dice de que.
       show-details: always
       show-components: always
+      probes:
+        enabled: true
       group:
         # La disponibilidad comprueba tambien la base de datos: un servicio
         # con el pool de conexiones roto esta vivo, pero no sirve de nada.

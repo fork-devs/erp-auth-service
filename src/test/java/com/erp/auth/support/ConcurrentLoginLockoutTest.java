@@ -31,14 +31,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * El bloqueo por intentos fallidos es fiable.
+ * Verifies that account lockout under concurrent failed login attempts is atomic and reliable.
  *
- * <p>El contador se incrementaba con una lectura-modificacion-escritura: dos
- * intentos concurrentes leian el mismo valor y escribian el mismo incremento,
- * de modo que la cuenta se quedaba sin bloquear por muchos intentos que se
- * hicieran.
+ * <p>Atomic database-level increments prevent lost updates from concurrent attempts.
  *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P1 6.23.
+ * <p>See docs/doc-estado-implementacion.md, finding P1 6.23.
  */
 class ConcurrentLoginLockoutTest extends AbstractPostgresIntegrationTest {
 

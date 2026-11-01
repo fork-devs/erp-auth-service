@@ -3,14 +3,13 @@ package com.erp.auth.interfaces.rest.dto.request;
 import jakarta.validation.constraints.NotBlank;
 
 /**
- * Confirmacion del enrolamiento del segundo factor.
+ * Confirmation request for second-factor authentication enrollment.
  *
- * <p>El codigo es el que el usuario ve en su aplicacion autenticadora. El
- * secreto NO se pide aqui, y menos se devuelve: se entrega por el canal de
- * notificacion.
+ * <p>Contains the code from the user's authenticator app.
+ * Secrets are never transmitted in request bodies.
  */
 public record SecondFactorRequest(
-        @NotBlank(message = "El codigo de segundo factor es obligatorio")
+        @NotBlank(message = "{validation.auth.second-factor.code.not-blank}")
         String code
 ) {
 }

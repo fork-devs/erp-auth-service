@@ -20,14 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
- * Los adaptadores de escritura se unen a la transaccion en curso: no abren
- * una propia.
+ * Write adapters join an ongoing transaction rather than initiating their own.
  *
- * <p>Invocarlos fuera de un limite transaccional falla de forma explicita,
- * en lugar de confirmar la escritura en una transaccion implicita que
- * romperia la atomicidad que el caso de uso pretendia.
- *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgos P0 5.3 y P0 5.8.
+ * <p>Invoking them outside an active transaction boundary fails explicitly,
+ * rather than committing writes in an implicit transaction that breaks
+ * use-case atomicity guarantees.
  */
 class TransactionGuardTest {
 

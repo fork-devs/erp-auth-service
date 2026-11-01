@@ -28,16 +28,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 /**
- * El tiempo de respuesta del login no distingue los casos, y el codigo de
- * error tampoco.
+ * Login response times and HTTP status codes do not leak whether an account exists or is locked out.
  *
- * <p>Sin una verificacion de contrasena en la ruta de cuenta inexistente, el
- * tiempo de respuesta delata si la cuenta existe: la busqueda de una cuenta
- * inexistente es inmediata, y la de una existente cuesta el tiempo del hash.
- * Y si la cuenta bloqueada respondiera con otro codigo, delataria tambien el
- * estado de la cuenta.
- *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P1 6.24.
+ * <p>Without password verification along the non-existent account path, the response
+ * time leaks whether the account exists: searching for a non-existent account returns
+ * immediately, whereas searching for an existing account incurs the cost of hashing.
+ * Likewise, responding with a distinct status code for locked accounts leaks account state.
  */
 class LoginTimingUniformityTest extends AbstractPostgresIntegrationTest {
 
@@ -45,10 +41,9 @@ class LoginTimingUniformityTest extends AbstractPostgresIntegrationTest {
     private static final String CONTRASENA = "ContrasenaLarga1!";
 
     /**
-     * Margen admite: el caso mas rapido no puede ser menos de la mitad del
-     * mas lento. Es generoso, porque el coste del hash varia entre
-     * ejecuciones, pero descarta el caso extremo: una cuenta inexistente que
-     * responde en una fraccion del tiempo del resto.
+     * Permissible margin: the fastest case cannot take less than half the time of the slowest case.
+     * This is generous to accommodate hash cost variations across runs while ruling out extreme anomalies
+     * where a non-existent account returns in a fraction of the time.
      */
     private static final double MARGEN_ADMISIBLE = 0.5;
 
@@ -110,8 +105,8 @@ class LoginTimingUniformityTest extends AbstractPostgresIntegrationTest {
                 passwordResetService);
 
         this.mockMvc = MockMvcBuilders.standaloneSetup(controller)
-                // El manejador global es parte de la respuesta: es donde se
-                // traduce la excepcion al codigo HTTP que ve el cliente.
+                // The global handler is part of the response pipeline: it translates
+                // exceptions into the client-facing HTTP status code.
                 .setControllerAdvice(new com.erp.auth.interfaces.rest.advice.GlobalRestExceptionHandler())
                 .build();
     }
@@ -119,7 +114,7 @@ class LoginTimingUniformityTest extends AbstractPostgresIntegrationTest {
     @Test
     @DisplayName("Los tres casos tardan lo mismo y responden con el mismo codigo")
     void losTresCasosTardanLoMismoYRespondenConElMismoCodigo() throws Exception {
-        // La cuenta se bloquea de verdad, con cinco intentos fallidos.
+        // Lock out the account with five consecutive failed attempts.
         for (int i = 0; i < 5; i++) {
             login(correo, "ContrasenaEquivocada1!");
         }
@@ -139,9 +134,8 @@ class LoginTimingUniformityTest extends AbstractPostgresIntegrationTest {
                         + inexistente.milis() + ", contrasena incorrecta=" + contrasenaIncorrecta.milis()
                         + ", cuenta bloqueada=" + cuentaBloqueada.milis());
 
-        // El codigo de error tambien tiene que ser el mismo: si la cuenta
-        // bloqueada respondiera con otro codigo, el estado se revelaria
-        // aunque el tiempo coincidiera.
+        // The error code must also remain identical: if a locked account returned a distinct
+        // status code, account state would be revealed even if timing were uniform.
         assertEquals(inexistente.codigo(), contrasenaIncorrecta.codigo(),
                 "La respuesta no debe distinguir la cuenta inexistente de la contrasena incorrecta");
         assertEquals(inexistente.codigo(), cuentaBloqueada.codigo(),

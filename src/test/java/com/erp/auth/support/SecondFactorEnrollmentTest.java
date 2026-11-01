@@ -41,10 +41,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * El segundo factor se enrola, se confirma y se exige en el inicio de sesion.
+ * Second-factor authentication enrollment, confirmation, and enforcement during login.
  *
- * <p>El enrolamiento NO expone el secreto ni los codigos de recuperacion en
- * la respuesta: se entregan por el canal de notificacion.
+ * <p>Enrollment does NOT expose secrets or recovery codes in HTTP responses;
+ * they are delivered out-of-band via notification channels.
  */
 class SecondFactorEnrollmentTest extends AbstractPostgresIntegrationTest {
 
@@ -78,7 +78,7 @@ class SecondFactorEnrollmentTest extends AbstractPostgresIntegrationTest {
     @Autowired
     private PasswordEncoderPort passwordEncoderPort;
 
-    /** Notificaciones entregadas durante el test. */
+    /** Notifications delivered during the test. */
     private List<NotificationMessage> entregadas;
 
     private User usuario;
@@ -133,9 +133,8 @@ class SecondFactorEnrollmentTest extends AbstractPostgresIntegrationTest {
         try (TenantContextScope scope = TenantContextScope.forTenant(TALLER)) {
             secreto = secondFactorRepositoryPort.findSecret(usuario.getId()).orElseThrow();
         }
-        // El codigo del intervalo ANTERIOR: la ventana de tolerancia lo
-        // acepta, y deja libre el codigo del intervalo actual para el
-        // inicio de sesion.
+        // Use the code from the PREVIOUS interval: the tolerance window accepts it,
+        // leaving the current interval code available for login.
         String codigo = codigoDeIntervalo(secreto, -30_000L);
 
         try (TenantContextScope scope = TenantContextScope.forTenant(TALLER)) {
@@ -199,8 +198,8 @@ class SecondFactorEnrollmentTest extends AbstractPostgresIntegrationTest {
             secretoLogin = secreto;
         }
 
-        // El codigo del intervalo actual: el anterior se consumio en la
-        // confirmacion, y un codigo no se puede reutilizar.
+        // The code for the current interval: the previous one was consumed during
+        // confirmation, and OTP codes cannot be reused.
         String codigoDeLogin = codigoDeIntervalo(secretoLogin, 0L);
 
         AuthResult result;
@@ -226,7 +225,7 @@ class SecondFactorEnrollmentTest extends AbstractPostgresIntegrationTest {
     }
 
     /**
-     * El servicio con un puerto de notificacion que registra lo entregado.
+     * Service instance configured with an in-memory notification port capturing deliveries.
      */
     private SecondFactorEnrollmentService servicioCon(NotificationPort registro) {
         return new SecondFactorEnrollmentService(

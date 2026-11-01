@@ -6,8 +6,8 @@ import java.util.UUID;
 public record AuthResult(
         String accessToken,
         /**
-         * Identificador unico del token de acceso, tal como va en su claim
-         * {@code jti}. Es lo que hay que presentar para revocar ese token.
+         * Unique identifier of the access token matching its {@code jti} claim.
+         * Required to selectively revoke this access token.
          */
         String accessTokenId,
         String refreshToken,

@@ -35,13 +35,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * La revocacion de un token de acceso es efectiva.
+ * Verifies effective revocation of access tokens.
  *
- * <p>Sin ella, cerrar la sesion solo revocaba el token de refresco: el token
- * de acceso seguia siendo una credencial valida hasta que expiraba, con lo
- * que un token robado servia para lo que quedaba de su ventana.
+ * <p>Without token blacklisting, logging out would only revoke the refresh token,
+ * leaving access tokens valid until expiration.
  *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P1 6.20.
+ * <p>See docs/doc-estado-implementacion.md, finding P1 6.20.
  */
 class AccessTokenRevocationTest extends AbstractPostgresIntegrationTest {
 
@@ -127,7 +126,7 @@ class AccessTokenRevocationTest extends AbstractPostgresIntegrationTest {
         String token = tokenSignerPort.generateAccessToken(usuario);
         TokenIdentity identity = tokenSignerPort.extractIdentity(token);
 
-        // Antes de revocar, el token se acepta.
+        // Before revocation, token is valid and accepted.
         filtrar(token);
         assertNotNull(SecurityContextHolder.getContext().getAuthentication(),
                 "El token debe aceptarse mientras no se revoque");

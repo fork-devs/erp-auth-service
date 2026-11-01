@@ -14,12 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * El aislamiento por taller falla cerrado: una operacion de persistencia que
- * se ejecuta fuera de una transaccion no puede establecer el contexto de
- * tenant, de modo que la politica de Row-Level Security no seria aplicable y
- * la consulta se ejecutaria SIN filtro. En ese caso la operacion se rechaza.
- *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P1 6.6.
+ * Tenant isolation fails closed: any persistence operation executing outside
+ * an active transaction cannot set the session tenant context, which would cause
+ * Row-Level Security policies to execute unfiltered. In this scenario, the operation
+ * is rejected immediately.
  */
 class TenantContextFailClosedTest extends AbstractPostgresIntegrationTest {
 

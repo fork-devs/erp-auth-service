@@ -34,14 +34,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * El filtro de autenticacion exige un token coherente con el servicio.
+ * Verifies that the JWT authentication filter enforces service contract validation.
  *
- * <p>Un token correctamente firmado pero emitido por otro emisor, o para
- * otra audiencia, se rechaza: la firma demuestra que lo emitio alguien con
- * la clave, no que sea para este servicio. Y un token sin roles se rechaza,
- * en lugar de recibir un rol por defecto.
+ * <p>Tokens signed with matching keys but issued by other issuers or for other audiences
+ * are rejected. Tokens without roles are rejected rather than granted default privileges.
  *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgos P0 5.7 y P1 6.24.
+ * <p>See docs/doc-estado-implementacion.md, findings P0 5.7 and P1 6.24.
  */
 class JwtAuthenticationFilterContractTest {
 
@@ -51,7 +49,7 @@ class JwtAuthenticationFilterContractTest {
     private RsaKeyPairManager keyPairManager;
     private JwtAuthenticationFilter filter;
 
-    /** En este test no hay revocaciones: el filtro no encuentra ninguna. */
+    /** No-op revoked token repository for contract tests without revocations. */
     private final RevokedTokenRepositoryPort revocado = mock(RevokedTokenRepositoryPort.class);
 
     @BeforeEach

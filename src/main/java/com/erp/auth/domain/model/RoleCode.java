@@ -2,6 +2,11 @@ package com.erp.auth.domain.model;
 
 public enum RoleCode {
     SUPERADMIN,
+    WORKSHOP_ADMIN,
+    SERVICE_ADVISOR,
+    TECHNICIAN,
+    CUSTOMER,
+    // Backward-compatibility legacy aliases
     ADMIN_TALLER,
     ASESOR,
     MECANICO;

@@ -23,27 +23,24 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Enrolamiento del segundo factor.
+ * Second-factor authentication enrollment service.
  *
- * <p>El enrolamiento tiene dos pasos: se genera el secreto y los codigos de
- * recuperacion, que se entregan al usuario por el canal de notificacion, y
- * el usuario confirma con un codigo. El segundo factor solo queda HABILITADO
- * cuando esa confirmacion llega: hasta entonces, hay un secreto enrolado
- * que el usuario todavia no ha enlazado.
+ * <p>Enrollment follows a two-step flow: a secret and recovery codes are generated
+ * and delivered to the user via notification channels, and the user verifies binding
+ * with a valid code. 2FA is only ENABLED once this confirmation succeeds.
  *
- * <p>Ni el secreto ni los codigos de recuperacion se devuelven en la
- * respuesta de la API. Son credenciales, y la respuesta la ve quien pide el
- * enrolamiento.
+ * <p>Neither secret nor recovery codes are returned in the API response to prevent
+ * exposing credentials directly over HTTP responses.
  */
 public class SecondFactorEnrollmentService
         implements EnrollSecondFactorUseCase, ConfirmSecondFactorEnrollmentUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(SecondFactorEnrollmentService.class);
 
-    /** Vigencia de los codigos de recuperacion. */
+    /** Validity duration of generated recovery codes. */
     private static final Duration RECOVERY_CODE_VALIDITY = Duration.ofHours(24);
 
-    /** Numero de codigos de recuperacion que se generan. */
+    /** Number of recovery codes generated per enrollment. */
     private static final int RECOVERY_CODE_COUNT = 8;
 
     private final SecondFactorPort secondFactorPort;
@@ -90,9 +87,8 @@ public class SecondFactorEnrollmentService
                     Instant.now().plus(RECOVERY_CODE_VALIDITY));
         });
 
-        // La entrega se hace FUERA del limite transaccional: notificar es
-        // una llamada externa, y mantener abierta una transaccion mientras
-        // espera bloquearia recursos de la base de datos.
+        // Delivery is performed OUTSIDE the transaction boundary: external notification
+        // calls should not keep database transactions open.
         notificationPort.deliver(NotificationMessage.of(
                 user.getEmail().getValue(),
                 "Activa tu segundo factor de autenticacion",
@@ -123,9 +119,8 @@ public class SecondFactorEnrollmentService
     }
 
     /**
-     * El codigo de recuperacion es una credencial: se guarda su hash, nunca
-     * el valor. Se reutiliza el hash del emisor de tokens, que es el mismo
-     * algoritmo con el que se guardan los tokens de refresco.
+     * Recovery codes are credentials: only cryptographic hashes are stored.
+     * Reuses the token signer hash algorithm, matching refresh token storage.
      */
     private String hash(String codigo) {
         return tokenSignerPort.hashToken(codigo);

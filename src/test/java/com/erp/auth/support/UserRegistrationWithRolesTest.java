@@ -20,18 +20,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifica que el alta de un usuario con roles persiste contra PostgreSQL real.
+ * Verifies that registering a user with roles persists correctly against real PostgreSQL.
  *
- * <p>Con el mapeo anterior, la tabla user_roles se escribia mediante un
- * {@code @JoinTable} de dos columnas, de modo que la columna tenant_id
- * quedaba sin valor y el INSERT violaba su restriccion NOT NULL. El defecto
- * quedaba oculto porque los tests usaban H2 con el esquema derivado de las
- * entidades, donde esa columna no existia.
+ * <p>With previous entity mappings, the {@code user_roles} table was mapped using a
+ * two-column {@code @JoinTable}, causing the {@code tenant_id} column to be omitted
+ * and violating NOT NULL constraints.
  *
- * <p>Las escrituras se ejecutan con el contexto de tenant establecido, que es
- * lo que hace el aspecto de Row-Level Security en produccion. Sin ese
- * contexto, la politica de aislamiento rechaza la escritura: el aislamiento
- * es fail-closed tambien en la escritura.
+ * <p>Writes execute with the tenant context configured, matching Row-Level Security
+ * production behavior where missing tenant context fails closed on writes.
  */
 class UserRegistrationWithRolesTest extends AbstractPostgresIntegrationTest {
 
@@ -62,13 +58,12 @@ class UserRegistrationWithRolesTest extends AbstractPostgresIntegrationTest {
                 "Juan Perez",
                 Set.of(asesor))));
 
-        // La tabla intermedia lleva su propio tenant_id, que NO puede
-        // representarse con un @JoinTable de dos columnas. Sin el, el
-        // INSERT viola la restriccion NOT NULL.
+        // The join table maintains its own tenant_id, which cannot be represented
+        // with a two-column @JoinTable. Without it, INSERT violates NOT NULL constraints.
         //
-        // La lectura se hace con el propietario: el rol de aplicacion esta
-        // sujeto a la politica de aislamiento, y sin el contexto de taller
-        // la fila no seria visible.
+        // Reading is performed with the owner connection: the application role is
+        // subject to the isolation policy, and without the tenant context the row
+        // would not be visible.
         try (var connection = EmbeddedPostgresSupport.openOwnerConnection();
              var statement = connection.createStatement();
              var rs = statement.executeQuery(
@@ -142,9 +137,8 @@ class UserRegistrationWithRolesTest extends AbstractPostgresIntegrationTest {
     }
 
     /**
-     * El contexto de taller se establece por el mismo camino que en
-     * produccion: el ambito de contexto, que ademas fija el valor de sesion
-     * que consume el aspecto de Row-Level Security.
+     * Tenant context is established matching production flow: the context scope
+     * sets the session variable consumed by the Row-Level Security aspect.
      */
     private <T> T withTenantContext(java.util.function.Supplier<T> operation) {
         try (var scope = com.erp.auth.infrastructure.persistence.rls.TenantContextScope.forTenant(TENANT_ID)) {

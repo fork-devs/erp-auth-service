@@ -13,9 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Matriz de roles concedibles: nadie concede un privilegio superior al suyo.
+ * Assignable role matrix test: no actor may grant privileges exceeding their own.
  *
- * <p>Ver docs/doc-estado-implementacion.md, hallazgo P0 5.1.
+ * <p>Supports canonical English roles and legacy Spanish aliases.
  */
 class RoleAssignmentPolicyTest {
 
@@ -28,29 +28,46 @@ class RoleAssignmentPolicyTest {
     void elAdministradorDeTallerConcedeSoloLosRolesDeSuAmbito() {
         assertEquals(EnumSet.of(RoleCode.ADMIN_TALLER, RoleCode.ASESOR, RoleCode.MECANICO),
                 RoleAssignmentPolicy.assignableRolesFor(RoleCode.ADMIN_TALLER));
+
+        assertEquals(EnumSet.of(
+                RoleCode.WORKSHOP_ADMIN,
+                RoleCode.SERVICE_ADVISOR,
+                RoleCode.TECHNICIAN,
+                RoleCode.CUSTOMER,
+                RoleCode.ADMIN_TALLER,
+                RoleCode.ASESOR,
+                RoleCode.MECANICO
+        ), RoleAssignmentPolicy.assignableRolesFor(RoleCode.WORKSHOP_ADMIN));
     }
 
     @Test
     void unAsesorNoPuedeConcederNingunRol() {
         assertTrue(RoleAssignmentPolicy.assignableRolesFor(RoleCode.ASESOR).isEmpty());
         assertNull(RoleAssignmentPolicy.defaultRoleFor(RoleCode.ASESOR));
+        assertTrue(RoleAssignmentPolicy.assignableRolesFor(RoleCode.SERVICE_ADVISOR).isEmpty());
+        assertNull(RoleAssignmentPolicy.defaultRoleFor(RoleCode.SERVICE_ADVISOR));
     }
 
     @Test
     void unMecanicoNoPuedeConcederNingunRol() {
         assertTrue(RoleAssignmentPolicy.assignableRolesFor(RoleCode.MECANICO).isEmpty());
+        assertTrue(RoleAssignmentPolicy.assignableRolesFor(RoleCode.TECHNICIAN).isEmpty());
     }
 
     @Test
     void noSePuedeConcederUnRolSuperiorAlPropio() {
         assertFalse(RoleAssignmentPolicy.canAssign(RoleCode.ADMIN_TALLER, RoleCode.SUPERADMIN));
+        assertFalse(RoleAssignmentPolicy.canAssign(RoleCode.WORKSHOP_ADMIN, RoleCode.SUPERADMIN));
         assertFalse(RoleAssignmentPolicy.canAssign(RoleCode.ASESOR, RoleCode.MECANICO));
+        assertFalse(RoleAssignmentPolicy.canAssign(RoleCode.SERVICE_ADVISOR, RoleCode.TECHNICIAN));
     }
 
     @Test
     void sePuedeConcederUnRolIgualODentroDelAmbito() {
         assertTrue(RoleAssignmentPolicy.canAssign(RoleCode.ADMIN_TALLER, RoleCode.ADMIN_TALLER));
         assertTrue(RoleAssignmentPolicy.canAssign(RoleCode.ADMIN_TALLER, RoleCode.ASESOR));
+        assertTrue(RoleAssignmentPolicy.canAssign(RoleCode.WORKSHOP_ADMIN, RoleCode.TECHNICIAN));
+        assertTrue(RoleAssignmentPolicy.canAssign(RoleCode.WORKSHOP_ADMIN, RoleCode.SERVICE_ADVISOR));
         assertTrue(RoleAssignmentPolicy.canAssign(RoleCode.SUPERADMIN, RoleCode.SUPERADMIN));
     }
 
@@ -58,5 +75,6 @@ class RoleAssignmentPolicyTest {
     void sinRolDeActorNoSeConcedeNada() {
         assertEquals(Set.of(), RoleAssignmentPolicy.assignableRolesFor(null));
         assertFalse(RoleAssignmentPolicy.canAssign(null, RoleCode.ASESOR));
+        assertFalse(RoleAssignmentPolicy.canAssign(null, RoleCode.SERVICE_ADVISOR));
     }
 }

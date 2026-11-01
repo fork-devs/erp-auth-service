@@ -1,8 +1,8 @@
 package com.erp.auth.domain.exception;
 
 /**
- * La contrasena no cumple la politica: es demasiado corta, o es de las mas
- * usadas.
+ * Thrown when a password does not comply with the security policy: it is too short
+ * or belongs to the list of most commonly used passwords.
  */
 public class WeakPasswordException extends DomainException {
 

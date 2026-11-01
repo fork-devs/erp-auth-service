@@ -3,11 +3,10 @@ package com.erp.auth.domain.model;
 import java.time.Instant;
 
 /**
- * Mensaje de notificacion que hay que entregar a un destinatario.
+ * Notification message to be delivered to a recipient.
  *
- * <p>Es un modelo del dominio, no de un proveedor: no sabe de SMTP, ni de
- * correo, ni de SMS. El adaptador de infraestructura es quien decide como se
- * entrega.
+ * <p>This is a domain model, not provider-specific: it has no knowledge of
+ * SMTP, email, or SMS. The infrastructure adapter determines how it is delivered.
  */
 public record NotificationMessage(
         String recipient,
