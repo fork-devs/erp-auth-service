@@ -23,11 +23,11 @@ import com.erp.auth.domain.port.RevokedTokenRepositoryPort;
 import com.erp.auth.domain.port.RoleRepositoryPort;
 import com.erp.auth.domain.port.TokenSignerPort;
 import com.erp.auth.domain.port.UnitOfWork;
-import com.erp.auth.domain.port.UnitOfWork;
 import com.erp.auth.domain.port.UserRepositoryPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import java.time.Duration;
 
@@ -146,6 +146,23 @@ public class ApplicationServiceConfig {
                 notificationPort,
                 unitOfWork
         );
+    }
+
+    @Bean
+    @Primary
+    public NotificationPort notificationPort(
+            @Value("${erp.notification.brevo.api-key:}") String brevoApiKey,
+            @Value("${erp.notification.brevo.sender-email:no-reply@driveos.pe}") String senderEmail,
+            @Value("${erp.notification.brevo.sender-name:DriveOS Workshop}") String senderName,
+            @Value("${erp.notification.brevo.enabled:true}") boolean brevoEnabled,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        if (brevoEnabled && !brevoApiKey.isBlank() && !brevoApiKey.startsWith("test_")) {
+            return new com.erp.auth.infrastructure.adapter.notification.BrevoEmailAdapter(
+                    brevoApiKey, senderEmail, senderName, true,
+                    java.net.http.HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(6)).build(),
+                    objectMapper);
+        }
+        return new com.erp.auth.infrastructure.adapter.notification.LoggingNotificationAdapter();
     }
 
     @Bean

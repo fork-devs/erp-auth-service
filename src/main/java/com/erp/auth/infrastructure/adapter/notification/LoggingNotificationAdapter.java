@@ -4,7 +4,6 @@ import com.erp.auth.domain.model.NotificationMessage;
 import com.erp.auth.domain.port.NotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
  * Default fallback implementation of the notification port: records delivery attempts
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Component;
  * <p>Message bodies are deliberately NOT logged. For password reset notifications,
  * the body contains the credential token; logging it would leak sensitive tokens into logs.
  */
-@Component
 public class LoggingNotificationAdapter implements NotificationPort {
 
     private static final Logger log = LoggerFactory.getLogger(LoggingNotificationAdapter.class);
