@@ -1,0 +1,77 @@
+# =============================================================================
+# MANIFIESTO AZURE CONTAINER APPS (ACA) — ERP AUTH SERVICE (IAM)
+# =============================================================================
+
+apiVersion: 2024-03-01
+location: eastus2
+name: erp-auth-service
+type: Microsoft.App/containerApps
+properties:
+  managedEnvironmentId: /subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.App/managedEnvironments/${ACA_ENVIRONMENT_NAME}
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: false
+      targetPort: 8081
+      transport: auto
+      allowInsecure: false
+    secrets:
+      - name: db-password
+        value: ${AUTH_DB_PASSWORD}
+      - name: jwt-secret-key
+        value: ${JWT_SECRET_KEY}
+      - name: internal-service-key
+        value: ${INTERNAL_SERVICE_KEY}
+      - name: brevo-api-key
+        value: ${BREVO_API_KEY}
+  template:
+    containers:
+      - name: erp-auth-service
+        image: ${ACR_NAME}.azurecr.io/erp-auth-service:latest
+        resources:
+          cpu: 0.5
+          memory: 1.0Gi
+        env:
+          - name: SERVER_PORT
+            value: "8081"
+          - name: SPRING_PROFILES_ACTIVE
+            value: "prod"
+          - name: SPRING_DATASOURCE_URL
+            value: "jdbc:postgresql://${AUTH_DB_HOST}:${AUTH_DB_PORT}/${AUTH_DB_NAME}?sslmode=require"
+          - name: SPRING_DATASOURCE_USERNAME
+            value: "${AUTH_DB_USER}"
+          - name: SPRING_DATASOURCE_PASSWORD
+            secretRef: db-password
+          - name: SPRING_FLYWAY_USER
+            value: "${AUTH_DB_USER}"
+          - name: SPRING_FLYWAY_PASSWORD
+            secretRef: db-password
+          - name: ERP_APP_DB_PASSWORD
+            secretRef: db-password
+          - name: JWT_SECRET_KEY
+            secretRef: jwt-secret-key
+          - name: INTERNAL_SERVICE_KEY
+            secretRef: internal-service-key
+          - name: BREVO_API_KEY
+            secretRef: brevo-api-key
+        probes:
+          - type: Liveness
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8081
+            initialDelaySeconds: 40
+            periodSeconds: 15
+          - type: Readiness
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 10
+    scale:
+      minReplicas: 1
+      maxReplicas: 3
+      rules:
+        - name: http-scaling-rule
+          http:
+            metadata:
+              concurrentRequests: "100"
