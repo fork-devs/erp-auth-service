@@ -31,3 +31,8 @@ target/
 logs/
 .DS_Store
 Thumbs.db
+
+# Local tooling & specifications
+docs/
+openspec/
+.opencode/
