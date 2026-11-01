@@ -1,5 +1,6 @@
 package com.erp.auth.interfaces.rest.controller;
 
+import com.erp.auth.application.dto.command.AcceptInvitationCommand;
 import com.erp.auth.application.dto.command.ForgotPasswordCommand;
 import com.erp.auth.application.dto.command.GoogleLoginCommand;
 import com.erp.auth.application.dto.command.LoginCommand;
@@ -8,7 +9,10 @@ import com.erp.auth.application.dto.command.ResetPasswordCommand;
 import com.erp.auth.application.dto.command.SendOtpCommand;
 import com.erp.auth.application.dto.command.VerifyOtpCommand;
 import com.erp.auth.application.dto.result.AuthResult;
+import com.erp.auth.application.dto.result.InvitationDetailsResult;
+import com.erp.auth.application.usecase.AcceptInvitationUseCase;
 import com.erp.auth.application.usecase.AuthenticateUserUseCase;
+import com.erp.auth.application.usecase.GetInvitationUseCase;
 import com.erp.auth.application.usecase.GoogleLoginUseCase;
 import com.erp.auth.application.usecase.PasswordResetUseCase;
 import com.erp.auth.application.usecase.RefreshTokenUseCase;
@@ -17,6 +21,7 @@ import com.erp.auth.application.usecase.RevokeTokenUseCase;
 import com.erp.auth.application.usecase.SendOtpUseCase;
 import com.erp.auth.application.usecase.VerifyOtpUseCase;
 import com.erp.auth.infrastructure.persistence.rls.TenantContextScope;
+import com.erp.auth.interfaces.rest.dto.request.AcceptInvitationRequest;
 import com.erp.auth.interfaces.rest.dto.request.ForgotPasswordRequest;
 import com.erp.auth.interfaces.rest.dto.request.GoogleLoginRequest;
 import com.erp.auth.interfaces.rest.dto.request.LoginRequest;
@@ -25,6 +30,7 @@ import com.erp.auth.interfaces.rest.dto.request.ResetPasswordRequest;
 import com.erp.auth.interfaces.rest.dto.request.SendOtpRequest;
 import com.erp.auth.interfaces.rest.dto.request.VerifyOtpRequest;
 import com.erp.auth.interfaces.rest.dto.response.AuthResponse;
+import com.erp.auth.interfaces.rest.dto.response.InvitationDetailsResponse;
 import com.erp.auth.interfaces.rest.dto.response.MessageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,6 +39,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -52,6 +60,8 @@ public class AuthenticationController {
     private final PasswordResetUseCase passwordResetUseCase;
     private final SendOtpUseCase sendOtpUseCase;
     private final VerifyOtpUseCase verifyOtpUseCase;
+    private final AcceptInvitationUseCase acceptInvitationUseCase;
+    private final GetInvitationUseCase getInvitationUseCase;
 
     public AuthenticationController(
             AuthenticateUserUseCase authenticateUserUseCase,
@@ -62,6 +72,23 @@ public class AuthenticationController {
             PasswordResetUseCase passwordResetUseCase,
             SendOtpUseCase sendOtpUseCase,
             VerifyOtpUseCase verifyOtpUseCase) {
+        this(authenticateUserUseCase, googleLoginUseCase, refreshTokenUseCase,
+                revokeAccessTokenUseCase, revokeTokenUseCase, passwordResetUseCase,
+                sendOtpUseCase, verifyOtpUseCase, null, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AuthenticationController(
+            AuthenticateUserUseCase authenticateUserUseCase,
+            GoogleLoginUseCase googleLoginUseCase,
+            RefreshTokenUseCase refreshTokenUseCase,
+            RevokeAccessTokenUseCase revokeAccessTokenUseCase,
+            RevokeTokenUseCase revokeTokenUseCase,
+            PasswordResetUseCase passwordResetUseCase,
+            SendOtpUseCase sendOtpUseCase,
+            VerifyOtpUseCase verifyOtpUseCase,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) AcceptInvitationUseCase acceptInvitationUseCase,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) GetInvitationUseCase getInvitationUseCase) {
         this.authenticateUserUseCase = authenticateUserUseCase;
         this.googleLoginUseCase = googleLoginUseCase;
         this.refreshTokenUseCase = refreshTokenUseCase;
@@ -70,6 +97,8 @@ public class AuthenticationController {
         this.passwordResetUseCase = passwordResetUseCase;
         this.sendOtpUseCase = sendOtpUseCase;
         this.verifyOtpUseCase = verifyOtpUseCase;
+        this.acceptInvitationUseCase = acceptInvitationUseCase;
+        this.getInvitationUseCase = getInvitationUseCase;
     }
 
     @PostMapping("/sessions")
@@ -165,6 +194,41 @@ public class AuthenticationController {
     public ResponseEntity<MessageResponse> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
         verifyOtpUseCase.verifyOtp(new VerifyOtpCommand(request.email(), request.code()));
         return ResponseEntity.ok(MessageResponse.of("Código OTP verificado exitosamente"));
+    }
+
+    @GetMapping("/invitations/{token}")
+    @PreAuthorize("permitAll()")
+    @Operation(summary = "Consultar invitación por token", description = "Valida y retorna los datos de una invitación activa")
+    public ResponseEntity<InvitationDetailsResponse> getInvitation(@PathVariable String token) {
+        if (getInvitationUseCase == null) {
+            throw new IllegalStateException("GetInvitationUseCase is not configured");
+        }
+        InvitationDetailsResult result = getInvitationUseCase.getInvitation(token);
+        return ResponseEntity.ok(new InvitationDetailsResponse(
+                result.id(),
+                result.tenantId(),
+                result.email(),
+                result.fullName(),
+                result.role(),
+                result.valid(),
+                result.expiresAt()
+        ));
+    }
+
+    @PostMapping("/invitations/accept")
+    @PreAuthorize("permitAll()")
+    @Operation(summary = "Aceptar invitación y definir contraseña", description = "Activa la cuenta del colaborador y emite credenciales de sesión")
+    public ResponseEntity<AuthResponse> acceptInvitation(@Valid @RequestBody AcceptInvitationRequest request) {
+        if (acceptInvitationUseCase == null) {
+            throw new IllegalStateException("AcceptInvitationUseCase is not configured");
+        }
+        InvitationDetailsResult details = getInvitationUseCase.getInvitation(request.token());
+        AuthResult result;
+        try (TenantContextScope scope = TenantContextScope.forTenant(details.tenantId())) {
+            result = acceptInvitationUseCase.accept(
+                    new AcceptInvitationCommand(request.token(), request.password()));
+        }
+        return ResponseEntity.ok(toAuthResponse(result));
     }
 
     private AuthResponse toAuthResponse(AuthResult result) {

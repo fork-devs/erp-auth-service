@@ -60,6 +60,7 @@ public class UserController {
     private final GetUserByIdUseCase getUserByIdUseCase;
     private final UpdateUserEmailUseCase updateUserEmailUseCase;
     private final UpdateUserPasswordUseCase updateUserPasswordUseCase;
+    private final com.erp.auth.application.usecase.InviteUserUseCase inviteUserUseCase;
 
     public UserController(
             RegisterUserUseCase registerUserUseCase,
@@ -68,7 +69,21 @@ public class UserController {
             EnrollSecondFactorUseCase enrollSecondFactorUseCase,
             ConfirmSecondFactorEnrollmentUseCase confirmSecondFactorEnrollmentUseCase) {
         this(registerUserUseCase, getUserProfileUseCase, listTenantUsersUseCase,
-                enrollSecondFactorUseCase, confirmSecondFactorEnrollmentUseCase, null, null, null);
+                enrollSecondFactorUseCase, confirmSecondFactorEnrollmentUseCase, null, null, null, null);
+    }
+
+    public UserController(
+            RegisterUserUseCase registerUserUseCase,
+            GetUserProfileUseCase getUserProfileUseCase,
+            ListTenantUsersUseCase listTenantUsersUseCase,
+            EnrollSecondFactorUseCase enrollSecondFactorUseCase,
+            ConfirmSecondFactorEnrollmentUseCase confirmSecondFactorEnrollmentUseCase,
+            GetUserByIdUseCase getUserByIdUseCase,
+            UpdateUserEmailUseCase updateUserEmailUseCase,
+            UpdateUserPasswordUseCase updateUserPasswordUseCase) {
+        this(registerUserUseCase, getUserProfileUseCase, listTenantUsersUseCase,
+                enrollSecondFactorUseCase, confirmSecondFactorEnrollmentUseCase,
+                getUserByIdUseCase, updateUserEmailUseCase, updateUserPasswordUseCase, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -80,7 +95,8 @@ public class UserController {
             ConfirmSecondFactorEnrollmentUseCase confirmSecondFactorEnrollmentUseCase,
             GetUserByIdUseCase getUserByIdUseCase,
             UpdateUserEmailUseCase updateUserEmailUseCase,
-            UpdateUserPasswordUseCase updateUserPasswordUseCase) {
+            UpdateUserPasswordUseCase updateUserPasswordUseCase,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) com.erp.auth.application.usecase.InviteUserUseCase inviteUserUseCase) {
         this.registerUserUseCase = registerUserUseCase;
         this.getUserProfileUseCase = getUserProfileUseCase;
         this.listTenantUsersUseCase = listTenantUsersUseCase;
@@ -89,6 +105,7 @@ public class UserController {
         this.getUserByIdUseCase = getUserByIdUseCase;
         this.updateUserEmailUseCase = updateUserEmailUseCase;
         this.updateUserPasswordUseCase = updateUserPasswordUseCase;
+        this.inviteUserUseCase = inviteUserUseCase;
     }
 
     @PostMapping("/me/second-factor")
@@ -153,6 +170,42 @@ public class UserController {
                 result.roles(),
                 result.createdAt()
         ));
+    }
+
+    @PostMapping("/invitations")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'WORKSHOP_ADMIN', 'ADMIN_TALLER')")
+    @Operation(summary = "Invitar nuevo colaborador por correo",
+            description = "Emite una invitación segura para que el colaborador active su cuenta mediante enlace")
+    public ResponseEntity<com.erp.auth.interfaces.rest.dto.response.InviteUserResponse> inviteUser(
+            @Valid @RequestBody com.erp.auth.interfaces.rest.dto.request.InviteUserRequest request,
+            Authentication authentication) {
+        if (inviteUserUseCase == null) {
+            throw new IllegalStateException("InviteUserUseCase is not configured");
+        }
+        TenantId tenantId = tenantIdFromContext();
+        RoleCode actorRole = actorRoleFrom(authentication);
+
+        com.erp.auth.application.dto.command.InviteUserCommand command =
+                new com.erp.auth.application.dto.command.InviteUserCommand(
+                        tenantId.getValue(),
+                        request.email(),
+                        request.fullName(),
+                        request.role(),
+                        actorRole
+                );
+        com.erp.auth.application.dto.result.InviteUserResult result = inviteUserUseCase.invite(command);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                new com.erp.auth.interfaces.rest.dto.response.InviteUserResponse(
+                        result.id(),
+                        result.tenantId(),
+                        result.email(),
+                        result.fullName(),
+                        result.role(),
+                        result.expiresAt(),
+                        result.invitationUrl()
+                )
+        );
     }
 
     @GetMapping("/me")

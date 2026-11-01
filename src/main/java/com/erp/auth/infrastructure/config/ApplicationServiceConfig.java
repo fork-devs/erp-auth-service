@@ -209,4 +209,30 @@ public class ApplicationServiceConfig {
                 unitOfWork
         );
     }
+
+    @Bean
+    public com.erp.auth.application.service.UserInvitationService userInvitationService(
+            com.erp.auth.domain.port.UserInvitationRepositoryPort invitationRepositoryPort,
+            UserRepositoryPort userRepositoryPort,
+            RoleRepositoryPort roleRepositoryPort,
+            PasswordEncoderPort passwordEncoderPort,
+            TokenSignerPort tokenSignerPort,
+            RefreshTokenRepositoryPort refreshTokenRepositoryPort,
+            NotificationPort notificationPort,
+            PasswordPolicy passwordPolicy,
+            UnitOfWork unitOfWork,
+            @Value("${erp.invitation.base-url:https://app.driveos.pe/activar-cuenta}") String invitationBaseUrl) {
+        return new com.erp.auth.application.service.UserInvitationService(
+                invitationRepositoryPort,
+                userRepositoryPort,
+                roleRepositoryPort,
+                passwordEncoderPort,
+                tokenSignerPort,
+                refreshTokenRepositoryPort,
+                notificationPort,
+                passwordPolicy,
+                unitOfWork,
+                invitationBaseUrl
+        );
+    }
 }
