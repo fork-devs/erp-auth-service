@@ -34,6 +34,29 @@ public class RefreshTokenPersistenceAdapter implements RefreshTokenRepositoryPor
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<RefreshToken> findByTokenHashAndTenantId(com.erp.auth.domain.model.TokenHash tokenHash, com.erp.auth.domain.valueobject.TenantId tenantId) {
+        return findByTokenHashAndTenantId(tokenHash.getValue(), tenantId.getValue());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<RefreshToken> findByTokenHash(com.erp.auth.domain.model.TokenHash tokenHash) {
+        return findByTokenHash(tokenHash.getValue());
+    }
+
+    @Override
+    public void revokeByTokenHash(com.erp.auth.domain.model.TokenHash tokenHash) {
+        revokeByTokenHash(tokenHash.getValue());
+    }
+
+    @Override
+    public void revokeAllByUserId(com.erp.auth.domain.valueobject.UserId userId, com.erp.auth.domain.valueobject.TenantId tenantId) {
+        transactionGuard.requireActiveTransaction("revokeAllByUserId");
+        springDataRefreshTokenRepository.revokeAllByUserId(userId.getValue());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<RefreshToken> findByTokenHashAndTenantId(String tokenHash, UUID tenantId) {
         return springDataRefreshTokenRepository.findByTokenHashAndTenantId(tokenHash, tenantId)
                 .map(RefreshTokenPersistenceMapper::toDomain);

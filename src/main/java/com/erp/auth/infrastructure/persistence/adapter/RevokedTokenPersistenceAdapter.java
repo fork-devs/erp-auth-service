@@ -23,6 +23,11 @@ public class RevokedTokenPersistenceAdapter implements RevokedTokenRepositoryPor
     }
 
     @Override
+    public void revoke(UUID tokenId, com.erp.auth.domain.valueobject.UserId userId, com.erp.auth.domain.valueobject.TenantId tenantId, Instant expiresAt) {
+        revoke(tokenId, userId.getValue(), expiresAt);
+    }
+
+    @Override
     public void revoke(UUID tokenId, UUID userId, Instant expiresAt) {
         transactionGuard.requireActiveTransaction("revokeToken");
         if (repository.existsById(tokenId)) {

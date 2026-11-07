@@ -84,6 +84,11 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
     }
 
     @Override
+    public String generatePasswordResetToken(com.erp.auth.domain.valueobject.UserId userId) {
+        return generatePasswordResetToken(userId.getValue());
+    }
+
+    @Override
     public String generatePasswordResetToken(UUID userId) {
         Instant now = Instant.now();
 

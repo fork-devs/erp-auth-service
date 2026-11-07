@@ -1,7 +1,9 @@
 package com.erp.auth.domain.port;
 
+import com.erp.auth.domain.model.TokenHash;
 import com.erp.auth.domain.model.TokenIdentity;
 import com.erp.auth.domain.model.User;
+import com.erp.auth.domain.valueobject.UserId;
 
 import java.time.Duration;
 import java.util.Map;
@@ -18,26 +20,29 @@ import java.util.UUID;
 public interface TokenSignerPort {
 
     /**
-     * Issues an access token containing subject, tenant, email, full name, and assigned roles.
+     * Issues an access token containing subject, tenant, and assigned roles.
      */
     String generateAccessToken(User user);
 
     /**
-     * Issues a refresh token containing subject, tenant, and roles, allowing the service
-     * to identify ownership without querying the database.
+     * Issues a refresh token containing subject and tenant.
      */
     String generateRefreshToken(User user);
 
     /**
-     * Issues a password reset token.
-     *
-     * <p>Does NOT include the subject claim: because reset tokens travel over email,
-     * embedding identity would expose user data. The database row, indexed by the token hash,
-     * maps the token to its corresponding user.
+     * Issues a password reset token linked to the given user ID.
      */
-    String generatePasswordResetToken(UUID userId);
+    String generatePasswordResetToken(UserId userId);
+
+    default String generatePasswordResetToken(UUID userId) {
+        return generatePasswordResetToken(UserId.of(userId));
+    }
 
     String hashToken(String rawToken);
+
+    default TokenHash hashTokenToVO(String rawToken) {
+        return TokenHash.of(hashToken(rawToken));
+    }
 
     /**
      * Extracts the unique token identifier matching the {@code jti} claim, used to record
