@@ -1,25 +1,23 @@
 package com.erp.auth.domain.valueobject;
 
 import java.io.Serializable;
-import java.util.Objects;
 import java.util.regex.Pattern;
 
-public final class Email implements Serializable {
+public record Email(String value) implements Serializable {
+
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
     );
 
-    private final String value;
-
-    public Email(String value) {
+    public Email {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException("El correo electrónico no puede estar vacío");
+            throw new IllegalArgumentException("Email address cannot be blank");
         }
         String normalized = value.trim().toLowerCase();
         if (!EMAIL_PATTERN.matcher(normalized).matches()) {
-            throw new IllegalArgumentException("Formato de correo electrónico inválido: " + value);
+            throw new IllegalArgumentException("Invalid email format: " + value);
         }
-        this.value = normalized;
+        value = normalized;
     }
 
     public static Email of(String value) {
@@ -28,18 +26,6 @@ public final class Email implements Serializable {
 
     public String getValue() {
         return value;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Email email)) return false;
-        return Objects.equals(value, email.value);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
     }
 
     @Override
