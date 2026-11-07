@@ -65,8 +65,8 @@ public class UserSelfService implements GetUserByIdUseCase, UpdateUserEmailUseCa
 
         return new UserResult(
                 user.getId(),
-                user.getTenantId().getValue(),
-                user.getEmail().getValue(),
+                user.getTenantId().value(),
+                user.getEmail().value(),
                 user.getFullName(),
                 user.isMfaEnabled(),
                 roleNames,
@@ -87,7 +87,7 @@ public class UserSelfService implements GetUserByIdUseCase, UpdateUserEmailUseCa
             }
 
             // Invalidate all previous refresh tokens
-            refreshTokenRepositoryPort.revokeAllByUserId(com.erp.auth.domain.valueobject.UserId.of(user.getId()), user.getTenantId());
+            refreshTokenRepositoryPort.revokeAllByUserId(new com.erp.auth.domain.valueobject.UserId(user.getId()), user.getTenantId());
 
             user.changeEmail(newEmail);
             user = userRepositoryPort.save(user);
@@ -100,7 +100,7 @@ public class UserSelfService implements GetUserByIdUseCase, UpdateUserEmailUseCa
 
             RefreshToken refreshTokenEntity = RefreshToken.create(
                     user.getId(),
-                    user.getTenantId().getValue(),
+                    user.getTenantId().value(),
                     refreshTokenHash,
                     refreshTokenExpiry
             );
@@ -117,8 +117,8 @@ public class UserSelfService implements GetUserByIdUseCase, UpdateUserEmailUseCa
                     "Bearer",
                     tokenSignerPort.getAccessTokenDuration().toSeconds(),
                     user.getId(),
-                    user.getTenantId().getValue(),
-                    user.getEmail().getValue(),
+                    user.getTenantId().value(),
+                    user.getEmail().value(),
                     user.getFullName(),
                     roleNames
             );
@@ -136,7 +136,7 @@ public class UserSelfService implements GetUserByIdUseCase, UpdateUserEmailUseCa
             User user = userRepositoryPort.findById(command.userId())
                     .orElseThrow(() -> new UserNotFoundException(command.userId().toString()));
 
-            if (!passwordEncoderPort.matches(command.currentPassword(), user.getPasswordHash().getValue())) {
+            if (!passwordEncoderPort.matches(command.currentPassword(), user.getPasswordHash().value())) {
                 throw new InvalidCredentialsException("Contraseña actual incorrecta");
             }
 
@@ -145,7 +145,7 @@ public class UserSelfService implements GetUserByIdUseCase, UpdateUserEmailUseCa
             userRepositoryPort.save(user);
 
             // Invalidate all existing sessions globally
-            refreshTokenRepositoryPort.revokeAllByUserId(com.erp.auth.domain.valueobject.UserId.of(user.getId()), user.getTenantId());
+            refreshTokenRepositoryPort.revokeAllByUserId(new com.erp.auth.domain.valueobject.UserId(user.getId()), user.getTenantId());
         });
     }
 }

@@ -98,7 +98,7 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
 
         JWTClaimsSet.Builder claims = baseClaims(now, now.plus(accessTokenDuration))
                 .subject(user.getId().toString())
-                .claim("tenant_id", user.getTenantId().getValue().toString())
+                .claim("tenant_id", user.getTenantId().value().toString())
                 .claim("roles", roleNames)
                 .claim("type", "access");
 
@@ -111,7 +111,7 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
 
         JWTClaimsSet.Builder claims = baseClaims(now, now.plus(refreshTokenDuration))
                 .subject(user.getId().toString())
-                .claim("tenant_id", user.getTenantId().getValue().toString())
+                .claim("tenant_id", user.getTenantId().value().toString())
                 .claim("type", "refresh");
 
         return sign(claims.build());
@@ -119,7 +119,7 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
 
     @Override
     public String generatePasswordResetToken(UserId userId) {
-        return generatePasswordResetToken(userId.getValue());
+        return generatePasswordResetToken(userId.value());
     }
 
     @Override

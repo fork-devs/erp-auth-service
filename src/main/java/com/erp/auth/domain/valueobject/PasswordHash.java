@@ -4,6 +4,8 @@ import java.io.Serializable;
 
 public record PasswordHash(String value) implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     public PasswordHash {
         if (value == null || value.trim().isEmpty()) {
             throw new IllegalArgumentException("Password hash cannot be blank");
@@ -12,10 +14,6 @@ public record PasswordHash(String value) implements Serializable {
 
     public static PasswordHash of(String value) {
         return new PasswordHash(value);
-    }
-
-    public String getValue() {
-        return value;
     }
 
     @Override

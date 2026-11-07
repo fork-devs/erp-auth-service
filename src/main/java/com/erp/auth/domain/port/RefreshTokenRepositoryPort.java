@@ -34,7 +34,7 @@ public interface RefreshTokenRepositoryPort {
     }
 
     default void revokeAllByUserId(UUID userId, UUID tenantId) {
-        revokeAllByUserId(UserId.of(userId), TenantId.fromString(tenantId.toString()));
+        revokeAllByUserId(new UserId(userId), TenantId.fromString(tenantId.toString()));
     }
 
     default void revokeAllByUserId(UUID userId) {

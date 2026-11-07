@@ -45,7 +45,7 @@ class UserPersistenceAdapterTest {
         adapter.deleteById(userId, tenantId);
 
         verify(transactionGuard).requireActiveTransaction("deleteUser");
-        verify(springDataUserRepository).deleteByIdAndTenantId(userId.getValue(), tenantId.getValue());
+        verify(springDataUserRepository).deleteByIdAndTenantId(userId.value(), tenantId.value());
         verifyNoMoreInteractions(springDataUserRepository);
     }
 }

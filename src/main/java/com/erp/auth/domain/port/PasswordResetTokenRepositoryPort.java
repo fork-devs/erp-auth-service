@@ -28,7 +28,7 @@ public interface PasswordResetTokenRepositoryPort {
     }
 
     default void invalidateAllByUserId(UUID userId, UUID tenantId) {
-        invalidateAllByUserId(UserId.of(userId), TenantId.fromString(tenantId.toString()));
+        invalidateAllByUserId(new UserId(userId), TenantId.fromString(tenantId.toString()));
     }
 
     default void invalidateAllByUserId(UUID userId) {

@@ -86,10 +86,10 @@ class AuthenticateUserServiceTest {
     @Test
     @DisplayName("Debe autenticar exitosamente y retornar Access Token y Refresh Token")
     void shouldAuthenticateSuccessfully() {
-        LoginCommand command = new LoginCommand("admin@taller.pe", rawPassword, tenantId.getValue());
+        LoginCommand command = new LoginCommand("admin@taller.pe", rawPassword, tenantId.value());
 
         when(userRepositoryPort.findByEmailAndTenantId(Email.of("admin@taller.pe"), tenantId)).thenReturn(Optional.of(sampleUser));
-        when(passwordEncoderPort.matches(rawPassword, sampleUser.getPasswordHash().getValue())).thenReturn(true);
+        when(passwordEncoderPort.matches(rawPassword, sampleUser.getPasswordHash().value())).thenReturn(true);
         when(tokenSignerPort.generateAccessToken(sampleUser)).thenReturn("eyJhbGciOiJSUzI1NiJ9.mockToken");
         when(tokenSignerPort.generateRefreshToken(any(User.class))).thenReturn("mockRefreshTokenRaw");
         when(tokenSignerPort.extractTokenId(anyString())).thenReturn("token-id-de-prueba");
@@ -103,7 +103,7 @@ class AuthenticateUserServiceTest {
         assertEquals("eyJhbGciOiJSUzI1NiJ9.mockToken", result.accessToken());
         assertEquals("mockRefreshTokenRaw", result.refreshToken());
         assertEquals("Bearer", result.tokenType());
-        assertEquals(sampleUser.getEmail().getValue(), result.email());
+        assertEquals(sampleUser.getEmail().value(), result.email());
         assertTrue(result.roles().contains("WORKSHOP_ADMIN"));
 
         verify(userRepositoryPort, times(1)).save(sampleUser);
@@ -113,10 +113,10 @@ class AuthenticateUserServiceTest {
     @Test
     @DisplayName("Debe incrementar intentos fallidos y lanzar InvalidCredentialsException con password incorrecto")
     void shouldFailAndIncrementAttemptsOnWrongPassword() {
-        LoginCommand command = new LoginCommand("admin@taller.pe", "WrongPassword", tenantId.getValue());
+        LoginCommand command = new LoginCommand("admin@taller.pe", "WrongPassword", tenantId.value());
 
         when(userRepositoryPort.findByEmailAndTenantId(Email.of("admin@taller.pe"), tenantId)).thenReturn(Optional.of(sampleUser));
-        when(passwordEncoderPort.matches("WrongPassword", sampleUser.getPasswordHash().getValue())).thenReturn(false);
+        when(passwordEncoderPort.matches("WrongPassword", sampleUser.getPasswordHash().value())).thenReturn(false);
 
         assertThrows(InvalidCredentialsException.class, () -> authenticateUserService.authenticate(command));
 
@@ -132,7 +132,7 @@ class AuthenticateUserServiceTest {
     @DisplayName("Debe lanzar AccountLockedException cuando la cuenta está bloqueada")
     void shouldThrowAccountLockedWhenAlreadyLocked() {
         sampleUser.recordFailedAttempt(1, Duration.ofMinutes(15));
-        LoginCommand command = new LoginCommand("admin@taller.pe", rawPassword, tenantId.getValue());
+        LoginCommand command = new LoginCommand("admin@taller.pe", rawPassword, tenantId.value());
 
         when(userRepositoryPort.findByEmailAndTenantId(Email.of("admin@taller.pe"), tenantId)).thenReturn(Optional.of(sampleUser));
 
@@ -141,6 +141,6 @@ class AuthenticateUserServiceTest {
         // The password is ALSO verified when the account is locked. If not verified,
         // response time differences would reveal account state, allowing attackers
         // to distinguish "locked" from "nonexistent".
-        verify(passwordEncoderPort, times(1)).matches(rawPassword, sampleUser.getPasswordHash().getValue());
+        verify(passwordEncoderPort, times(1)).matches(rawPassword, sampleUser.getPasswordHash().value());
     }
 }

@@ -90,7 +90,7 @@ class UserRegistrationWithRolesTest extends AbstractPostgresIntegrationTest {
         assertNotNull(saved.getId());
         assertEquals(1, saved.getRoles().size(), "El usuario debe tener un rol asignado");
         assertEquals(RoleCode.SERVICE_ADVISOR, saved.getRoles().iterator().next().getCode());
-        assertEquals(TENANT_ID, saved.getTenantId().getValue());
+        assertEquals(TENANT_ID, saved.getTenantId().value());
     }
 
     @Test

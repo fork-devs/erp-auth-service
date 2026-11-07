@@ -35,7 +35,7 @@ public class OtpVerificationPersistenceAdapter implements OtpVerificationReposit
     @Override
     @Transactional(readOnly = true)
     public Optional<OtpVerification> findLatestByEmail(Email email) {
-        return repository.findLatestByEmail(email.getValue())
+        return repository.findLatestByEmail(email.value())
                 .map(OtpVerificationPersistenceMapper::toDomain);
     }
 }

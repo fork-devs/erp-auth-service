@@ -35,7 +35,7 @@ public interface TokenSignerPort {
     String generatePasswordResetToken(UserId userId);
 
     default String generatePasswordResetToken(UUID userId) {
-        return generatePasswordResetToken(UserId.of(userId));
+        return generatePasswordResetToken(new UserId(userId));
     }
 
     String hashToken(String rawToken);

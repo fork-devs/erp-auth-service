@@ -30,7 +30,7 @@ public interface UserRepositoryPort {
     void deleteById(com.erp.auth.domain.valueobject.UserId userId, TenantId tenantId);
 
     default void deleteById(UUID id, TenantId tenantId) {
-        deleteById(com.erp.auth.domain.valueobject.UserId.of(id), tenantId);
+        deleteById(new com.erp.auth.domain.valueobject.UserId(id), tenantId);
     }
 
     default void deleteById(UUID id) {

@@ -49,13 +49,13 @@ public class UserInvitationPersistenceAdapter implements UserInvitationRepositor
     @Override
     @Transactional(readOnly = true)
     public Optional<UserInvitation> findLatestByEmailAndTenantId(Email email, UUID tenantId) {
-        return repository.findFirstByEmailAndTenantIdOrderByCreatedAtDesc(email.getValue(), tenantId)
+        return repository.findFirstByEmailAndTenantIdOrderByCreatedAtDesc(email.value(), tenantId)
                 .map(UserInvitationPersistenceMapper::toDomain);
     }
 
     @Override
     public void invalidateAllByEmailAndTenantId(Email email, UUID tenantId) {
         transactionGuard.requireActiveTransaction("invalidateAllUserInvitations");
-        repository.invalidateAllByEmailAndTenantId(email.getValue(), tenantId, Instant.now());
+        repository.invalidateAllByEmailAndTenantId(email.value(), tenantId, Instant.now());
     }
 }

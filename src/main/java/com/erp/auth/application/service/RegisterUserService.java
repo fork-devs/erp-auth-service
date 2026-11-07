@@ -61,7 +61,7 @@ public class RegisterUserService implements RegisterUserUseCase, GetUserProfileU
         TenantId tenantId = command.tenantId();
         Email email = Email.of(command.email());
         if (userRepositoryPort.existsByEmailAndTenantId(email, tenantId)) {
-            throw new UserAlreadyExistsException(email.getValue());
+            throw new UserAlreadyExistsException(email.value());
         }
 
         Set<RoleCode> roleCodes = resolveAssignableRoles(command);
@@ -117,8 +117,8 @@ public class RegisterUserService implements RegisterUserUseCase, GetUserProfileU
 
         return new UserResult(
                 user.getId(),
-                user.getTenantId().getValue(),
-                user.getEmail().getValue(),
+                user.getTenantId().value(),
+                user.getEmail().value(),
                 user.getFullName(),
                 user.isMfaEnabled(),
                 roleNames,

@@ -90,7 +90,7 @@ public class SecondFactorEnrollmentService
         // Delivery is performed OUTSIDE the transaction boundary: external notification
         // calls should not keep database transactions open.
         notificationPort.deliver(NotificationMessage.of(
-                user.getEmail().getValue(),
+                user.getEmail().value(),
                 "Activa tu segundo factor de autenticacion",
                 "Enlaza esta clave en tu aplicacion autenticadora: " + enrolado.uri()
                         + "\n\nCodigos de recuperacion (cada uno sirve una sola vez):\n"

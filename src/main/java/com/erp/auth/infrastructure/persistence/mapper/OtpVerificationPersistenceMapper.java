@@ -15,7 +15,7 @@ public final class OtpVerificationPersistenceMapper {
         }
         return new OtpVerificationJpaEntity(
                 domain.getId(),
-                domain.getEmail().getValue(),
+                domain.getEmail().value(),
                 domain.getCodeHash(),
                 domain.getAttempts(),
                 domain.isVerified(),

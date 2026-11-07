@@ -76,22 +76,22 @@ public class PasswordResetService implements PasswordResetUseCase {
         // Invalidation of previous tokens and issuance of the new token occur
         // atomically: failure after invalidation would strand the user without recovery options.
         unitOfWork.runInTransaction(() -> {
-            passwordResetTokenRepositoryPort.invalidateAllByUserId(com.erp.auth.domain.valueobject.UserId.of(user.getId()), user.getTenantId());
+            passwordResetTokenRepositoryPort.invalidateAllByUserId(new com.erp.auth.domain.valueobject.UserId(user.getId()), user.getTenantId());
 
             String rawToken = tokenSignerPort.generatePasswordResetToken(user.getId());
             String tokenHash = tokenSignerPort.hashToken(rawToken);
             Instant expiresAt = Instant.now().plus(tokenSignerPort.getPasswordResetTokenDuration());
 
-            PasswordResetToken resetToken = PasswordResetToken.create(user.getId(), user.getTenantId().getValue(),
+            PasswordResetToken resetToken = PasswordResetToken.create(user.getId(), user.getTenantId().value(),
                     tokenHash, expiresAt);
             passwordResetTokenRepositoryPort.save(resetToken);
 
             // Deliver token to recipient rather than returning it in API response.
             // Direct return would expose credentials to whoever invoked the endpoint.
-            AuthEventLogger.registrar("restablecimiento_solicitado", user.getTenantId().getValue(), user.getId(),
+            AuthEventLogger.registrar("restablecimiento_solicitado", user.getTenantId().value(), user.getId(),
                     null, "ok", Map.of());
             notificationPort.deliver(NotificationMessage.of(
-                    user.getEmail().getValue(),
+                    user.getEmail().value(),
                     "Restablecimiento de contrasena",
                     "Use este token para restablecer su contrasena: " + rawToken));
         });
@@ -131,7 +131,7 @@ public class PasswordResetService implements PasswordResetUseCase {
             userRepositoryPort.save(user);
 
             // Revoke all existing refresh tokens for security
-            refreshTokenRepositoryPort.revokeAllByUserId(com.erp.auth.domain.valueobject.UserId.of(user.getId()), user.getTenantId());
+            refreshTokenRepositoryPort.revokeAllByUserId(new com.erp.auth.domain.valueobject.UserId(user.getId()), user.getTenantId());
         });
     }
 }

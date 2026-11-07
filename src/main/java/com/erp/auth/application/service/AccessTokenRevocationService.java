@@ -55,7 +55,7 @@ public class AccessTokenRevocationService implements RevokeAccessTokenUseCase {
             com.erp.auth.domain.valueobject.TenantId tenantId = identity.tenantId();
             if (tenantId != null) {
                 revokedTokenRepositoryPort.revoke(identity.tokenId(),
-                        com.erp.auth.domain.valueobject.UserId.of(identity.userId()),
+                        new com.erp.auth.domain.valueobject.UserId(identity.userId()),
                         tenantId,
                         identity.expiresAt());
             } else {

@@ -91,7 +91,7 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
             String newRefreshTokenHash = tokenSignerPort.hashToken(newRawRefreshToken);
             Instant newRefreshTokenExpiry = Instant.now().plus(tokenSignerPort.getRefreshTokenDuration());
 
-            RefreshToken newRefreshTokenEntity = RefreshToken.create(user.getId(), user.getTenantId().getValue(),
+            RefreshToken newRefreshTokenEntity = RefreshToken.create(user.getId(), user.getTenantId().value(),
                     newRefreshTokenHash, newRefreshTokenExpiry);
             refreshTokenRepositoryPort.save(newRefreshTokenEntity);
 
@@ -99,7 +99,7 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
                     .map(r -> r.getCode().name())
                     .collect(Collectors.toSet());
 
-            AuthEventLogger.registrar("token_refresco_rotado", user.getTenantId().getValue(), user.getId(), null,
+            AuthEventLogger.registrar("token_refresco_rotado", user.getTenantId().value(), user.getId(), null,
                     "ok", Map.of());
             return new AuthResult(
                     newAccessToken,
@@ -108,8 +108,8 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
                     "Bearer",
                     tokenSignerPort.getAccessTokenDuration().toSeconds(),
                     user.getId(),
-                    user.getTenantId().getValue(),
-                    user.getEmail().getValue(),
+                    user.getTenantId().value(),
+                    user.getEmail().value(),
                     user.getFullName(),
                     roleCodes
             );

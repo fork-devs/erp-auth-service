@@ -29,7 +29,7 @@ public final class UserInvitationPersistenceMapper {
         return new UserInvitationJpaEntity(
                 domain.getId(),
                 domain.getTenantId(),
-                domain.getEmail().getValue(),
+                domain.getEmail().value(),
                 domain.getFullName(),
                 domain.getRole().name(),
                 domain.getTokenHash(),

@@ -32,7 +32,7 @@ public class RefreshToken implements Serializable {
 
     public RefreshToken(UUID id, UUID userId, UUID tenantId, String tokenHash, Instant expiresAt, boolean revoked, Instant createdAt) {
         this(id,
-             userId != null ? UserId.of(userId) : null,
+             userId != null ? new UserId(userId) : null,
              tenantId != null ? TenantId.fromString(tenantId.toString()) : null,
              tokenHash != null ? TokenHash.of(tokenHash) : null,
              expiresAt,
@@ -45,7 +45,7 @@ public class RefreshToken implements Serializable {
     }
 
     public static RefreshToken create(UUID userId, UUID tenantId, String tokenHash, Instant expiresAt) {
-        return create(UserId.of(userId), TenantId.fromString(tenantId.toString()), TokenHash.of(tokenHash), expiresAt);
+        return create(new UserId(userId), TenantId.fromString(tenantId.toString()), TokenHash.of(tokenHash), expiresAt);
     }
 
     public boolean isValid() {
@@ -65,7 +65,7 @@ public class RefreshToken implements Serializable {
     }
 
     public UUID getUserId() {
-        return userId.getValue();
+        return userId.value();
     }
 
     public TenantId getTenantIdVO() {
@@ -73,7 +73,7 @@ public class RefreshToken implements Serializable {
     }
 
     public UUID getTenantId() {
-        return tenantId.getValue();
+        return tenantId.value();
     }
 
     public TokenHash getTokenHashVO() {
@@ -81,7 +81,7 @@ public class RefreshToken implements Serializable {
     }
 
     public String getTokenHash() {
-        return tokenHash.getValue();
+        return tokenHash.value();
     }
 
     public Instant getExpiresAt() {

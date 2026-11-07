@@ -114,7 +114,7 @@ class AccessTokenRevocationTest extends AbstractPostgresIntegrationTest {
         try (com.erp.auth.infrastructure.persistence.rls.TenantContextScope scope =
                      com.erp.auth.infrastructure.persistence.rls.TenantContextScope.forTenant(TALLER)) {
             unitOfWork.runInTransaction(() -> revokedTokenRepositoryPort.revoke(
-                    revocado, com.erp.auth.domain.valueobject.UserId.of(usuario.getId()), usuario.getTenantId(), Instant.now().plusSeconds(900)));
+                    revocado, new com.erp.auth.domain.valueobject.UserId(usuario.getId()), usuario.getTenantId(), Instant.now().plusSeconds(900)));
 
             assertTrue(revokedTokenRepositoryPort.isRevoked(revocado),
                     "El token registrado como revocado debe encontrarse");
@@ -137,7 +137,7 @@ class AccessTokenRevocationTest extends AbstractPostgresIntegrationTest {
         try (com.erp.auth.infrastructure.persistence.rls.TenantContextScope scope =
                      com.erp.auth.infrastructure.persistence.rls.TenantContextScope.forTenant(TALLER)) {
             unitOfWork.runInTransaction(() -> revokedTokenRepositoryPort.revoke(
-                    identity.tokenId(), com.erp.auth.domain.valueobject.UserId.of(usuario.getId()), usuario.getTenantId(), identity.expiresAt()));
+                    identity.tokenId(), new com.erp.auth.domain.valueobject.UserId(usuario.getId()), usuario.getTenantId(), identity.expiresAt()));
         }
 
         SecurityContextHolder.clearContext();
@@ -179,8 +179,8 @@ class AccessTokenRevocationTest extends AbstractPostgresIntegrationTest {
         try (com.erp.auth.infrastructure.persistence.rls.TenantContextScope scope =
                      com.erp.auth.infrastructure.persistence.rls.TenantContextScope.forTenant(TALLER)) {
             unitOfWork.runInTransaction(() -> {
-                revokedTokenRepositoryPort.revoke(vencido, com.erp.auth.domain.valueobject.UserId.of(usuario.getId()), usuario.getTenantId(), Instant.now().minusSeconds(60));
-                revokedTokenRepositoryPort.revoke(vigente, com.erp.auth.domain.valueobject.UserId.of(usuario.getId()), usuario.getTenantId(), Instant.now().plusSeconds(900));
+                revokedTokenRepositoryPort.revoke(vencido, new com.erp.auth.domain.valueobject.UserId(usuario.getId()), usuario.getTenantId(), Instant.now().minusSeconds(60));
+                revokedTokenRepositoryPort.revoke(vigente, new com.erp.auth.domain.valueobject.UserId(usuario.getId()), usuario.getTenantId(), Instant.now().plusSeconds(900));
             });
 
             revokedTokenCleanupTask.eliminarRevocacionesVencidas();

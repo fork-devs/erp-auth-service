@@ -5,6 +5,8 @@ import java.util.regex.Pattern;
 
 public record Email(String value) implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
     );
@@ -24,12 +26,15 @@ public record Email(String value) implements Serializable {
         return new Email(value);
     }
 
-    public String getValue() {
-        return value;
-    }
-
     @Override
     public String toString() {
-        return value;
+        if (value == null) {
+            return "";
+        }
+        int atIndex = value.indexOf('@');
+        if (atIndex <= 1) {
+            return "***@" + (atIndex >= 0 ? value.substring(atIndex + 1) : "");
+        }
+        return value.charAt(0) + "***" + value.charAt(atIndex - 1) + value.substring(atIndex);
     }
 }

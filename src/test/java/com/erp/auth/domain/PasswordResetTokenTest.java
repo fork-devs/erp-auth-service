@@ -30,11 +30,11 @@ class PasswordResetTokenTest {
 
         assertNotNull(token.getId());
         assertEquals(userId, token.getUserIdVO());
-        assertEquals(userId.getValue(), token.getUserId());
+        assertEquals(userId.value(), token.getUserId());
         assertEquals(tenantId, token.getTenantIdVO());
-        assertEquals(tenantId.getValue(), token.getTenantId());
+        assertEquals(tenantId.value(), token.getTenantId());
         assertEquals(tokenHash, token.getTokenHashVO());
-        assertEquals(tokenHash.getValue(), token.getTokenHash());
+        assertEquals(tokenHash.value(), token.getTokenHash());
         assertNull(token.getUsedAt());
         assertTrue(token.isValid());
     }

@@ -29,7 +29,7 @@ public class RevokedTokenPersistenceAdapter implements RevokedTokenRepositoryPor
             // Revocation is idempotent: closing a session twice must not fail.
             return;
         }
-        repository.save(new RevokedTokenJpaEntity(tokenId, userId.getValue(), tenantId.getValue(), expiresAt, Instant.now()));
+        repository.save(new RevokedTokenJpaEntity(tokenId, userId.value(), tenantId.value(), expiresAt, Instant.now()));
     }
 
     @Override

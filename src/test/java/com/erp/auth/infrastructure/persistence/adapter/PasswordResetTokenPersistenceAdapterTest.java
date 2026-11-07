@@ -43,7 +43,7 @@ class PasswordResetTokenPersistenceAdapterTest {
         adapter.invalidateAllByUserId(userId, tenantId);
 
         verify(transactionGuard).requireActiveTransaction("invalidateAllByUserId");
-        verify(repository).invalidateAllByUserIdAndTenantId(eq(userId.getValue()), eq(tenantId.getValue()), any(Instant.class));
+        verify(repository).invalidateAllByUserIdAndTenantId(eq(userId.value()), eq(tenantId.value()), any(Instant.class));
         verifyNoMoreInteractions(repository);
     }
 }

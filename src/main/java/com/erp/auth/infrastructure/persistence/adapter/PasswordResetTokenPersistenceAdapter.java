@@ -35,19 +35,19 @@ public class PasswordResetTokenPersistenceAdapter implements PasswordResetTokenR
     @Override
     @Transactional(readOnly = true)
     public Optional<PasswordResetToken> findByTokenHashAndTenantId(com.erp.auth.domain.model.TokenHash tokenHash, com.erp.auth.domain.valueobject.TenantId tenantId) {
-        return findByTokenHashAndTenantId(tokenHash.getValue(), tenantId.getValue());
+        return findByTokenHashAndTenantId(tokenHash.value(), tenantId.value());
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<PasswordResetToken> findByTokenHash(com.erp.auth.domain.model.TokenHash tokenHash) {
-        return findByTokenHash(tokenHash.getValue());
+        return findByTokenHash(tokenHash.value());
     }
 
     @Override
     public void invalidateAllByUserId(com.erp.auth.domain.valueobject.UserId userId, com.erp.auth.domain.valueobject.TenantId tenantId) {
         transactionGuard.requireActiveTransaction("invalidateAllByUserId");
-        repository.invalidateAllByUserIdAndTenantId(userId.getValue(), tenantId.getValue(), java.time.Instant.now());
+        repository.invalidateAllByUserIdAndTenantId(userId.value(), tenantId.value(), java.time.Instant.now());
     }
 
     @Override

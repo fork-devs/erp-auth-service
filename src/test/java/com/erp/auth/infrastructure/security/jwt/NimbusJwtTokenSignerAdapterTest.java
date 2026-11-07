@@ -78,7 +78,7 @@ class NimbusJwtTokenSignerAdapterTest {
 
         // Verify it passes TokenHash Value Object validation
         TokenHash tokenHash = signer.hashTokenToVO(rawToken);
-        assertEquals(hashWithPepperA, tokenHash.getValue());
+        assertEquals(hashWithPepperA, tokenHash.value());
     }
 
     @Test

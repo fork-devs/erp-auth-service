@@ -139,7 +139,7 @@ class JwtAuthenticationFilterContractTest {
                 .audience(audience)
                 .jwtID(UUID.randomUUID().toString())
                 .subject(usuario.getId().toString())
-                .claim("tenant_id", usuario.getTenantId().getValue().toString())
+                .claim("tenant_id", usuario.getTenantId().value().toString())
                 .issueTime(new Date())
                 .expirationTime(new Date(System.currentTimeMillis() + 600_000));
 

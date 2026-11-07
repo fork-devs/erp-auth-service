@@ -41,7 +41,7 @@ class RefreshTokenPersistenceAdapterTest {
         adapter.revokeAllByUserId(userId, tenantId);
 
         verify(transactionGuard).requireActiveTransaction("revokeAllByUserId");
-        verify(springDataRefreshTokenRepository).revokeAllByUserIdAndTenantId(userId.getValue(), tenantId.getValue());
+        verify(springDataRefreshTokenRepository).revokeAllByUserIdAndTenantId(userId.value(), tenantId.value());
         verifyNoMoreInteractions(springDataRefreshTokenRepository);
     }
 }

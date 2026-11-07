@@ -20,7 +20,7 @@ class TokenHashTest {
         TokenHash hash = TokenHash.of(VALID_SHA256_HEX);
 
         assertNotNull(hash);
-        assertEquals(VALID_SHA256_HEX, hash.getValue());
+        assertEquals(VALID_SHA256_HEX, hash.value());
         assertEquals(VALID_SHA256_HEX, hash.toString());
     }
 
@@ -30,7 +30,7 @@ class TokenHashTest {
         String upperHex = VALID_SHA256_HEX.toUpperCase();
         TokenHash hash = TokenHash.of(upperHex);
 
-        assertEquals(VALID_SHA256_HEX, hash.getValue());
+        assertEquals(VALID_SHA256_HEX, hash.value());
     }
 
     @ParameterizedTest

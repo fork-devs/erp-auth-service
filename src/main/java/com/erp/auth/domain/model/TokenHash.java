@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
  */
 public record TokenHash(String value) implements Serializable {
 
+    private static final long serialVersionUID = 1L;
     private static final Pattern HEX_PATTERN = Pattern.compile("^[a-fA-F0-9]{32,128}$");
 
     public TokenHash {
@@ -24,10 +25,6 @@ public record TokenHash(String value) implements Serializable {
 
     public static TokenHash of(String value) {
         return new TokenHash(value);
-    }
-
-    public String getValue() {
-        return value;
     }
 
     @Override

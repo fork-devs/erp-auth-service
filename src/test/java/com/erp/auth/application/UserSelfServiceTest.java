@@ -122,7 +122,7 @@ class UserSelfServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.accessToken()).isEqualTo("new-access-token");
-        verify(refreshTokenRepositoryPort).revokeAllByUserId(com.erp.auth.domain.valueobject.UserId.of(user.getId()), user.getTenantId());
+        verify(refreshTokenRepositoryPort).revokeAllByUserId(new com.erp.auth.domain.valueobject.UserId(user.getId()), user.getTenantId());
         verify(userRepositoryPort).save(user);
     }
 
@@ -164,7 +164,7 @@ class UserSelfServiceTest {
                 userId, "CurrentPassword123!", "NewSecurePassword456!"));
 
         verify(userRepositoryPort).save(user);
-        verify(refreshTokenRepositoryPort).revokeAllByUserId(com.erp.auth.domain.valueobject.UserId.of(user.getId()), user.getTenantId());
+        verify(refreshTokenRepositoryPort).revokeAllByUserId(new com.erp.auth.domain.valueobject.UserId(user.getId()), user.getTenantId());
     }
 
     @Test

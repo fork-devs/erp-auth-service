@@ -80,40 +80,40 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
     @Override
     @Transactional(readOnly = true)
     public Optional<User> findByIdAndTenantId(UUID id, TenantId tenantId) {
-        return springDataUserRepository.findByIdAndTenantId(id, tenantId.getValue())
+        return springDataUserRepository.findByIdAndTenantId(id, tenantId.value())
                 .map(UserPersistenceMapper::toDomain);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<User> findByEmail(Email email) {
-        return springDataUserRepository.findByEmail(email.getValue())
+        return springDataUserRepository.findByEmail(email.value())
                 .map(UserPersistenceMapper::toDomain);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<User> findByEmailAndTenantId(Email email, TenantId tenantId) {
-        return springDataUserRepository.findByEmailAndTenantId(email.getValue(), tenantId.getValue())
+        return springDataUserRepository.findByEmailAndTenantId(email.value(), tenantId.value())
                 .map(UserPersistenceMapper::toDomain);
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean existsByEmail(Email email) {
-        return springDataUserRepository.existsByEmail(email.getValue());
+        return springDataUserRepository.existsByEmail(email.value());
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean existsByEmailAndTenantId(Email email, TenantId tenantId) {
-        return springDataUserRepository.existsByEmailAndTenantId(email.getValue(), tenantId.getValue());
+        return springDataUserRepository.existsByEmailAndTenantId(email.value(), tenantId.value());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<User> findAllByTenantId(TenantId tenantId) {
-        return springDataUserRepository.findAllByTenantId(tenantId.getValue()).stream()
+        return springDataUserRepository.findAllByTenantId(tenantId.value()).stream()
                 .map(UserPersistenceMapper::toDomain)
                 .collect(Collectors.toList());
     }
@@ -121,7 +121,7 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
     @Override
     public void deleteById(com.erp.auth.domain.valueobject.UserId userId, TenantId tenantId) {
         transactionGuard.requireActiveTransaction("deleteUser");
-        springDataUserRepository.deleteByIdAndTenantId(userId.getValue(), tenantId.getValue());
+        springDataUserRepository.deleteByIdAndTenantId(userId.value(), tenantId.value());
     }
 
     @Override
