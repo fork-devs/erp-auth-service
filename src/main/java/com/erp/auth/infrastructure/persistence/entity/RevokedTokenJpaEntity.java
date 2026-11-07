@@ -18,6 +18,9 @@ public class RevokedTokenJpaEntity {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(name = "tenant_id", nullable = false)
+    private UUID tenantId;
+
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
@@ -27,11 +30,16 @@ public class RevokedTokenJpaEntity {
     public RevokedTokenJpaEntity() {
     }
 
-    public RevokedTokenJpaEntity(UUID jti, UUID userId, Instant expiresAt, Instant revokedAt) {
+    public RevokedTokenJpaEntity(UUID jti, UUID userId, UUID tenantId, Instant expiresAt, Instant revokedAt) {
         this.jti = jti;
         this.userId = userId;
+        this.tenantId = tenantId;
         this.expiresAt = expiresAt;
         this.revokedAt = revokedAt;
+    }
+
+    public RevokedTokenJpaEntity(UUID jti, UUID userId, Instant expiresAt, Instant revokedAt) {
+        this(jti, userId, null, expiresAt, revokedAt);
     }
 
     public UUID getJti() {
@@ -48,6 +56,14 @@ public class RevokedTokenJpaEntity {
 
     public void setUserId(UUID userId) {
         this.userId = userId;
+    }
+
+    public UUID getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(UUID tenantId) {
+        this.tenantId = tenantId;
     }
 
     public Instant getExpiresAt() {

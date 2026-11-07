@@ -24,14 +24,18 @@ public class RevokedTokenPersistenceAdapter implements RevokedTokenRepositoryPor
 
     @Override
     public void revoke(UUID tokenId, com.erp.auth.domain.valueobject.UserId userId, com.erp.auth.domain.valueobject.TenantId tenantId, Instant expiresAt) {
-        revoke(tokenId, userId.getValue(), expiresAt);
+        transactionGuard.requireActiveTransaction("revokeToken");
+        if (repository.existsById(tokenId)) {
+            // Revocation is idempotent: closing a session twice must not fail.
+            return;
+        }
+        repository.save(new RevokedTokenJpaEntity(tokenId, userId.getValue(), tenantId.getValue(), expiresAt, Instant.now()));
     }
 
     @Override
     public void revoke(UUID tokenId, UUID userId, Instant expiresAt) {
         transactionGuard.requireActiveTransaction("revokeToken");
         if (repository.existsById(tokenId)) {
-            // Revocation is idempotent: closing a session twice must not fail.
             return;
         }
         repository.save(new RevokedTokenJpaEntity(tokenId, userId, expiresAt, Instant.now()));

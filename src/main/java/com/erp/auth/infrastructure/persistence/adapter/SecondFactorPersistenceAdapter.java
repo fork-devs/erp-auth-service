@@ -68,9 +68,13 @@ public class SecondFactorPersistenceAdapter implements SecondFactorRepositoryPor
     @Override
     public void storeRecoveryCodes(UUID userId, List<String> hashedCodes, Instant expiresAt) {
         transactionGuard.requireActiveTransaction("storeRecoveryCodes");
+        UUID tenantId = userRepository.findById(userId)
+                .map(UserJpaEntity::getTenantId)
+                .orElse(null);
+
         List<RecoveryCodeJpaEntity> entidades = hashedCodes.stream()
                 .map(hash -> new RecoveryCodeJpaEntity(
-                        UUID.randomUUID(), userId, hash, null, expiresAt, Instant.now()))
+                        UUID.randomUUID(), userId, tenantId, hash, null, expiresAt, Instant.now()))
                 .toList();
         recoveryCodeRepository.saveAll(entidades);
     }
