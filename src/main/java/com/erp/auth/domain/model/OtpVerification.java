@@ -25,7 +25,7 @@ public class OtpVerification {
     public OtpVerification(UUID id, Email email, String codeHash, int attempts,
                            boolean verified, Instant expiresAt, Instant createdAt) {
         if (id == null || email == null || codeHash == null || expiresAt == null) {
-            throw new IllegalArgumentException("Campos obligatorios de OtpVerification no pueden ser nulos");
+            throw new IllegalArgumentException("Required OtpVerification fields cannot be null");
         }
         this.id = id;
         this.email = email;
@@ -55,17 +55,17 @@ public class OtpVerification {
 
     public void verify(String providedCodeHash) {
         if (isExpired()) {
-            throw new OtpExpiredException("El código OTP ha expirado");
+            throw new OtpExpiredException("OTP code has expired");
         }
         if (attempts >= MAX_ATTEMPTS) {
-            throw new OtpMaxAttemptsExceededException("Se ha excedido el límite máximo de intentos");
+            throw new OtpMaxAttemptsExceededException("Maximum OTP verification attempts exceeded");
         }
         if (!Objects.equals(this.codeHash, providedCodeHash)) {
             this.attempts++;
             if (this.attempts >= MAX_ATTEMPTS) {
-                throw new OtpMaxAttemptsExceededException("Se ha excedido el límite máximo de intentos");
+                throw new OtpMaxAttemptsExceededException("Maximum OTP verification attempts exceeded");
             }
-            throw new InvalidOtpException("El código OTP ingresado es inválido");
+            throw new InvalidOtpException("Invalid OTP code provided");
         }
         this.verified = true;
     }

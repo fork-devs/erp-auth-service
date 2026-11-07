@@ -16,7 +16,7 @@ public class PasswordResetToken implements Serializable {
 
     public PasswordResetToken(UUID id, UUID userId, UUID tenantId, String tokenHash, Instant expiresAt, Instant usedAt, Instant createdAt) {
         if (id == null || userId == null || tenantId == null || tokenHash == null || expiresAt == null) {
-            throw new IllegalArgumentException("Campos obligatorios del PasswordResetToken no pueden ser nulos");
+            throw new IllegalArgumentException("Required PasswordResetToken fields cannot be null");
         }
         this.id = id;
         this.userId = userId;
@@ -37,7 +37,7 @@ public class PasswordResetToken implements Serializable {
 
     public void markAsUsed() {
         if (this.usedAt != null) {
-            throw new IllegalStateException("El token de restablecimiento ya ha sido utilizado");
+            throw new IllegalStateException("Password reset token has already been used");
         }
         this.usedAt = Instant.now();
     }

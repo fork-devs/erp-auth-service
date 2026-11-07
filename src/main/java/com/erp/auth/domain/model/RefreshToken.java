@@ -16,7 +16,7 @@ public class RefreshToken implements Serializable {
 
     public RefreshToken(UUID id, UUID userId, UUID tenantId, String tokenHash, Instant expiresAt, boolean revoked, Instant createdAt) {
         if (id == null || userId == null || tenantId == null || tokenHash == null || expiresAt == null) {
-            throw new IllegalArgumentException("Campos obligatorios del RefreshToken no pueden ser nulos");
+            throw new IllegalArgumentException("Required RefreshToken fields cannot be null");
         }
         this.id = id;
         this.userId = userId;
