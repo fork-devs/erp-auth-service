@@ -21,6 +21,7 @@ import com.erp.auth.domain.port.UnitOfWork;
 import com.erp.auth.domain.port.UserRepositoryPort;
 import com.erp.auth.domain.valueobject.Email;
 import com.erp.auth.domain.valueobject.PasswordHash;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -53,6 +54,7 @@ public class UserSelfService implements GetUserByIdUseCase, UpdateUserEmailUseCa
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResult getUserById(UUID userId) {
         User user = userRepositoryPort.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId.toString()));

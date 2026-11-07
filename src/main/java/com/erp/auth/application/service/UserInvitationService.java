@@ -32,6 +32,7 @@ import com.erp.auth.domain.port.UserRepositoryPort;
 import com.erp.auth.domain.valueobject.Email;
 import com.erp.auth.domain.valueobject.PasswordHash;
 import com.erp.auth.domain.valueobject.TenantId;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -139,6 +140,7 @@ public class UserInvitationService implements InviteUserUseCase, AcceptInvitatio
     }
 
     @Override
+    @Transactional(readOnly = true)
     public InvitationDetailsResult getInvitation(String rawToken) {
         if (rawToken == null || rawToken.isBlank()) {
             throw new InvalidTokenException("Token de invitación no proporcionado");

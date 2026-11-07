@@ -20,6 +20,7 @@ import com.erp.auth.domain.port.UserRepositoryPort;
 import com.erp.auth.domain.valueobject.Email;
 import com.erp.auth.domain.valueobject.PasswordHash;
 import com.erp.auth.domain.valueobject.TenantId;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
@@ -102,6 +103,7 @@ public class RegisterUserService implements RegisterUserUseCase, GetUserProfileU
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResult getProfile(UUID userId, TenantId tenantId) {
         User user = userRepositoryPort.findByIdAndTenantId(userId, tenantId)
                 .orElseThrow(() -> new UserNotFoundException(userId.toString()));
