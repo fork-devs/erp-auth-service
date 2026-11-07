@@ -33,14 +33,6 @@ import static org.mockito.Mockito.mock;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-/**
- * Verifies that the JWT authentication filter enforces service contract validation.
- *
- * <p>Tokens signed with matching keys but issued by other issuers or for other audiences
- * are rejected. Tokens without roles are rejected rather than granted default privileges.
- *
- * <p>See docs/doc-estado-implementacion.md, findings P0 5.7 and P1 6.24.
- */
 class JwtAuthenticationFilterContractTest {
 
     private static final String ISSUER = "https://auth.test.erp-automotriz.com";
@@ -48,8 +40,6 @@ class JwtAuthenticationFilterContractTest {
 
     private RsaKeyPairManager keyPairManager;
     private JwtAuthenticationFilter filter;
-
-    /** No-op revoked token repository for contract tests without revocations. */
     private final RevokedTokenRepositoryPort revocado = mock(RevokedTokenRepositoryPort.class);
 
     @BeforeEach
@@ -63,45 +53,62 @@ class JwtAuthenticationFilterContractTest {
     @Test
     @DisplayName("Un token con emisor distinto se rechaza")
     void unTokenConEmisorDistintoSeRechaza() throws Exception {
-        String token = firmar("https://otro-emisor.example", AUDIENCE, List.of("ADMIN_TALLER"));
+        String token = firmar("https://otro-emisor.example", AUDIENCE, List.of("ADMIN_TALLER"), "access");
 
         MockHttpServletResponse response = filtrar(token);
 
-        assertNull(SecurityContextHolder.getContext().getAuthentication(),
-                "Un token de otro emisor no puede autenticar la peticion");
-        assertNotEquals(HttpServletResponse.SC_CREATED, response.getStatus(),
-                "La peticion no debe servirse como si el token fuera valido");
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        assertNotEquals(HttpServletResponse.SC_CREATED, response.getStatus());
     }
 
     @Test
     @DisplayName("Un token con audiencia distinta se rechaza")
     void unTokenConAudienciaDistintaSeRechaza() throws Exception {
-        String token = firmar(ISSUER, "otro-servicio", List.of("ADMIN_TALLER"));
+        String token = firmar(ISSUER, "otro-servicio", List.of("ADMIN_TALLER"), "access");
 
         MockHttpServletResponse response = filtrar(token);
 
-        assertNull(SecurityContextHolder.getContext().getAuthentication(),
-                "Un token emitido para otra audiencia no puede autenticar la peticion");
-        assertNotEquals(HttpServletResponse.SC_CREATED, response.getStatus(),
-                "La peticion no debe servirse como si el token fuera valido");
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        assertNotEquals(HttpServletResponse.SC_CREATED, response.getStatus());
     }
 
     @Test
     @DisplayName("Un token sin claim de roles se rechaza")
     void unTokenSinRolesSeRechaza() throws Exception {
-        String token = firmar(ISSUER, AUDIENCE, null);
+        String token = firmar(ISSUER, AUDIENCE, null, "access");
 
         MockHttpServletResponse response = filtrar(token);
 
-        assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus(),
-                "Un token sin roles no puede autenticarse");
+        assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus());
         assertNull(SecurityContextHolder.getContext().getAuthentication());
     }
 
     @Test
-    @DisplayName("Un token coherente se acepta y aporta sus roles")
+    @DisplayName("Un token de refresco (type: refresh) se rechaza con 401 (Token Confusion Prevention)")
+    void unRefreshTokenSeRechazaCon401() throws Exception {
+        String token = firmar(ISSUER, AUDIENCE, List.of("ADMIN_TALLER"), "refresh");
+
+        MockHttpServletResponse response = filtrar(token);
+
+        assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus());
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    @Test
+    @DisplayName("Un token sin claim type se rechaza con 401")
+    void unTokenSinClaimTypeSeRechazaCon401() throws Exception {
+        String token = firmar(ISSUER, AUDIENCE, List.of("ADMIN_TALLER"), null);
+
+        MockHttpServletResponse response = filtrar(token);
+
+        assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus());
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    @Test
+    @DisplayName("Un token coherente con type access se acepta y aporta sus roles")
     void unTokenCoherenteSeAcepta() throws Exception {
-        String token = firmar(ISSUER, AUDIENCE, List.of("ADMIN_TALLER", "MECANICO"));
+        String token = firmar(ISSUER, AUDIENCE, List.of("ADMIN_TALLER", "MECANICO"), "access");
 
         MockHttpServletResponse response = filtrar(token);
 
@@ -115,13 +122,11 @@ class JwtAuthenticationFilterContractTest {
         request.addHeader("Authorization", "Bearer " + token);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        filter.doFilter(request, response, (req, res) -> {
-        });
-
+        filter.doFilter(request, response, (req, res) -> {});
         return response;
     }
 
-    private String firmar(String issuer, String audience, List<String> roles) throws Exception {
+    private String firmar(String issuer, String audience, List<String> roles, String type) throws Exception {
         User usuario = User.create(
                 new TenantId(UUID.fromString("aaaaaaaa-1111-1111-1111-111111111111")),
                 Email.of("filtro@taller.pe"),
@@ -140,6 +145,9 @@ class JwtAuthenticationFilterContractTest {
 
         if (roles != null) {
             claims.claim("roles", roles);
+        }
+        if (type != null) {
+            claims.claim("type", type);
         }
 
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)

@@ -3,24 +3,28 @@ package com.erp.auth.infrastructure.security.jwt;
 import com.erp.auth.domain.model.TokenIdentity;
 import com.erp.auth.domain.model.User;
 import com.erp.auth.domain.port.TokenSignerPort;
+import com.erp.auth.domain.valueobject.UserId;
 import com.erp.auth.infrastructure.security.crypto.RsaKeyPairManager;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -33,6 +37,7 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
     private final Duration accessTokenDuration;
     private final Duration refreshTokenDuration;
     private final Duration passwordResetTokenDuration;
+    private final Clock clock;
 
     public NimbusJwtTokenSignerAdapter(
             RsaKeyPairManager keyPairManager,
@@ -41,60 +46,74 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
             @Value("${erp.security.jwt.access-token-expiration-minutes:15}") long accessTokenExpirationMinutes,
             @Value("${erp.security.jwt.refresh-token-expiration-days:7}") long refreshTokenExpirationDays,
             @Value("${erp.security.jwt.password-reset-token-expiration-minutes:30}") long passwordResetTokenExpirationMinutes) {
-        this.keyPairManager = keyPairManager;
-        this.issuer = issuer;
-        this.audience = audience;
+        this(keyPairManager, issuer, audience, accessTokenExpirationMinutes, refreshTokenExpirationDays, passwordResetTokenExpirationMinutes, Clock.systemUTC());
+    }
+
+    @Autowired
+    public NimbusJwtTokenSignerAdapter(
+            RsaKeyPairManager keyPairManager,
+            @Value("${erp.security.jwt.issuer:https://auth.erp-automotriz.com}") String issuer,
+            @Value("${erp.security.jwt.audience:erp-api-gateway}") String audience,
+            @Value("${erp.security.jwt.access-token-expiration-minutes:15}") long accessTokenExpirationMinutes,
+            @Value("${erp.security.jwt.refresh-token-expiration-days:7}") long refreshTokenExpirationDays,
+            @Value("${erp.security.jwt.password-reset-token-expiration-minutes:30}") long passwordResetTokenExpirationMinutes,
+            Clock clock) {
+        if (accessTokenExpirationMinutes <= 0 || refreshTokenExpirationDays <= 0 || passwordResetTokenExpirationMinutes <= 0) {
+            throw new IllegalArgumentException("Token expiration durations must be strictly positive");
+        }
+        this.keyPairManager = Objects.requireNonNull(keyPairManager, "keyPairManager cannot be null");
+        this.issuer = Objects.requireNonNull(issuer, "issuer cannot be null");
+        this.audience = Objects.requireNonNull(audience, "audience cannot be null");
         this.accessTokenDuration = Duration.ofMinutes(accessTokenExpirationMinutes);
         this.refreshTokenDuration = Duration.ofDays(refreshTokenExpirationDays);
         this.passwordResetTokenDuration = Duration.ofMinutes(passwordResetTokenExpirationMinutes);
+        this.clock = clock != null ? clock : Clock.systemUTC();
     }
 
     @Override
     public String generateAccessToken(User user) {
-        Instant now = Instant.now();
+        Instant now = clock.instant();
 
         List<String> roleNames = user.getRoles().stream()
                 .map(r -> r.getCode().name())
                 .collect(Collectors.toList());
 
+        // Zero unnecessary PII: omit email and fullName from claims to prevent leakage in proxies and logs
         JWTClaimsSet.Builder claims = baseClaims(now, now.plus(accessTokenDuration))
                 .subject(user.getId().toString())
                 .claim("tenant_id", user.getTenantId().getValue().toString())
-                .claim("email", user.getEmail().getValue())
-                .claim("name", user.getFullName())
-                .claim("roles", roleNames);
+                .claim("roles", roleNames)
+                .claim("type", "access");
 
         return sign(claims.build());
     }
 
     @Override
     public String generateRefreshToken(User user) {
-        Instant now = Instant.now();
+        Instant now = clock.instant();
 
-        List<String> roleNames = user.getRoles().stream()
-                .map(r -> r.getCode().name())
-                .collect(Collectors.toList());
-
+        // Refresh tokens do NOT carry roles to avoid stale privileges during their 7-day lifespan
         JWTClaimsSet.Builder claims = baseClaims(now, now.plus(refreshTokenDuration))
                 .subject(user.getId().toString())
                 .claim("tenant_id", user.getTenantId().getValue().toString())
-                .claim("roles", roleNames);
+                .claim("type", "refresh");
 
         return sign(claims.build());
     }
 
     @Override
-    public String generatePasswordResetToken(com.erp.auth.domain.valueobject.UserId userId) {
+    public String generatePasswordResetToken(UserId userId) {
         return generatePasswordResetToken(userId.getValue());
     }
 
     @Override
     public String generatePasswordResetToken(UUID userId) {
-        Instant now = Instant.now();
+        Instant now = clock.instant();
 
-        // Omit subject: password reset tokens travel over email and must not expose
-        // user identity in transit. The token hash maps to the database record.
+        // Password reset token must be bound to userId
         JWTClaimsSet.Builder claims = baseClaims(now, now.plus(passwordResetTokenDuration))
+                .subject(userId != null ? userId.toString() : null)
+                .claim("type", "password_reset")
                 .claim("purpose", "PASSWORD_RESET");
 
         return sign(claims.build());
@@ -125,12 +144,18 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
         try {
             JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
             Date expiration = claims.getExpirationTime();
+            if (expiration == null) {
+                throw new IllegalStateException("El token no contiene fecha de expiracion");
+            }
+            if (claims.getJWTID() == null || claims.getSubject() == null) {
+                throw new IllegalStateException("El token carece de jti o sub");
+            }
             return new TokenIdentity(
                     UUID.fromString(claims.getJWTID()),
                     UUID.fromString(claims.getSubject()),
-                    expiration != null ? expiration.toInstant() : Instant.now());
+                    expiration.toInstant());
         } catch (Exception e) {
-            throw new IllegalStateException("No se pudo extraer la identidad del token", e);
+            throw new IllegalStateException("No se pudo extraer la identidad del token: " + e.getMessage(), e);
         }
     }
 
@@ -159,13 +184,6 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
         return audience;
     }
 
-    /**
-     * Claims common to all issued token types: issuer, **audience**,
-     * **unique identifier** ({@code jti}), issued-at time, and expiration time.
-     *
-     * <p>A fresh unique identifier is generated for every token, enabling selective
-     * revocation of individual tokens rather than invalidating all user sessions.
-     */
     private JWTClaimsSet.Builder baseClaims(Instant issuedAt, Instant expiresAt) {
         return new JWTClaimsSet.Builder()
                 .issuer(issuer)
@@ -187,7 +205,7 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
 
             return signedJWT.serialize();
         } catch (Exception e) {
-            throw new IllegalStateException("Error al generar y firmar el token JWT", e);
+            throw new IllegalStateException("Fallo al firmar el token JWT", e);
         }
     }
 }

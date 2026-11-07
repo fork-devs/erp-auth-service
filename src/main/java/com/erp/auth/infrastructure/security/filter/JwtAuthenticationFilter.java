@@ -78,6 +78,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     Date expirationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
                     if (expirationTime != null && expirationTime.after(new Date())
                             && emisorYAudienciaCorrectos(signedJWT)) {
+
+                        String tokenType = (String) signedJWT.getJWTClaimsSet().getClaim("type");
+                        if (tokenType == null || !"access".equals(tokenType)) {
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+                                    "El token no es un token de acceso valido");
+                            return;
+                        }
+
                         String userId = signedJWT.getJWTClaimsSet().getSubject();
                         String tenantIdClaim = (String) signedJWT.getJWTClaimsSet().getClaim("tenant_id");
                         List<?> rolesList = (List<?>) signedJWT.getJWTClaimsSet().getClaim("roles");
