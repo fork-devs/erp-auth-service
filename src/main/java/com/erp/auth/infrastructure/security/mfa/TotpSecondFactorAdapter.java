@@ -35,6 +35,7 @@ public class TotpSecondFactorAdapter implements SecondFactorPort {
     private final GoogleAuthenticator authenticator = new GoogleAuthenticator();
     private final SecureRandom secureRandom = new SecureRandom();
 
+    @Override
     public SecondFactorSecret enroll(String accountEmail) {
         try {
             GoogleAuthenticatorKey key = authenticator.createCredentials();
