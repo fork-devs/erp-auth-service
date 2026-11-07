@@ -13,6 +13,7 @@ import com.erp.auth.infrastructure.persistence.repository.SpringDataRoleReposito
 import com.erp.auth.infrastructure.persistence.repository.SpringDataUserRepository;
 import com.erp.auth.infrastructure.persistence.TransactionGuard;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
@@ -38,6 +39,7 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public User save(User user) {
         transactionGuard.requireActiveTransaction("saveUser");
         UserJpaEntity entity = UserPersistenceMapper.toEntity(user, resolveManagedRoles(user));
@@ -119,12 +121,14 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void deleteById(com.erp.auth.domain.valueobject.UserId userId, TenantId tenantId) {
         transactionGuard.requireActiveTransaction("deleteUser");
         springDataUserRepository.deleteByIdAndTenantId(userId.value(), tenantId.value());
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void deleteById(UUID id) {
         transactionGuard.requireActiveTransaction("deleteUser");
         springDataUserRepository.deleteById(id);

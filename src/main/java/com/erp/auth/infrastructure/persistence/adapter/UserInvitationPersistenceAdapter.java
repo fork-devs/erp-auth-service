@@ -8,6 +8,7 @@ import com.erp.auth.infrastructure.persistence.entity.UserInvitationJpaEntity;
 import com.erp.auth.infrastructure.persistence.mapper.UserInvitationPersistenceMapper;
 import com.erp.auth.infrastructure.persistence.repository.SpringDataUserInvitationRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -27,6 +28,7 @@ public class UserInvitationPersistenceAdapter implements UserInvitationRepositor
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public UserInvitation save(UserInvitation invitation) {
         transactionGuard.requireActiveTransaction("saveUserInvitation");
         UserInvitationJpaEntity entity = UserInvitationPersistenceMapper.toEntity(invitation);
@@ -54,6 +56,7 @@ public class UserInvitationPersistenceAdapter implements UserInvitationRepositor
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void invalidateAllByEmailAndTenantId(Email email, UUID tenantId) {
         transactionGuard.requireActiveTransaction("invalidateAllUserInvitations");
         repository.invalidateAllByEmailAndTenantId(email.value(), tenantId, Instant.now());

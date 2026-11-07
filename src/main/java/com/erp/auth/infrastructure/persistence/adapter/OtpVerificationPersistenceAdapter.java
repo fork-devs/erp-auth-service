@@ -10,6 +10,7 @@ import com.erp.auth.infrastructure.persistence.mapper.OtpVerificationPersistence
 import com.erp.auth.infrastructure.persistence.repository.SpringDataOtpVerificationRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
@@ -27,6 +28,7 @@ public class OtpVerificationPersistenceAdapter implements OtpVerificationReposit
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public OtpVerification save(OtpVerification otpVerification) {
         transactionGuard.requireActiveTransaction("saveOtpVerification");
         OtpVerificationJpaEntity entity = OtpVerificationPersistenceMapper.toEntity(otpVerification);
@@ -49,12 +51,14 @@ public class OtpVerificationPersistenceAdapter implements OtpVerificationReposit
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void incrementAttempts(OtpVerificationId id) {
         transactionGuard.requireActiveTransaction("incrementAttempts");
         repository.incrementAttempts(id.value());
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void invalidateAllPendingByEmail(Email email) {
         transactionGuard.requireActiveTransaction("invalidateAllPendingByEmail");
         repository.invalidateAllPendingByEmail(email.value());

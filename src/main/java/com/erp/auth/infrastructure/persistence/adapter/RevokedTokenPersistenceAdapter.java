@@ -7,6 +7,7 @@ import com.erp.auth.infrastructure.persistence.entity.RevokedTokenJpaEntity;
 import com.erp.auth.infrastructure.persistence.repository.SpringDataRevokedTokenRepository;
 import com.erp.auth.infrastructure.persistence.TransactionGuard;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -29,6 +30,7 @@ public class RevokedTokenPersistenceAdapter implements RevokedTokenRepositoryPor
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void revoke(UUID tokenId, UserId userId, TenantId tenantId, Instant expiresAt) {
         transactionGuard.requireActiveTransaction("revokeToken");
         if (tokenId == null) {
@@ -85,6 +87,7 @@ public class RevokedTokenPersistenceAdapter implements RevokedTokenRepositoryPor
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public int deleteExpired(Instant now) {
         transactionGuard.requireActiveTransaction("deleteExpiredRevokedTokens");
         fastTtlStore.entrySet().removeIf(entry -> entry.getValue().isBefore(now));
