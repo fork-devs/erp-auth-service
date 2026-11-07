@@ -78,7 +78,7 @@ class AuthenticateUserServiceTest {
         tenantId = TenantId.generate();
         Email email = Email.of("admin@taller.pe");
         PasswordHash passwordHash = PasswordHash.of("$2a$12$hashedPasswordExample");
-        Role role = Role.create(RoleCode.ADMIN_TALLER, "Administrador");
+        Role role = Role.create(RoleCode.WORKSHOP_ADMIN, "Administrador");
 
         sampleUser = User.create(tenantId, email, passwordHash, "Admin General", Set.of(role));
     }

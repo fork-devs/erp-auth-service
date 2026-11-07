@@ -51,9 +51,9 @@ class TokenClaimsContractTest {
                 PasswordHash.of("$2a$12$hash"),
                 "Usuario de Contrato",
                 Set.of(
-                        new Role(UUID.randomUUID(), RoleCode.ADMIN_TALLER, "Administrador"),
-                        new Role(UUID.randomUUID(), RoleCode.ASESOR, "Asesor"),
-                        new Role(UUID.randomUUID(), RoleCode.MECANICO, "Mecanico")));
+                        new Role(UUID.randomUUID(), RoleCode.WORKSHOP_ADMIN, "Administrador"),
+                        new Role(UUID.randomUUID(), RoleCode.SERVICE_ADVISOR, "Asesor"),
+                        new Role(UUID.randomUUID(), RoleCode.TECHNICIAN, "Mecanico")));
     }
 
     @Test

@@ -65,7 +65,7 @@ class RefreshTokenServiceTest {
         tenantId = TenantId.generate();
         Email email = Email.of("asesor@taller.pe");
         PasswordHash passwordHash = PasswordHash.of("$2a$12$hashedPasswordExample");
-        Role role = Role.create(RoleCode.ASESOR, "Asesor");
+        Role role = Role.create(RoleCode.SERVICE_ADVISOR, "Asesor");
 
         sampleUser = User.create(tenantId, email, passwordHash, "Juan Asesor", Set.of(role));
         activeToken = RefreshToken.create(sampleUser.getId(), tenantId.getValue(), tokenHash, Instant.now().plus(Duration.ofDays(7)));

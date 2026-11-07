@@ -47,7 +47,7 @@ class UserRegistrationWithRolesTest extends AbstractPostgresIntegrationTest {
 
     @Test
     void laFilaDeLaTablaIntermediaContieneElTallerCorrecto() throws Exception {
-        Role asesor = roleRepositoryPort.findByCode(RoleCode.ASESOR)
+        Role asesor = roleRepositoryPort.findByCode(RoleCode.SERVICE_ADVISOR)
                 .orElseThrow(() -> new AssertionError("El rol ASESOR deberia estar sembrado"));
 
         UUID correo = UUID.randomUUID();
@@ -77,7 +77,7 @@ class UserRegistrationWithRolesTest extends AbstractPostgresIntegrationTest {
 
     @Test
     void elAltaDeUnUsuarioConRolesPersisteLaAsignacion() {
-        Role asesor = roleRepositoryPort.findByCode(RoleCode.ASESOR)
+        Role asesor = roleRepositoryPort.findByCode(RoleCode.SERVICE_ADVISOR)
                 .orElseThrow(() -> new AssertionError("El rol ASESOR deberia estar sembrado"));
 
         User saved = withTenantContext(() -> userRepositoryPort.save(User.create(
@@ -89,13 +89,13 @@ class UserRegistrationWithRolesTest extends AbstractPostgresIntegrationTest {
 
         assertNotNull(saved.getId());
         assertEquals(1, saved.getRoles().size(), "El usuario debe tener un rol asignado");
-        assertEquals(RoleCode.ASESOR, saved.getRoles().iterator().next().getCode());
+        assertEquals(RoleCode.SERVICE_ADVISOR, saved.getRoles().iterator().next().getCode());
         assertEquals(TENANT_ID, saved.getTenantId().getValue());
     }
 
     @Test
     void sinContextoDeTenantLaEscrituraEsRechazada() {
-        Role asesor = roleRepositoryPort.findByCode(RoleCode.ASESOR)
+        Role asesor = roleRepositoryPort.findByCode(RoleCode.SERVICE_ADVISOR)
                 .orElseThrow(() -> new AssertionError("El rol ASESOR deberia estar sembrado"));
 
         User usuario = User.create(
@@ -112,7 +112,7 @@ class UserRegistrationWithRolesTest extends AbstractPostgresIntegrationTest {
 
     @Test
     void laAsignacionDeRolQuedaVinculadaAlTenantDelUsuario() throws Exception {
-        Role asesor = roleRepositoryPort.findByCode(RoleCode.ASESOR)
+        Role asesor = roleRepositoryPort.findByCode(RoleCode.SERVICE_ADVISOR)
                 .orElseThrow(() -> new AssertionError("El rol ASESOR deberia estar sembrado"));
 
         User user = User.create(

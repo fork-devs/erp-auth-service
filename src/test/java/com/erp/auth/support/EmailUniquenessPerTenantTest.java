@@ -103,8 +103,8 @@ class EmailUniquenessPerTenantTest extends AbstractPostgresIntegrationTest {
                         correo,
                         "ContrasenaLarga1!",
                         "Usuario",
-                        java.util.EnumSet.of(RoleCode.MECANICO),
-                        RoleCode.ADMIN_TALLER));
+                        java.util.EnumSet.of(RoleCode.TECHNICIAN),
+                        RoleCode.WORKSHOP_ADMIN));
             }
         }, "El correo libre en este taller debe poder registrarse aunque exista en otro");
     }
@@ -119,7 +119,7 @@ class EmailUniquenessPerTenantTest extends AbstractPostgresIntegrationTest {
     }
 
     private void crearUsuario(String correo, UUID taller) {
-        Role asesor = roleRepositoryPort.findByCode(RoleCode.ASESOR)
+        Role asesor = roleRepositoryPort.findByCode(RoleCode.SERVICE_ADVISOR)
                 .orElseThrow(() -> new AssertionError("El rol ASESOR deberia estar sembrado"));
         User user = User.create(
                 new TenantId(taller),

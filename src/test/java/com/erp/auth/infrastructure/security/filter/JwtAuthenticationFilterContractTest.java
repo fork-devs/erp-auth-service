@@ -127,7 +127,7 @@ class JwtAuthenticationFilterContractTest {
                 Email.of("filtro@taller.pe"),
                 PasswordHash.of("$2a$12$hash"),
                 "Usuario",
-                Set.of(new Role(UUID.randomUUID(), RoleCode.ADMIN_TALLER, "Administrador")));
+                Set.of(new Role(UUID.randomUUID(), RoleCode.WORKSHOP_ADMIN, "Administrador")));
 
         JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder()
                 .issuer(issuer)
