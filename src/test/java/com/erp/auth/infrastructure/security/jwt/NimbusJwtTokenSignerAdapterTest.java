@@ -127,4 +127,84 @@ class NimbusJwtTokenSignerAdapterTest {
 
         assertThrows(IllegalStateException.class, () -> signer.extractIdentity(jwt.serialize()));
     }
+
+    @Test
+    @DisplayName("extractIdentity should reject token with future issueTime beyond tolerance")
+    void extractIdentityShouldThrowWhenIssueTimeInFuture() throws Exception {
+        Instant current = fixedClock.instant();
+        Date futureIat = Date.from(current.plusSeconds(120)); // > 60s future
+        Date exp = Date.from(current.plusSeconds(3600));
+
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                .issuer(ISSUER)
+                .audience(AUDIENCE)
+                .jwtID(UUID.randomUUID().toString())
+                .subject(UUID.randomUUID().toString())
+                .issueTime(futureIat)
+                .expirationTime(exp)
+                .build();
+
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
+                .keyID(keyPairManager.getKeyId())
+                .build();
+        SignedJWT jwt = new SignedJWT(header, claims);
+        jwt.sign(new RSASSASigner(keyPairManager.getPrivateKey()));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> signer.extractIdentity(jwt.serialize()));
+        assertTrue(ex.getMessage().contains("emisión (iat) futura"));
+    }
+
+    @Test
+    @DisplayName("extractIdentity should reject token with future notBefore beyond tolerance")
+    void extractIdentityShouldThrowWhenNotBeforeInFuture() throws Exception {
+        Instant current = fixedClock.instant();
+        Date futureNbf = Date.from(current.plusSeconds(120)); // > 60s future
+        Date iat = Date.from(current);
+        Date exp = Date.from(current.plusSeconds(3600));
+
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                .issuer(ISSUER)
+                .audience(AUDIENCE)
+                .jwtID(UUID.randomUUID().toString())
+                .subject(UUID.randomUUID().toString())
+                .issueTime(iat)
+                .notBeforeTime(futureNbf)
+                .expirationTime(exp)
+                .build();
+
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
+                .keyID(keyPairManager.getKeyId())
+                .build();
+        SignedJWT jwt = new SignedJWT(header, claims);
+        jwt.sign(new RSASSASigner(keyPairManager.getPrivateKey()));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> signer.extractIdentity(jwt.serialize()));
+        assertTrue(ex.getMessage().contains("nbf en el futuro"));
+    }
+
+    @Test
+    @DisplayName("extractIdentity should reject token when expiration is before or equal to issueTime")
+    void extractIdentityShouldThrowWhenExpirationBeforeOrEqualIssueTime() throws Exception {
+        Instant current = fixedClock.instant();
+        Date iat = Date.from(current);
+        Date exp = Date.from(current); // exp == iat
+
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                .issuer(ISSUER)
+                .audience(AUDIENCE)
+                .jwtID(UUID.randomUUID().toString())
+                .subject(UUID.randomUUID().toString())
+                .issueTime(iat)
+                .expirationTime(exp)
+                .build();
+
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
+                .keyID(keyPairManager.getKeyId())
+                .build();
+        SignedJWT jwt = new SignedJWT(header, claims);
+        jwt.sign(new RSASSASigner(keyPairManager.getPrivateKey()));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> signer.extractIdentity(jwt.serialize()));
+        assertTrue(ex.getMessage().contains("posterior a la fecha de emisión"));
+    }
 }

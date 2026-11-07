@@ -52,6 +52,10 @@ public class PasswordResetToken implements Serializable {
         return usedAt == null && Instant.now().isBefore(expiresAt);
     }
 
+    public boolean isUsed() {
+        return usedAt != null;
+    }
+
     public void markAsUsed() {
         if (this.usedAt != null) {
             throw new IllegalStateException("Password reset token has already been used");

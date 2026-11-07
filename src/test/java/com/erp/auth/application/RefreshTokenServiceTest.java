@@ -97,7 +97,7 @@ class RefreshTokenServiceTest {
     }
 
     @Test
-    @DisplayName("Debe lanzar TokenRevokedException al intentar usar un refresh token ya revocado")
+    @DisplayName("Debe lanzar TokenRevokedException al intentar usar un refresh token ya revocado y revocar todas las sesiones del usuario")
     void shouldThrowTokenRevokedWhenReusingToken() {
         activeToken.revoke();
         RefreshTokenCommand command = new RefreshTokenCommand(rawToken, tenantId.value());
@@ -106,6 +106,9 @@ class RefreshTokenServiceTest {
         when(refreshTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, tenantId.value())).thenReturn(Optional.of(activeToken));
 
         assertThrows(TokenRevokedException.class, () -> refreshTokenService.refreshToken(command));
+
+        // RFC 6749 / 6819: revocación en cascada de todas las sesiones activas del usuario ante reuso detectado
+        verify(refreshTokenRepositoryPort).revokeAllByUserId(new com.erp.auth.domain.valueobject.UserId(sampleUser.getId()), tenantId);
     }
 
     @Test

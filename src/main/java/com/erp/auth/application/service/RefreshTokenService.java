@@ -70,6 +70,15 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
         RefreshToken token = tokenOpt.get();
 
         if (token.isRevoked()) {
+            // Detección de reuso de Refresh Token (RFC 6749 / RFC 6819)
+            // Si se presenta un token ya rotado/revocado, se asume compromiso y se revocan todas las sesiones
+            unitOfWork.runInTransaction(() -> {
+                refreshTokenRepositoryPort.revokeAllByUserId(new UserId(token.getUserId()), new TenantId(token.getTenantId()));
+            });
+            AuthEventLogger.registrar("alerta_reuso_refresh_token", token.getTenantId(), token.getUserId(), null, "fallo",
+                    Map.of("motivo", "deteccion_reuso_token_rotado"));
+            log.error("ALERTA DE SEGURIDAD: Reuso de Refresh Token detectado para usuario {} en taller {}. Todas las sesiones han sido revocadas.",
+                    token.getUserId(), token.getTenantId());
             throw new TokenRevokedException();
         }
 

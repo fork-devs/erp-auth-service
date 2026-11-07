@@ -111,6 +111,10 @@ public class PasswordResetService implements PasswordResetUseCase {
         PasswordResetToken resetToken = passwordResetTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, command.tenantId())
                 .orElseThrow(() -> new InvalidTokenException("Token de restablecimiento inválido"));
 
+        if (resetToken.isUsed()) {
+            throw new InvalidTokenException("El token de restablecimiento ya ha sido utilizado");
+        }
+
         if (!resetToken.isValid()) {
             throw new TokenExpiredException();
         }
@@ -129,6 +133,9 @@ public class PasswordResetService implements PasswordResetUseCase {
             user.changePassword(newPasswordHash);
             user.recordSuccessfulLogin();
             userRepositoryPort.save(user);
+
+            // Invalidate all other reset tokens for this user in this tenant
+            passwordResetTokenRepositoryPort.invalidateAllByUserId(new com.erp.auth.domain.valueobject.UserId(user.getId()), user.getTenantId());
 
             // Revoke all existing refresh tokens for security
             refreshTokenRepositoryPort.revokeAllByUserId(new com.erp.auth.domain.valueobject.UserId(user.getId()), user.getTenantId());

@@ -170,6 +170,22 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
             if (claims.getJWTID() == null || claims.getSubject() == null) {
                 throw new IllegalStateException("El token carece de jti o sub");
             }
+
+            // Validar coherencia temporal de claims iat, nbf y exp
+            Date issueTime = claims.getIssueTime();
+            Date notBefore = claims.getNotBeforeTime();
+            Instant current = clock.instant();
+            Instant maxAllowedFuture = current.plusSeconds(60);
+
+            if (issueTime != null && issueTime.toInstant().isAfter(maxAllowedFuture)) {
+                throw new IllegalStateException("El token tiene fecha de emisión (iat) futura e incoherente");
+            }
+            if (notBefore != null && notBefore.toInstant().isAfter(maxAllowedFuture)) {
+                throw new IllegalStateException("El token no es válido todavía (nbf en el futuro)");
+            }
+            if (issueTime != null && !expiration.after(issueTime)) {
+                throw new IllegalStateException("Fecha de expiración (exp) debe ser posterior a la fecha de emisión (iat)");
+            }
             String tenantIdStr = (String) claims.getClaim("tenant_id");
             com.erp.auth.domain.valueobject.TenantId tenantId = tenantIdStr != null
                     ? new com.erp.auth.domain.valueobject.TenantId(UUID.fromString(tenantIdStr))
