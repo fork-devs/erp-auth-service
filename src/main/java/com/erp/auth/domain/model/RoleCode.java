@@ -1,5 +1,7 @@
 package com.erp.auth.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 public enum RoleCode {
     SUPERADMIN,
     WORKSHOP_ADMIN,
@@ -7,6 +9,7 @@ public enum RoleCode {
     TECHNICIAN,
     CUSTOMER;
 
+    @JsonCreator
     public static RoleCode fromString(String code) {
         if (code == null || code.trim().isEmpty()) {
             throw new IllegalArgumentException("Role code cannot be null or blank");

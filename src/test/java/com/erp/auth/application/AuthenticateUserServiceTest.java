@@ -104,7 +104,7 @@ class AuthenticateUserServiceTest {
         assertEquals("mockRefreshTokenRaw", result.refreshToken());
         assertEquals("Bearer", result.tokenType());
         assertEquals(sampleUser.getEmail().getValue(), result.email());
-        assertTrue(result.roles().contains("ADMIN_TALLER"));
+        assertTrue(result.roles().contains("WORKSHOP_ADMIN"));
 
         verify(userRepositoryPort, times(1)).save(sampleUser);
         verify(refreshTokenRepositoryPort, times(1)).save(any(RefreshToken.class));

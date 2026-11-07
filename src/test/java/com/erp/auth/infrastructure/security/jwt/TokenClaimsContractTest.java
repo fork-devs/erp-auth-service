@@ -65,9 +65,9 @@ class TokenClaimsContractTest {
 
         assertTrue(roles instanceof List, "El claim de roles debe ser un array, no un valor unico");
         assertEquals(3, ((List<?>) roles).size(), "No se puede perder ningun rol");
-        assertTrue(((List<?>) roles).contains("ADMIN_TALLER"));
-        assertTrue(((List<?>) roles).contains("ASESOR"));
-        assertTrue(((List<?>) roles).contains("MECANICO"));
+        assertTrue(((List<?>) roles).contains("WORKSHOP_ADMIN"));
+        assertTrue(((List<?>) roles).contains("SERVICE_ADVISOR"));
+        assertTrue(((List<?>) roles).contains("TECHNICIAN"));
     }
 
     @Test

@@ -22,6 +22,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -217,6 +218,18 @@ public class GlobalRestExceptionHandler {
 
         problem.setProperty("invalidParams", fieldErrors);
         problem.setProperty("errorCode", "VALIDATION_ERROR");
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ProblemDetail> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        String detail = getMessage("error.auth.malformed-request.detail", "El cuerpo de la solicitud no pudo ser leído o contiene un formato inválido.");
+        String title = getMessage("error.auth.malformed-request.title", "Solicitud Inválida");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+        problem.setTitle(title);
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/malformed-request"));
+        problem.setProperty("errorCode", "MALFORMED_REQUEST");
         problem.setProperty("timestamp", Instant.now());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
     }
