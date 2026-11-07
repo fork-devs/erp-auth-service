@@ -1,6 +1,7 @@
 package com.erp.auth.domain.exception;
 
 public abstract class DomainException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
     private final String errorCode;
 
     protected DomainException(String errorCode, String message) {
