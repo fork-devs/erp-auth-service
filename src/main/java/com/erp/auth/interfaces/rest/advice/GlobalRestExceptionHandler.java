@@ -6,8 +6,10 @@ import com.erp.auth.domain.exception.GoogleAuthenticationException;
 import com.erp.auth.domain.exception.InvalidCredentialsException;
 import com.erp.auth.domain.exception.InvalidOtpException;
 import com.erp.auth.domain.exception.InvalidTokenException;
+import com.erp.auth.domain.exception.OtpAlreadyVerifiedException;
 import com.erp.auth.domain.exception.OtpExpiredException;
 import com.erp.auth.domain.exception.OtpMaxAttemptsExceededException;
+import com.erp.auth.domain.exception.OtpRateLimitExceededException;
 import com.erp.auth.domain.exception.TokenExpiredException;
 import com.erp.auth.domain.exception.RoleNotAssignableException;
 import com.erp.auth.domain.exception.TenantContextMissingException;
@@ -182,15 +184,26 @@ public class GlobalRestExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
     }
 
-    @ExceptionHandler(OtpMaxAttemptsExceededException.class)
-    public ResponseEntity<ProblemDetail> handleOtpMaxAttempts(OtpMaxAttemptsExceededException ex) {
-        log.warn("Exceso de intentos OTP: {}", ex.getMessage());
+    @ExceptionHandler({OtpMaxAttemptsExceededException.class, OtpRateLimitExceededException.class})
+    public ResponseEntity<ProblemDetail> handleOtpRateLimits(DomainException ex) {
+        log.warn("Exceso de intentos o rate limit OTP: {}", ex.getMessage());
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
         problem.setTitle("Límite de Intentos Excedido");
         problem.setType(URI.create("https://errors.erp-automotriz.com/auth/rate-limited"));
         problem.setProperty("errorCode", ex.getErrorCode());
         problem.setProperty("timestamp", Instant.now());
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(problem);
+    }
+
+    @ExceptionHandler(OtpAlreadyVerifiedException.class)
+    public ResponseEntity<ProblemDetail> handleOtpAlreadyVerified(OtpAlreadyVerifiedException ex) {
+        log.warn("Intento de reuso de OTP verificado: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setTitle("Código Ya Utilizado");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/otp-conflict"));
+        problem.setProperty("errorCode", ex.getErrorCode());
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
     }
 
     @ExceptionHandler(WeakPasswordException.class)

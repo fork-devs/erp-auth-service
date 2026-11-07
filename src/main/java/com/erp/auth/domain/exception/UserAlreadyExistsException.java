@@ -10,11 +10,4 @@ public class UserAlreadyExistsException extends DomainException {
     public UserAlreadyExistsException(String email, Throwable cause) {
         super("AUTH_USER_ALREADY_EXISTS", "Ya existe un usuario registrado con el correo: " + sanitize(email), cause);
     }
-
-    private static String sanitize(String input) {
-        if (input == null) {
-            return "null";
-        }
-        return input.replace('\r', '_').replace('\n', '_');
-    }
 }

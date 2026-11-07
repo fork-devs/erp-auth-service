@@ -17,4 +17,11 @@ public abstract class DomainException extends RuntimeException {
     public String getErrorCode() {
         return errorCode;
     }
+
+    public static String sanitize(String input) {
+        if (input == null) {
+            return "null";
+        }
+        return input.replace('\r', '_').replace('\n', '_');
+    }
 }

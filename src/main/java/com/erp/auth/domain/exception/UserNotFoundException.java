@@ -10,11 +10,4 @@ public class UserNotFoundException extends DomainException {
     public UserNotFoundException(String identifier, Throwable cause) {
         super("AUTH_USER_NOT_FOUND", "No se encontró el usuario: " + sanitize(identifier), cause);
     }
-
-    private static String sanitize(String input) {
-        if (input == null) {
-            return "null";
-        }
-        return input.replace('\r', '_').replace('\n', '_');
-    }
 }
