@@ -17,6 +17,7 @@ import com.erp.auth.domain.port.TokenSignerPort;
 import com.erp.auth.domain.port.UnitOfWork;
 import com.erp.auth.domain.port.UserRepositoryPort;
 import com.erp.auth.domain.valueobject.TenantId;
+import com.erp.auth.domain.valueobject.UserId;
 
 import java.time.Instant;
 import java.util.Map;
@@ -125,9 +126,19 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
     }
 
     @Override
-    public void revokeAllUserTokens(UUID userId) {
-        if (userId != null) {
-            unitOfWork.runInTransaction(() -> refreshTokenRepositoryPort.revokeAllByUserId(userId));
+    public void revokeAllByUserId(UserId userId, TenantId tenantId) {
+        if (userId == null || tenantId == null) {
+            throw new IllegalArgumentException("UserId and TenantId cannot be null for global user session revocation");
         }
+        unitOfWork.runInTransaction(() -> {
+            refreshTokenRepositoryPort.revokeAllByUserId(userId, tenantId);
+        });
+        AuthEventLogger.registrar("sesiones_usuario_revocadas", tenantId.value(), userId.value(), null, "ok", Map.of());
+        log.info("Todas las sesiones del usuario {} en taller {} han sido revocadas", userId, tenantId);
+    }
+
+    @Override
+    public void revokeAllUserTokens(UUID userId) {
+        throw new UnsupportedOperationException("Multi-tenant safety: revokeAllUserTokens requires TenantId");
     }
 }

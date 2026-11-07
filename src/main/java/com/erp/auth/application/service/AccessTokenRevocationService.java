@@ -59,7 +59,7 @@ public class AccessTokenRevocationService implements RevokeAccessTokenUseCase {
                         tenantId,
                         identity.expiresAt());
             } else {
-                revokedTokenRepositoryPort.revoke(identity.tokenId(), identity.userId(), identity.expiresAt());
+                throw new IllegalStateException("Cannot revoke token without TenantId claim");
             }
         });
 
