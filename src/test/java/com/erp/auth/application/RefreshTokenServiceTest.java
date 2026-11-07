@@ -51,7 +51,7 @@ class RefreshTokenServiceTest {
     private User sampleUser;
     private RefreshToken activeToken;
     private final String rawToken = "sampleRawRefreshToken";
-    private final String tokenHash = "hashedSampleToken";
+    private final String tokenHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
     @BeforeEach
     void setUp() {
@@ -82,7 +82,7 @@ class RefreshTokenServiceTest {
         when(tokenSignerPort.generateAccessToken(sampleUser)).thenReturn("newSignedJwtToken");
         when(tokenSignerPort.generateRefreshToken(any(User.class))).thenReturn("newRawRefreshToken");
         when(tokenSignerPort.extractTokenId(anyString())).thenReturn("token-id-de-prueba");
-        when(tokenSignerPort.hashToken("newRawRefreshToken")).thenReturn("newHashedRefreshToken");
+        when(tokenSignerPort.hashToken("newRawRefreshToken")).thenReturn("f4c8996fb92427ae41e4649b934ca495991b7852b855e3b0c44298fc1c149afb");
         when(tokenSignerPort.getAccessTokenDuration()).thenReturn(Duration.ofMinutes(15));
         when(tokenSignerPort.getRefreshTokenDuration()).thenReturn(Duration.ofDays(7));
 
