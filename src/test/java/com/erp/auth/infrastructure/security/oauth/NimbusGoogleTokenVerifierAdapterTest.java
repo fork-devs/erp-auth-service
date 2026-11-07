@@ -195,12 +195,36 @@ class NimbusGoogleTokenVerifierAdapterTest {
     }
 
     @Test
-    @DisplayName("Should fail closed when configured client ID is missing or empty")
+    @DisplayName("Should fail closed when configured client ID is null or empty")
     void shouldFailClosedWhenClientIdNotConfigured() throws Exception {
-        NimbusGoogleTokenVerifierAdapter unconfiguredAdapter =
+        NimbusGoogleTokenVerifierAdapter emptyAdapter =
                 new NimbusGoogleTokenVerifierAdapter("", null);
+        assertThrows(GoogleAuthenticationException.class, () -> emptyAdapter.verifyToken("any-token"));
 
-        assertThrows(GoogleAuthenticationException.class, () -> unconfiguredAdapter.verifyToken("any-token"));
+        NimbusGoogleTokenVerifierAdapter nullAdapter =
+                new NimbusGoogleTokenVerifierAdapter(null, null);
+        assertThrows(GoogleAuthenticationException.class, () -> nullAdapter.verifyToken("any-token"));
+    }
+
+    @Test
+    @DisplayName("Should reject token when audience (aud) claim is null or absent")
+    void shouldRejectTokenWithNullAudience() throws Exception {
+        String tokenWithoutAud = createToken(
+                ISSUER,
+                null, // No audience!
+                "user@driveos.pe",
+                true,
+                "User",
+                "sub-1",
+                Instant.now().plus(1, ChronoUnit.HOURS),
+                testRsaKey
+        );
+
+        GoogleAuthenticationException ex = assertThrows(
+                GoogleAuthenticationException.class,
+                () -> adapter.verifyToken(tokenWithoutAud)
+        );
+        assertTrue(ex.getMessage().contains("does not match configured client_id"));
     }
 
     private String createToken(
