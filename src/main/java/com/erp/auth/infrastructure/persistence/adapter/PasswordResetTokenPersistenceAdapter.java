@@ -47,7 +47,7 @@ public class PasswordResetTokenPersistenceAdapter implements PasswordResetTokenR
     @Override
     public void invalidateAllByUserId(com.erp.auth.domain.valueobject.UserId userId, com.erp.auth.domain.valueobject.TenantId tenantId) {
         transactionGuard.requireActiveTransaction("invalidateAllByUserId");
-        repository.invalidateAllByUserId(userId.getValue(), java.time.Instant.now());
+        repository.invalidateAllByUserIdAndTenantId(userId.getValue(), tenantId.getValue(), java.time.Instant.now());
     }
 
     @Override

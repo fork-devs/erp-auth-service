@@ -76,7 +76,7 @@ public class PasswordResetService implements PasswordResetUseCase {
         // Invalidation of previous tokens and issuance of the new token occur
         // atomically: failure after invalidation would strand the user without recovery options.
         unitOfWork.runInTransaction(() -> {
-            passwordResetTokenRepositoryPort.invalidateAllByUserId(user.getId());
+            passwordResetTokenRepositoryPort.invalidateAllByUserId(com.erp.auth.domain.valueobject.UserId.of(user.getId()), user.getTenantId());
 
             String rawToken = tokenSignerPort.generatePasswordResetToken(user.getId());
             String tokenHash = tokenSignerPort.hashToken(rawToken);
