@@ -227,6 +227,8 @@ public class GlobalRestExceptionHandler {
         String title = getMessage("error.auth.invalid-argument.title", "Argumento Inválido");
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
         problem.setTitle(title);
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/invalid-argument"));
+        problem.setProperty("errorCode", "INVALID_ARGUMENT");
         problem.setProperty("timestamp", Instant.now());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
     }
@@ -240,6 +242,8 @@ public class GlobalRestExceptionHandler {
         String title = getMessage("error.auth.internal-error.title", "Error Interno");
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, detail);
         problem.setTitle(title);
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/internal-error"));
+        problem.setProperty("errorCode", "INTERNAL_SERVER_ERROR");
         problem.setProperty("timestamp", Instant.now());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problem);
     }
