@@ -32,6 +32,7 @@ CREATE POLICY revoked_tokens_tenant_isolation_policy ON revoked_tokens
     FOR ALL
     USING (
         tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid
+        OR (expires_at < CURRENT_TIMESTAMP AND nullif(current_setting('app.tenant_id', true), '') IS NULL)
     )
     WITH CHECK (
         tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid

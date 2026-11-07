@@ -90,6 +90,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         String tenantIdClaim = (String) signedJWT.getJWTClaimsSet().getClaim("tenant_id");
                         List<?> rolesList = (List<?>) signedJWT.getJWTClaimsSet().getClaim("roles");
 
+                        if (tenantIdClaim != null) {
+                            try {
+                                TenantContextHolder.setTenantId(UUID.fromString(tenantIdClaim));
+                            } catch (IllegalArgumentException ignored) {}
+                        }
+
                         // Tokens without roles are rejected rather than granted a default role,
                         // preventing unintended privilege assignment.
                         if (rolesList == null || rolesList.isEmpty()) {
@@ -105,12 +111,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
                                     "El token ha sido revocado");
                             return;
-                        }
-
-                        if (tenantIdClaim != null) {
-                            try {
-                                TenantContextHolder.setTenantId(UUID.fromString(tenantIdClaim));
-                            } catch (IllegalArgumentException ignored) {}
                         }
 
                         // X-Tenant-ID header is advisory, never authoritative: when provided,

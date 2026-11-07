@@ -93,7 +93,7 @@ class AuthenticateUserServiceTest {
         when(tokenSignerPort.generateAccessToken(sampleUser)).thenReturn("eyJhbGciOiJSUzI1NiJ9.mockToken");
         when(tokenSignerPort.generateRefreshToken(any(User.class))).thenReturn("mockRefreshTokenRaw");
         when(tokenSignerPort.extractTokenId(anyString())).thenReturn("token-id-de-prueba");
-        when(tokenSignerPort.hashToken("mockRefreshTokenRaw")).thenReturn("hashedRefreshToken");
+        when(tokenSignerPort.hashToken("mockRefreshTokenRaw")).thenReturn("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
         when(tokenSignerPort.getAccessTokenDuration()).thenReturn(Duration.ofMinutes(15));
         when(tokenSignerPort.getRefreshTokenDuration()).thenReturn(Duration.ofDays(7));
 

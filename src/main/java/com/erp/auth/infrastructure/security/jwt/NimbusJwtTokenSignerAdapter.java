@@ -74,7 +74,7 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
             @Value("${erp.security.jwt.refresh-token-expiration-days:7}") long refreshTokenExpirationDays,
             @Value("${erp.security.jwt.password-reset-token-expiration-minutes:30}") long passwordResetTokenExpirationMinutes,
             @Value("${erp.security.token.hash-pepper:" + DEFAULT_PEPPER + "}") String hashPepper,
-            Clock clock) {
+            @Autowired(required = false) Clock clock) {
         if (accessTokenExpirationMinutes <= 0 || refreshTokenExpirationDays <= 0 || passwordResetTokenExpirationMinutes <= 0) {
             throw new IllegalArgumentException("Token expiration durations must be strictly positive");
         }
@@ -170,9 +170,14 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
             if (claims.getJWTID() == null || claims.getSubject() == null) {
                 throw new IllegalStateException("El token carece de jti o sub");
             }
+            String tenantIdStr = (String) claims.getClaim("tenant_id");
+            com.erp.auth.domain.valueobject.TenantId tenantId = tenantIdStr != null
+                    ? new com.erp.auth.domain.valueobject.TenantId(UUID.fromString(tenantIdStr))
+                    : null;
             return new TokenIdentity(
                     UUID.fromString(claims.getJWTID()),
                     UUID.fromString(claims.getSubject()),
+                    tenantId,
                     expiration.toInstant());
         } catch (Exception e) {
             throw new IllegalStateException("No se pudo extraer la identidad del token: " + e.getMessage(), e);

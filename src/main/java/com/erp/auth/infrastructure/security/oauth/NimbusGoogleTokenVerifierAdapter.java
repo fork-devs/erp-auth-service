@@ -30,14 +30,14 @@ public class NimbusGoogleTokenVerifierAdapter implements GoogleTokenVerifierPort
     private final String configuredClientId;
     private final ConfigurableJWTProcessor<SecurityContext> jwtProcessor;
 
+    @Autowired
     public NimbusGoogleTokenVerifierAdapter(
             @Value("${google.client.id:${spring.security.oauth2.client.registration.google.client-id:}}") String configuredClientId) {
         this(configuredClientId, createDefaultProcessor(GOOGLE_JWKS_URL));
     }
 
-    @Autowired(required = false)
     public NimbusGoogleTokenVerifierAdapter(
-            @Value("${google.client.id:${spring.security.oauth2.client.registration.google.client-id:}}") String configuredClientId,
+            String configuredClientId,
             ConfigurableJWTProcessor<SecurityContext> jwtProcessor) {
         this.configuredClientId = configuredClientId != null ? configuredClientId.trim() : "";
         this.jwtProcessor = jwtProcessor != null ? jwtProcessor : createDefaultProcessor(GOOGLE_JWKS_URL);

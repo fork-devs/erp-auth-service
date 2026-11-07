@@ -55,4 +55,9 @@ public class SecurityConfig {
 
         return http.build();
     }
+
+    @Bean
+    public java.time.Clock clock() {
+        return java.time.Clock.systemUTC();
+    }
 }
