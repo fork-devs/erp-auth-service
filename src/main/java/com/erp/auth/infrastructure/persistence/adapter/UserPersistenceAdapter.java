@@ -119,6 +119,12 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
     }
 
     @Override
+    public void deleteById(com.erp.auth.domain.valueobject.UserId userId, TenantId tenantId) {
+        transactionGuard.requireActiveTransaction("deleteUser");
+        springDataUserRepository.deleteByIdAndTenantId(userId.getValue(), tenantId.getValue());
+    }
+
+    @Override
     public void deleteById(UUID id) {
         transactionGuard.requireActiveTransaction("deleteUser");
         springDataUserRepository.deleteById(id);
