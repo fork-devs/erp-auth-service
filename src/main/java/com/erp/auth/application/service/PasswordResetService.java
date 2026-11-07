@@ -131,7 +131,7 @@ public class PasswordResetService implements PasswordResetUseCase {
             userRepositoryPort.save(user);
 
             // Revoke all existing refresh tokens for security
-            refreshTokenRepositoryPort.revokeAllByUserId(user.getId());
+            refreshTokenRepositoryPort.revokeAllByUserId(com.erp.auth.domain.valueobject.UserId.of(user.getId()), user.getTenantId());
         });
     }
 }

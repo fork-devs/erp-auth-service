@@ -52,7 +52,7 @@ public class RefreshTokenPersistenceAdapter implements RefreshTokenRepositoryPor
     @Override
     public void revokeAllByUserId(com.erp.auth.domain.valueobject.UserId userId, com.erp.auth.domain.valueobject.TenantId tenantId) {
         transactionGuard.requireActiveTransaction("revokeAllByUserId");
-        springDataRefreshTokenRepository.revokeAllByUserId(userId.getValue());
+        springDataRefreshTokenRepository.revokeAllByUserIdAndTenantId(userId.getValue(), tenantId.getValue());
     }
 
     @Override

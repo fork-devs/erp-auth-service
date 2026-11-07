@@ -87,7 +87,7 @@ public class UserSelfService implements GetUserByIdUseCase, UpdateUserEmailUseCa
             }
 
             // Invalidate all previous refresh tokens
-            refreshTokenRepositoryPort.revokeAllByUserId(user.getId());
+            refreshTokenRepositoryPort.revokeAllByUserId(com.erp.auth.domain.valueobject.UserId.of(user.getId()), user.getTenantId());
 
             user.changeEmail(newEmail);
             user = userRepositoryPort.save(user);
@@ -145,7 +145,7 @@ public class UserSelfService implements GetUserByIdUseCase, UpdateUserEmailUseCa
             userRepositoryPort.save(user);
 
             // Invalidate all existing sessions globally
-            refreshTokenRepositoryPort.revokeAllByUserId(user.getId());
+            refreshTokenRepositoryPort.revokeAllByUserId(com.erp.auth.domain.valueobject.UserId.of(user.getId()), user.getTenantId());
         });
     }
 }
