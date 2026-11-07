@@ -2,6 +2,7 @@ package com.erp.auth.infrastructure.security.jwt;
 
 import com.erp.auth.domain.model.Role;
 import com.erp.auth.domain.model.RoleCode;
+import com.erp.auth.domain.model.TokenHash;
 import com.erp.auth.domain.model.TokenIdentity;
 import com.erp.auth.domain.model.User;
 import com.erp.auth.domain.valueobject.Email;
@@ -32,6 +33,8 @@ class NimbusJwtTokenSignerAdapterTest {
 
     private static final String ISSUER = "https://auth.test.erp-automotriz.com";
     private static final String AUDIENCE = "erp-api-gateway";
+    private static final String PEPPER_A = "secret-server-pepper-a-32bytes-long";
+    private static final String PEPPER_B = "secret-server-pepper-b-32bytes-long";
 
     private RsaKeyPairManager keyPairManager;
     private Clock fixedClock;
@@ -42,18 +45,46 @@ class NimbusJwtTokenSignerAdapterTest {
         keyPairManager = new RsaKeyPairManager(
                 TestKeyMaterial.privateKeyPem(), TestKeyMaterial.publicKeyPem(), "", "");
         fixedClock = Clock.fixed(Instant.parse("2026-11-07T12:00:00Z"), ZoneOffset.UTC);
-        signer = new NimbusJwtTokenSignerAdapter(keyPairManager, ISSUER, AUDIENCE, 15, 7, 30, fixedClock);
+        signer = new NimbusJwtTokenSignerAdapter(keyPairManager, ISSUER, AUDIENCE, 15, 7, 30, PEPPER_A, fixedClock);
     }
 
     @Test
     @DisplayName("Constructor should reject non-positive durations with IllegalArgumentException")
     void constructorShouldRejectNonPositiveDurations() {
         assertThrows(IllegalArgumentException.class, () ->
-                new NimbusJwtTokenSignerAdapter(keyPairManager, ISSUER, AUDIENCE, 0, 7, 30, fixedClock));
+                new NimbusJwtTokenSignerAdapter(keyPairManager, ISSUER, AUDIENCE, 0, 7, 30, PEPPER_A, fixedClock));
         assertThrows(IllegalArgumentException.class, () ->
-                new NimbusJwtTokenSignerAdapter(keyPairManager, ISSUER, AUDIENCE, 15, -1, 30, fixedClock));
+                new NimbusJwtTokenSignerAdapter(keyPairManager, ISSUER, AUDIENCE, 15, -1, 30, PEPPER_A, fixedClock));
         assertThrows(IllegalArgumentException.class, () ->
-                new NimbusJwtTokenSignerAdapter(keyPairManager, ISSUER, AUDIENCE, 15, 7, 0, fixedClock));
+                new NimbusJwtTokenSignerAdapter(keyPairManager, ISSUER, AUDIENCE, 15, 7, 0, PEPPER_A, fixedClock));
+    }
+
+    @Test
+    @DisplayName("hashToken should compute HMAC-SHA256 dependent on the configured server pepper")
+    void hashTokenShouldUseHmacSha256WithPepper() {
+        String rawToken = "sample-raw-refresh-token-value-xyz";
+
+        String hashWithPepperA = signer.hashToken(rawToken);
+
+        NimbusJwtTokenSignerAdapter signerWithPepperB =
+                new NimbusJwtTokenSignerAdapter(keyPairManager, ISSUER, AUDIENCE, 15, 7, 30, PEPPER_B, fixedClock);
+        String hashWithPepperB = signerWithPepperB.hashToken(rawToken);
+
+        assertNotNull(hashWithPepperA);
+        assertEquals(64, hashWithPepperA.length(), "HMAC-SHA256 hex string must be exactly 64 characters");
+        assertNotNull(hashWithPepperB);
+        assertEquals(64, hashWithPepperB.length());
+        assertNotEquals(hashWithPepperA, hashWithPepperB, "Different peppers must produce different token hashes");
+
+        // Verify it passes TokenHash Value Object validation
+        TokenHash tokenHash = signer.hashTokenToVO(rawToken);
+        assertEquals(hashWithPepperA, tokenHash.getValue());
+    }
+
+    @Test
+    @DisplayName("hashToken should throw IllegalArgumentException when raw token is null")
+    void hashTokenShouldThrowWhenNull() {
+        assertThrows(IllegalArgumentException.class, () -> signer.hashToken(null));
     }
 
     @Test

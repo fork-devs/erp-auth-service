@@ -14,8 +14,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
@@ -31,12 +33,15 @@ import java.util.stream.Collectors;
 @Component
 public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
 
+    private static final String DEFAULT_PEPPER = "default-dev-token-hash-pepper-change-in-production-32chars";
+
     private final RsaKeyPairManager keyPairManager;
     private final String issuer;
     private final String audience;
     private final Duration accessTokenDuration;
     private final Duration refreshTokenDuration;
     private final Duration passwordResetTokenDuration;
+    private final String hashPepper;
     private final Clock clock;
 
     public NimbusJwtTokenSignerAdapter(
@@ -46,7 +51,18 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
             @Value("${erp.security.jwt.access-token-expiration-minutes:15}") long accessTokenExpirationMinutes,
             @Value("${erp.security.jwt.refresh-token-expiration-days:7}") long refreshTokenExpirationDays,
             @Value("${erp.security.jwt.password-reset-token-expiration-minutes:30}") long passwordResetTokenExpirationMinutes) {
-        this(keyPairManager, issuer, audience, accessTokenExpirationMinutes, refreshTokenExpirationDays, passwordResetTokenExpirationMinutes, Clock.systemUTC());
+        this(keyPairManager, issuer, audience, accessTokenExpirationMinutes, refreshTokenExpirationDays, passwordResetTokenExpirationMinutes, DEFAULT_PEPPER, Clock.systemUTC());
+    }
+
+    public NimbusJwtTokenSignerAdapter(
+            RsaKeyPairManager keyPairManager,
+            String issuer,
+            String audience,
+            long accessTokenExpirationMinutes,
+            long refreshTokenExpirationDays,
+            long passwordResetTokenExpirationMinutes,
+            Clock clock) {
+        this(keyPairManager, issuer, audience, accessTokenExpirationMinutes, refreshTokenExpirationDays, passwordResetTokenExpirationMinutes, DEFAULT_PEPPER, clock);
     }
 
     @Autowired
@@ -57,6 +73,7 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
             @Value("${erp.security.jwt.access-token-expiration-minutes:15}") long accessTokenExpirationMinutes,
             @Value("${erp.security.jwt.refresh-token-expiration-days:7}") long refreshTokenExpirationDays,
             @Value("${erp.security.jwt.password-reset-token-expiration-minutes:30}") long passwordResetTokenExpirationMinutes,
+            @Value("${erp.security.token.hash-pepper:" + DEFAULT_PEPPER + "}") String hashPepper,
             Clock clock) {
         if (accessTokenExpirationMinutes <= 0 || refreshTokenExpirationDays <= 0 || passwordResetTokenExpirationMinutes <= 0) {
             throw new IllegalArgumentException("Token expiration durations must be strictly positive");
@@ -67,6 +84,7 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
         this.accessTokenDuration = Duration.ofMinutes(accessTokenExpirationMinutes);
         this.refreshTokenDuration = Duration.ofDays(refreshTokenExpirationDays);
         this.passwordResetTokenDuration = Duration.ofMinutes(passwordResetTokenExpirationMinutes);
+        this.hashPepper = (hashPepper != null && !hashPepper.isBlank()) ? hashPepper : DEFAULT_PEPPER;
         this.clock = clock != null ? clock : Clock.systemUTC();
     }
 
@@ -78,7 +96,6 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
                 .map(r -> r.getCode().name())
                 .collect(Collectors.toList());
 
-        // Zero unnecessary PII: omit email and fullName from claims to prevent leakage in proxies and logs
         JWTClaimsSet.Builder claims = baseClaims(now, now.plus(accessTokenDuration))
                 .subject(user.getId().toString())
                 .claim("tenant_id", user.getTenantId().getValue().toString())
@@ -92,7 +109,6 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
     public String generateRefreshToken(User user) {
         Instant now = clock.instant();
 
-        // Refresh tokens do NOT carry roles to avoid stale privileges during their 7-day lifespan
         JWTClaimsSet.Builder claims = baseClaims(now, now.plus(refreshTokenDuration))
                 .subject(user.getId().toString())
                 .claim("tenant_id", user.getTenantId().getValue().toString())
@@ -110,7 +126,6 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
     public String generatePasswordResetToken(UUID userId) {
         Instant now = clock.instant();
 
-        // Password reset token must be bound to userId
         JWTClaimsSet.Builder claims = baseClaims(now, now.plus(passwordResetTokenDuration))
                 .subject(userId != null ? userId.toString() : null)
                 .claim("type", "password_reset")
@@ -121,12 +136,17 @@ public class NimbusJwtTokenSignerAdapter implements TokenSignerPort {
 
     @Override
     public String hashToken(String rawToken) {
+        if (rawToken == null) {
+            throw new IllegalArgumentException("Raw token cannot be null");
+        }
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] encodedhash = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(encodedhash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("Algoritmo SHA-256 no disponible", e);
+            Mac mac = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKey = new SecretKeySpec(hashPepper.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            mac.init(secretKey);
+            byte[] hmacBytes = mac.doFinal(rawToken.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hmacBytes);
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new IllegalStateException("Algoritmo HMAC-SHA256 no disponible o clave invalida", e);
         }
     }
 
