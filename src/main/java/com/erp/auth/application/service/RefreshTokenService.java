@@ -17,6 +17,7 @@ import com.erp.auth.domain.port.TokenSignerPort;
 import com.erp.auth.domain.port.UnitOfWork;
 import com.erp.auth.domain.port.UserRepositoryPort;
 import com.erp.auth.domain.valueobject.TenantId;
+import com.erp.auth.domain.valueobject.UserId;
 
 import java.time.Instant;
 import java.util.Map;
@@ -25,7 +26,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(RefreshTokenService.class);
 
     private final RefreshTokenRepositoryPort refreshTokenRepositoryPort;
     private final UserRepositoryPort userRepositoryPort;
@@ -64,6 +70,15 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
         RefreshToken token = tokenOpt.get();
 
         if (token.isRevoked()) {
+            // Detección de reuso de Refresh Token (RFC 6749 / RFC 6819)
+            // Si se presenta un token ya rotado/revocado, se asume compromiso y se revocan todas las sesiones
+            unitOfWork.runInTransaction(() -> {
+                refreshTokenRepositoryPort.revokeAllByUserId(new UserId(token.getUserId()), new TenantId(token.getTenantId()));
+            });
+            AuthEventLogger.registrar("alerta_reuso_refresh_token", token.getTenantId(), token.getUserId(), null, "fallo",
+                    Map.of("motivo", "deteccion_reuso_token_rotado"));
+            log.error("ALERTA DE SEGURIDAD: Reuso de Refresh Token detectado para usuario {} en taller {}. Todas las sesiones han sido revocadas.",
+                    token.getUserId(), token.getTenantId());
             throw new TokenRevokedException();
         }
 
@@ -91,7 +106,7 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
             String newRefreshTokenHash = tokenSignerPort.hashToken(newRawRefreshToken);
             Instant newRefreshTokenExpiry = Instant.now().plus(tokenSignerPort.getRefreshTokenDuration());
 
-            RefreshToken newRefreshTokenEntity = RefreshToken.create(user.getId(), user.getTenantId().getValue(),
+            RefreshToken newRefreshTokenEntity = RefreshToken.create(user.getId(), user.getTenantId().value(),
                     newRefreshTokenHash, newRefreshTokenExpiry);
             refreshTokenRepositoryPort.save(newRefreshTokenEntity);
 
@@ -99,7 +114,7 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
                     .map(r -> r.getCode().name())
                     .collect(Collectors.toSet());
 
-            AuthEventLogger.registrar("token_refresco_rotado", user.getTenantId().getValue(), user.getId(), null,
+            AuthEventLogger.registrar("token_refresco_rotado", user.getTenantId().value(), user.getId(), null,
                     "ok", Map.of());
             return new AuthResult(
                     newAccessToken,
@@ -108,8 +123,8 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
                     "Bearer",
                     tokenSignerPort.getAccessTokenDuration().toSeconds(),
                     user.getId(),
-                    user.getTenantId().getValue(),
-                    user.getEmail().getValue(),
+                    user.getTenantId().value(),
+                    user.getEmail().value(),
                     user.getFullName(),
                     roleCodes
             );
@@ -125,9 +140,19 @@ public class RefreshTokenService implements RefreshTokenUseCase, RevokeTokenUseC
     }
 
     @Override
-    public void revokeAllUserTokens(UUID userId) {
-        if (userId != null) {
-            unitOfWork.runInTransaction(() -> refreshTokenRepositoryPort.revokeAllByUserId(userId));
+    public void revokeAllByUserId(UserId userId, TenantId tenantId) {
+        if (userId == null || tenantId == null) {
+            throw new IllegalArgumentException("UserId and TenantId cannot be null for global user session revocation");
         }
+        unitOfWork.runInTransaction(() -> {
+            refreshTokenRepositoryPort.revokeAllByUserId(userId, tenantId);
+        });
+        AuthEventLogger.registrar("sesiones_usuario_revocadas", tenantId.value(), userId.value(), null, "ok", Map.of());
+        log.info("Todas las sesiones del usuario {} en taller {} han sido revocadas", userId, tenantId);
+    }
+
+    @Override
+    public void revokeAllUserTokens(UUID userId) {
+        throw new UnsupportedOperationException("Multi-tenant safety: revokeAllUserTokens requires TenantId");
     }
 }

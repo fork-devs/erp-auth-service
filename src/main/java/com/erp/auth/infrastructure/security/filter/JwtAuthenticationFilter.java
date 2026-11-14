@@ -78,9 +78,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     Date expirationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
                     if (expirationTime != null && expirationTime.after(new Date())
                             && emisorYAudienciaCorrectos(signedJWT)) {
+
+                        String tokenType = (String) signedJWT.getJWTClaimsSet().getClaim("type");
+                        if (tokenType == null || !"access".equals(tokenType)) {
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+                                    "El token no es un token de acceso valido");
+                            return;
+                        }
+
                         String userId = signedJWT.getJWTClaimsSet().getSubject();
                         String tenantIdClaim = (String) signedJWT.getJWTClaimsSet().getClaim("tenant_id");
                         List<?> rolesList = (List<?>) signedJWT.getJWTClaimsSet().getClaim("roles");
+
+                        if (tenantIdClaim != null) {
+                            try {
+                                TenantContextHolder.setTenantId(UUID.fromString(tenantIdClaim));
+                            } catch (IllegalArgumentException ignored) {}
+                        }
 
                         // Tokens without roles are rejected rather than granted a default role,
                         // preventing unintended privilege assignment.
@@ -97,12 +111,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
                                     "El token ha sido revocado");
                             return;
-                        }
-
-                        if (tenantIdClaim != null) {
-                            try {
-                                TenantContextHolder.setTenantId(UUID.fromString(tenantIdClaim));
-                            } catch (IllegalArgumentException ignored) {}
                         }
 
                         // X-Tenant-ID header is advisory, never authoritative: when provided,

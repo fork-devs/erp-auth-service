@@ -84,7 +84,7 @@ abstract class AbstractAuthAtomicityTest extends AbstractPostgresIntegrationTest
         correo = "atomico-" + UUID.randomUUID() + "@taller.pe";
 
         // Role is resolved from seeded catalog so the assignment references a managed row.
-        Role admin = roleRepositoryPort.findByCode(RoleCode.ADMIN_TALLER)
+        Role admin = roleRepositoryPort.findByCode(RoleCode.WORKSHOP_ADMIN)
                 .orElseThrow(() -> new AssertionError("El rol ADMIN_TALLER deberia estar sembrado"));
         User user = User.create(
                 new TenantId(TALLER),

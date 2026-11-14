@@ -19,6 +19,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -70,6 +72,7 @@ class I18nValidationTest {
                         .content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Solicitud Inválida"))
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.invalidParams['refreshToken']").value("El token de actualización es obligatorio."))
                 .andExpect(jsonPath("$.invalidParams['tenantId']").value("El identificador de taller es obligatorio."));
     }
@@ -83,6 +86,7 @@ class I18nValidationTest {
                         .content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Validation Error"))
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.invalidParams['refreshToken']").value("Refresh token is required."))
                 .andExpect(jsonPath("$.invalidParams['tenantId']").value("Tenant identifier is required."));
     }
@@ -95,6 +99,39 @@ class I18nValidationTest {
                         .content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Solicitud Inválida"))
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.invalidParams['refreshToken']").value("El token de actualización es obligatorio."));
+    }
+
+    @Test
+    @DisplayName("IllegalArgumentException debe retornar ProblemDetail con errorCode INVALID_ARGUMENT")
+    void shouldHandleIllegalArgumentExceptionWithCanonicalErrorCode() throws Exception {
+        when(refreshTokenUseCase.refreshToken(any()))
+                .thenThrow(new IllegalArgumentException("Custom invalid argument"));
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .header("Accept-Language", "en")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\":\"dummy-token\",\"tenantId\":\"1fdde303-e5db-4710-88aa-f4caca55ac53\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Invalid Argument"))
+                .andExpect(jsonPath("$.errorCode").value("INVALID_ARGUMENT"))
+                .andExpect(jsonPath("$.type").value("https://errors.erp-automotriz.com/auth/invalid-argument"));
+    }
+
+    @Test
+    @DisplayName("Exception no controlada debe retornar ProblemDetail con errorCode INTERNAL_SERVER_ERROR")
+    void shouldHandleGeneralExceptionWithCanonicalErrorCode() throws Exception {
+        when(authenticateUserUseCase.authenticate(any()))
+                .thenThrow(new RuntimeException("Simulated unexpected failure"));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .header("Accept-Language", "es")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"user@example.com\",\"password\":\"validPassword123\",\"tenantId\":\"1fdde303-e5db-4710-88aa-f4caca55ac53\"}"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.title").value("Error Interno"))
+                .andExpect(jsonPath("$.errorCode").value("INTERNAL_SERVER_ERROR"))
+                .andExpect(jsonPath("$.type").value("https://errors.erp-automotriz.com/auth/internal-error"));
     }
 }

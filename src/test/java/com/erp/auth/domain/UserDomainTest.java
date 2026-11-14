@@ -22,7 +22,7 @@ class UserDomainTest {
         TenantId tenantId = TenantId.generate();
         Email email = Email.of("mecanico@taller.pe");
         PasswordHash passwordHash = PasswordHash.of("$2a$12$hashedPasswordExample");
-        Role role = Role.create(RoleCode.MECANICO, "Técnico");
+        Role role = Role.create(RoleCode.TECHNICIAN, "Técnico");
 
         User user = User.create(tenantId, email, passwordHash, "Carlos Méndez", Set.of(role));
 

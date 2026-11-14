@@ -55,7 +55,11 @@ public class PostgresTenantRlsAspect {
     @Before("execution(* com.erp.auth.infrastructure.persistence.adapter.UserPersistenceAdapter.*(..))"
             + " || execution(* com.erp.auth.infrastructure.persistence.adapter.RefreshTokenPersistenceAdapter.*(..))"
             + " || execution(* com.erp.auth.infrastructure.persistence.adapter.PasswordResetTokenPersistenceAdapter.*(..))"
-            + " || execution(* com.erp.auth.infrastructure.persistence.adapter.SecondFactorPersistenceAdapter.*(..))")
+            + " || execution(* com.erp.auth.infrastructure.persistence.adapter.SecondFactorPersistenceAdapter.*(..))"
+            + " || execution(* com.erp.auth.infrastructure.persistence.adapter.UserInvitationPersistenceAdapter.*(..))"
+            + " || execution(* com.erp.auth.infrastructure.persistence.adapter.OtpVerificationPersistenceAdapter.*(..))"
+            + " || (execution(* com.erp.auth.infrastructure.persistence.adapter.RevokedTokenPersistenceAdapter.*(..))"
+            + "     && !execution(* com.erp.auth.infrastructure.persistence.adapter.RevokedTokenPersistenceAdapter.deleteExpired(..)))")
     public void applyTenantContext() {
         UUID tenantId = TenantContextHolder.getTenantId();
         if (tenantId == null) {

@@ -62,16 +62,16 @@ public final class UserPersistenceMapper {
             for (Role role : domain.getRoles()) {
                 RoleJpaEntity managed = findManagedRole(managedRoles, role.getId());
                 entityUserRoles.add(new UserRoleJpaEntity(
-                        new UserRoleId(domain.getId(), managed.getId(), domain.getTenantId().getValue()),
+                        new UserRoleId(domain.getId(), managed.getId(), domain.getTenantId().value()),
                         managed));
             }
         }
 
         return new UserJpaEntity(
                 domain.getId(),
-                domain.getTenantId().getValue(),
-                domain.getEmail().getValue(),
-                domain.getPasswordHash().getValue(),
+                domain.getTenantId().value(),
+                domain.getEmail().value(),
+                domain.getPasswordHash().value(),
                 domain.getFullName(),
                 domain.isMfaEnabled(),
                 domain.getFailedAttempts(),

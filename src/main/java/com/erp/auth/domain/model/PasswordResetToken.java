@@ -1,5 +1,8 @@
 package com.erp.auth.domain.model;
 
+import com.erp.auth.domain.valueobject.TenantId;
+import com.erp.auth.domain.valueobject.UserId;
+
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
@@ -7,16 +10,16 @@ import java.util.UUID;
 
 public class PasswordResetToken implements Serializable {
     private final UUID id;
-    private final UUID userId;
-    private final UUID tenantId;
-    private final String tokenHash;
+    private final UserId userId;
+    private final TenantId tenantId;
+    private final TokenHash tokenHash;
     private final Instant expiresAt;
     private Instant usedAt;
     private final Instant createdAt;
 
-    public PasswordResetToken(UUID id, UUID userId, UUID tenantId, String tokenHash, Instant expiresAt, Instant usedAt, Instant createdAt) {
+    public PasswordResetToken(UUID id, UserId userId, TenantId tenantId, TokenHash tokenHash, Instant expiresAt, Instant usedAt, Instant createdAt) {
         if (id == null || userId == null || tenantId == null || tokenHash == null || expiresAt == null) {
-            throw new IllegalArgumentException("Campos obligatorios del PasswordResetToken no pueden ser nulos");
+            throw new IllegalArgumentException("Required PasswordResetToken fields cannot be null");
         }
         this.id = id;
         this.userId = userId;
@@ -27,17 +30,35 @@ public class PasswordResetToken implements Serializable {
         this.createdAt = createdAt != null ? createdAt : Instant.now();
     }
 
-    public static PasswordResetToken create(UUID userId, UUID tenantId, String tokenHash, Instant expiresAt) {
+    public PasswordResetToken(UUID id, UUID userId, UUID tenantId, String tokenHash, Instant expiresAt, Instant usedAt, Instant createdAt) {
+        this(id,
+             userId != null ? new UserId(userId) : null,
+             tenantId != null ? TenantId.fromString(tenantId.toString()) : null,
+             tokenHash != null ? TokenHash.of(tokenHash) : null,
+             expiresAt,
+             usedAt,
+             createdAt);
+    }
+
+    public static PasswordResetToken create(UserId userId, TenantId tenantId, TokenHash tokenHash, Instant expiresAt) {
         return new PasswordResetToken(UUID.randomUUID(), userId, tenantId, tokenHash, expiresAt, null, Instant.now());
+    }
+
+    public static PasswordResetToken create(UUID userId, UUID tenantId, String tokenHash, Instant expiresAt) {
+        return create(new UserId(userId), TenantId.fromString(tenantId.toString()), TokenHash.of(tokenHash), expiresAt);
     }
 
     public boolean isValid() {
         return usedAt == null && Instant.now().isBefore(expiresAt);
     }
 
+    public boolean isUsed() {
+        return usedAt != null;
+    }
+
     public void markAsUsed() {
         if (this.usedAt != null) {
-            throw new IllegalStateException("El token de restablecimiento ya ha sido utilizado");
+            throw new IllegalStateException("Password reset token has already been used");
         }
         this.usedAt = Instant.now();
     }
@@ -46,16 +67,28 @@ public class PasswordResetToken implements Serializable {
         return id;
     }
 
-    public UUID getTenantId() {
+    public TenantId getTenantIdVO() {
         return tenantId;
     }
 
-    public UUID getUserId() {
+    public UUID getTenantId() {
+        return tenantId.value();
+    }
+
+    public UserId getUserIdVO() {
         return userId;
     }
 
-    public String getTokenHash() {
+    public UUID getUserId() {
+        return userId.value();
+    }
+
+    public TokenHash getTokenHashVO() {
         return tokenHash;
+    }
+
+    public String getTokenHash() {
+        return tokenHash.value();
     }
 
     public Instant getExpiresAt() {

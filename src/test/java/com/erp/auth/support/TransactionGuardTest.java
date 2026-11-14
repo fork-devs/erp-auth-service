@@ -9,8 +9,11 @@ import com.erp.auth.infrastructure.persistence.TransactionGuard;
 import com.erp.auth.infrastructure.persistence.adapter.UserPersistenceAdapter;
 import com.erp.auth.infrastructure.persistence.repository.SpringDataRoleRepository;
 import com.erp.auth.infrastructure.persistence.repository.SpringDataUserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Set;
 import java.util.UUID;
@@ -22,20 +25,31 @@ import static org.mockito.Mockito.mock;
 /**
  * Write adapters join an ongoing transaction rather than initiating their own.
  *
- * <p>Invoking them outside an active transaction boundary fails explicitly,
+ * <p>Invoking them outside an active transaction boundary or inside a read-only transaction fails explicitly,
  * rather than committing writes in an implicit transaction that breaks
  * use-case atomicity guarantees.
  */
 class TransactionGuardTest {
 
     private UserPersistenceAdapter adapter;
+    private TransactionGuard guard;
 
     @BeforeEach
     void setUp() {
+        guard = new TransactionGuard();
         adapter = new UserPersistenceAdapter(
                 mock(SpringDataUserRepository.class),
                 mock(SpringDataRoleRepository.class),
-                new TransactionGuard());
+                guard);
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+        TransactionSynchronizationManager.setActualTransactionActive(false);
+        TransactionSynchronizationManager.setCurrentTransactionReadOnly(false);
     }
 
     @Test
@@ -57,6 +71,21 @@ class TransactionGuardTest {
                 () -> adapter.deleteById(UUID.randomUUID()));
 
         assertTrue(excepcion.getMessage().contains("deleteUser"));
+    }
+
+    @Test
+    @DisplayName("Ejecutar operacion de escritura dentro de transaccion readOnly debe lanzar IllegalStateException")
+    void ejecucionEnTransaccionReadOnlyFallaExplicito() {
+        TransactionSynchronizationManager.initSynchronization();
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        TransactionSynchronizationManager.setCurrentTransactionReadOnly(true);
+
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class,
+                () -> guard.requireActiveTransaction("saveUser")
+        );
+
+        assertTrue(ex.getMessage().contains("read-only"));
     }
 
     private User usuario() {

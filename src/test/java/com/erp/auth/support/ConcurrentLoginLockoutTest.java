@@ -63,7 +63,7 @@ class ConcurrentLoginLockoutTest extends AbstractPostgresIntegrationTest {
     void setUp() {
         correo = "concurrente-" + UUID.randomUUID() + "@taller.pe";
 
-        Role asesor = roleRepositoryPort.findByCode(RoleCode.ASESOR)
+        Role asesor = roleRepositoryPort.findByCode(RoleCode.SERVICE_ADVISOR)
                 .orElseThrow(() -> new AssertionError("El rol ASESOR deberia estar sembrado"));
         User user = User.create(
                 new TenantId(TALLER),

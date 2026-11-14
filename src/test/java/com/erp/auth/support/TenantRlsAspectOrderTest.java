@@ -51,7 +51,7 @@ class TenantRlsAspectOrderTest extends AbstractPostgresIntegrationTest {
 
     @Test
     void elAspectoEstableceElContextoDentroDeLaTransaccion() throws Exception {
-        Role asesor = roleRepositoryPort.findByCode(RoleCode.ASESOR)
+        Role asesor = roleRepositoryPort.findByCode(RoleCode.SERVICE_ADVISOR)
                 .orElseThrow(() -> new AssertionError("El rol ASESOR deberia estar sembrado"));
 
         UUID userId = UUID.randomUUID();
@@ -68,7 +68,7 @@ class TenantRlsAspectOrderTest extends AbstractPostgresIntegrationTest {
 
     @Test
     void conElTenantAjenoLaFilaNoSeVe() throws Exception {
-        Role asesor = roleRepositoryPort.findByCode(RoleCode.ASESOR)
+        Role asesor = roleRepositoryPort.findByCode(RoleCode.SERVICE_ADVISOR)
                 .orElseThrow(() -> new AssertionError("El rol ASESOR deberia estar sembrado"));
 
         UUID userId = UUID.randomUUID();

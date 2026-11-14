@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 public class GoogleAuthenticationService implements GoogleLoginUseCase {
 
-    private static final UUID DEFAULT_PLATFORM_TENANT = UUID.fromString("00000000-0000-0000-0000-000000000000");
+    private static final UUID DEFAULT_PLATFORM_TENANT = UUID.fromString("00000000-0000-0000-0001-000000000000");
 
     private final GoogleTokenVerifierPort googleTokenVerifierPort;
     private final UserRepositoryPort userRepositoryPort;
@@ -93,7 +93,7 @@ public class GoogleAuthenticationService implements GoogleLoginUseCase {
 
             RefreshToken refreshTokenEntity = RefreshToken.create(
                     user.getId(),
-                    user.getTenantId().getValue(),
+                    user.getTenantId().value(),
                     refreshTokenHash,
                     refreshTokenExpiry
             );
@@ -110,8 +110,8 @@ public class GoogleAuthenticationService implements GoogleLoginUseCase {
                     "Bearer",
                     tokenSignerPort.getAccessTokenDuration().toSeconds(),
                     user.getId(),
-                    user.getTenantId().getValue(),
-                    user.getEmail().getValue(),
+                    user.getTenantId().value(),
+                    user.getEmail().value(),
                     user.getFullName(),
                     roleNames
             );

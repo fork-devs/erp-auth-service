@@ -71,8 +71,8 @@ class EndpointRoleEnforcementTest extends AbstractPostgresIntegrationTest {
         // Email must be unique per tenant, so each test generates a unique one
         // against the shared database.
         String sufijo = UUID.randomUUID().toString().substring(0, 8);
-        tokenMecanico = crearUsuario("mecanico-" + sufijo + "@taller.pe", RoleCode.MECANICO);
-        tokenAdmin = crearUsuario("admin-" + sufijo + "@taller.pe", RoleCode.ADMIN_TALLER);
+        tokenMecanico = crearUsuario("mecanico-" + sufijo + "@taller.pe", RoleCode.TECHNICIAN);
+        tokenAdmin = crearUsuario("admin-" + sufijo + "@taller.pe", RoleCode.WORKSHOP_ADMIN);
     }
 
     @Test

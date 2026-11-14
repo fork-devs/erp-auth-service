@@ -18,6 +18,9 @@ public class RecoveryCodeJpaEntity {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(name = "tenant_id", nullable = false)
+    private UUID tenantId;
+
     @Column(name = "code_hash", nullable = false, length = 128)
     private String codeHash;
 
@@ -33,14 +36,20 @@ public class RecoveryCodeJpaEntity {
     public RecoveryCodeJpaEntity() {
     }
 
-    public RecoveryCodeJpaEntity(UUID id, UUID userId, String codeHash, Instant usedAt, Instant expiresAt,
+    public RecoveryCodeJpaEntity(UUID id, UUID userId, UUID tenantId, String codeHash, Instant usedAt, Instant expiresAt,
                                 Instant createdAt) {
         this.id = id;
         this.userId = userId;
+        this.tenantId = tenantId;
         this.codeHash = codeHash;
         this.usedAt = usedAt;
         this.expiresAt = expiresAt;
         this.createdAt = createdAt;
+    }
+
+    public RecoveryCodeJpaEntity(UUID id, UUID userId, String codeHash, Instant usedAt, Instant expiresAt,
+                                Instant createdAt) {
+        this(id, userId, null, codeHash, usedAt, expiresAt, createdAt);
     }
 
     public UUID getId() {
@@ -57,6 +66,14 @@ public class RecoveryCodeJpaEntity {
 
     public void setUserId(UUID userId) {
         this.userId = userId;
+    }
+
+    public UUID getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(UUID tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getCodeHash() {

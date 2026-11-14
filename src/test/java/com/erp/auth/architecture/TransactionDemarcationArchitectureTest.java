@@ -46,9 +46,9 @@ class TransactionDemarcationArchitectureTest {
     /** Transactional demarcation that is not read-only. */
     private static final Pattern TRANSACCIONAL = Pattern.compile("@Transactional\\b");
 
-    /** Read-only transactional demarcation, which is permitted. */
-    private static final Pattern SOLO_LECTURA = Pattern.compile(
-            "@Transactional\\s*\\(\\s*readOnly\\s*=\\s*true\\s*\\)");
+    /** Permitted transactional demarcation: read-only queries or mandatory propagation. */
+    private static final Pattern PERMITIDO = Pattern.compile(
+            "@Transactional\\s*\\(\\s*(readOnly\\s*=\\s*true|propagation\\s*=\\s*Propagation\\.MANDATORY)\\s*\\)");
 
     /** A write invocation to a repository port. */
     private static final Pattern ESCRITURA = Pattern.compile(
@@ -66,7 +66,7 @@ class TransactionDemarcationArchitectureTest {
                 if (!TRANSACCIONAL.matcher(linea).find()) {
                     continue;
                 }
-                if (SOLO_LECTURA.matcher(linea).find()) {
+                if (PERMITIDO.matcher(linea).find()) {
                     continue;
                 }
                 infracciones.add(nombre(fichero) + ":" + (i + 1) + "  " + linea.trim());

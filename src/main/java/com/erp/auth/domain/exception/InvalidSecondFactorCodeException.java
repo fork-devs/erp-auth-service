@@ -1,10 +1,7 @@
 package com.erp.auth.domain.exception;
 
-/**
- * Thrown when a second-factor authentication code is invalid: it does not match
- * the enrolled secret, has expired, or has already been consumed.
- */
 public class InvalidSecondFactorCodeException extends DomainException {
+    private static final long serialVersionUID = 1L;
 
     public InvalidSecondFactorCodeException() {
         super("AUTH_SECOND_FACTOR_INVALID", "El codigo de segundo factor no es valido");
@@ -12,5 +9,9 @@ public class InvalidSecondFactorCodeException extends DomainException {
 
     public InvalidSecondFactorCodeException(String message) {
         super("AUTH_SECOND_FACTOR_INVALID", message);
+    }
+
+    public InvalidSecondFactorCodeException(String message, Throwable cause) {
+        super("AUTH_SECOND_FACTOR_INVALID", message, cause);
     }
 }

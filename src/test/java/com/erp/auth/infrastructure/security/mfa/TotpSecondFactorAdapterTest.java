@@ -8,17 +8,9 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Second-factor authentication verification test suite.
- *
- * <p>Codes are accepted within their time step window and adjacent interval (+/- 1 time step)
- * to accommodate user clock drift. Codes outside this window are rejected to prevent replay attacks.
- */
+@DisplayName("Infrastructure - TotpSecondFactorAdapter Hardening Test")
 class TotpSecondFactorAdapterTest {
 
     private static final long INTERVAL_MILLIS = 30_000L;
@@ -35,15 +27,20 @@ class TotpSecondFactorAdapterTest {
     }
 
     @Test
-    @DisplayName("El enrolamiento produce un secreto y un enlace de enrolamiento")
-    void elEnrolamientoProduceSecretoYEnlace() {
-        SecondFactorPort.SecondFactorSecret enrolado = adapter.enroll();
+    @DisplayName("El enrolamiento produce secreto y URI con issuer DriveOS y cuenta de usuario (sin filtrar el secreto en label)")
+    void elEnrolamientoProduceSecretoYEnlaceSeguro() {
+        String email = "asesor@taller.pe";
+        SecondFactorPort.SecondFactorSecret enrolado = adapter.enroll(email);
 
         assertNotNull(enrolado.secret());
         assertFalse(enrolado.secret().isBlank());
         assertNotNull(enrolado.uri());
-        assertTrue(enrolado.uri().startsWith("otpauth://"),
-                "El enlace debe ser el que entiende la aplicacion autenticadora: " + enrolado.uri());
+        assertTrue(enrolado.uri().startsWith("otpauth://totp/"));
+        assertTrue(enrolado.uri().contains("issuer=DriveOS") || enrolado.uri().contains("DriveOS"));
+        assertTrue(enrolado.uri().contains(email), "La cuenta debe ser el correo del usuario: " + enrolado.uri());
+        // El secreto NO debe ser el account o label
+        assertFalse(enrolado.uri().startsWith("otpauth://totp/" + enrolado.secret()),
+                "El secreto no debe ser la etiqueta de cuenta en el QR: " + enrolado.uri());
     }
 
     @Test
@@ -56,16 +53,13 @@ class TotpSecondFactorAdapterTest {
     }
 
     @Test
-    @DisplayName("El mismo codigo se rechaza en el intervalo siguiente, fuera de la ventana")
+    @DisplayName("El mismo codigo se rechaza fuera de la ventana de tolerancia (+/- 1)")
     void elMismoCodigoSeRechazaFueraDeLaVentana() {
         Instant instante = Instant.ofEpochSecond(1_700_000_000L);
         String codigo = codigoEn(instante);
 
-        // Two intervals later, code is no longer valid.
         Instant dosIntervalosDespues = instante.plusMillis(2 * INTERVAL_MILLIS);
-
-        assertFalse(adapter.verify(secret, codigo, dosIntervalosDespues).isPresent(),
-                "El codigo de un intervalo anterior no puede seguir valiendo");
+        assertFalse(adapter.verify(secret, codigo, dosIntervalosDespues).isPresent());
     }
 
     @Test
@@ -78,13 +72,22 @@ class TotpSecondFactorAdapterTest {
     }
 
     @Test
-    @DisplayName("Un codigo con otra forma no se acepta")
-    void unCodigoConOtraFormaNoSeAcepta() {
+    @DisplayName("Codigos con longitud distinta a 6 digitos (7 digitos o 3 digitos) se rechazan")
+    void codigosConLongitudInvalidaSeRechazan() {
         Instant instante = Instant.ofEpochSecond(1_700_000_000L);
 
-        assertFalse(adapter.verify(secret, "no-es-un-codigo", instante).isPresent());
+        assertFalse(adapter.verify(secret, "0123456", instante).isPresent(), "7 digitos deben rechazarse");
+        assertFalse(adapter.verify(secret, "12345", instante).isPresent(), "5 digitos deben rechazarse");
+        assertFalse(adapter.verify(secret, "+12345", instante).isPresent(), "Signos deben rechazarse");
+        assertFalse(adapter.verify(secret, "no-es", instante).isPresent());
         assertFalse(adapter.verify(secret, "", instante).isPresent());
         assertFalse(adapter.verify("", "123456", instante).isPresent());
+    }
+
+    @Test
+    @DisplayName("verify con instante null retorna empty sin arrojar NullPointerException")
+    void verifyConInstantNullRetornaEmpty() {
+        assertFalse(adapter.verify(secret, "123456", null).isPresent());
     }
 
     @Test
@@ -97,13 +100,16 @@ class TotpSecondFactorAdapterTest {
     }
 
     @Test
-    @DisplayName("El codigo de recuperacion tiene el formato esperado")
+    @DisplayName("El codigo de recuperacion tiene exactamente 10 hex - 10 hex (21 caracteres) y maneja bytes negativos")
     void elCodigoDeRecuperacionTieneElFormatoEsperado() {
-        String codigo = adapter.generarCodigoDeRecuperacion();
+        for (int i = 0; i < 50; i++) {
+            String codigo = adapter.generarCodigoDeRecuperacion();
 
-        assertNotNull(codigo);
-        assertTrue(codigo.matches("[0-9A-F]{10}-[0-9A-F]{10}"),
-                "Formato inesperado: " + codigo);
+            assertNotNull(codigo);
+            assertEquals(21, codigo.length(), "Debe tener longitud exacta de 21 caracteres: " + codigo);
+            assertTrue(codigo.matches("^[0-9A-F]{10}-[0-9A-F]{10}$"),
+                    "Formato de 10 hex y 10 hex: " + codigo);
+        }
     }
 
     private String codigoEn(Instant instante) {

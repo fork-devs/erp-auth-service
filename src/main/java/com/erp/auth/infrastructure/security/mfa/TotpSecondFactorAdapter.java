@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
  * Time-based one-time password (TOTP) verification adapter.
@@ -29,15 +30,21 @@ public class TotpSecondFactorAdapter implements SecondFactorPort {
 
     private static final String ISSUER = "DriveOS";
 
+    private static final Pattern SIX_DIGIT_PATTERN = Pattern.compile("^[0-9]{6}$");
+
     private final GoogleAuthenticator authenticator = new GoogleAuthenticator();
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Override
-    public SecondFactorSecret enroll() {
+    public SecondFactorSecret enroll(String accountEmail) {
         try {
             GoogleAuthenticatorKey key = authenticator.createCredentials();
+            String account = (accountEmail != null && !accountEmail.isBlank())
+                    ? accountEmail.trim()
+                    : "user@driveos.pe";
             // Use the standard otpauth:// URI supported by authenticator apps
-            String uri = GoogleAuthenticatorQRGenerator.getOtpAuthTotpURL(key.getKey(), ISSUER, key);
+            // Issuer must be consistent product brand ("DriveOS"), account must be user email, never the secret
+            String uri = GoogleAuthenticatorQRGenerator.getOtpAuthTotpURL(ISSUER, account, key);
             return new SecondFactorSecret(key.getKey(), uri);
         } catch (Exception e) {
             throw new IllegalStateException("No se pudo generar el secreto del segundo factor", e);
@@ -45,14 +52,24 @@ public class TotpSecondFactorAdapter implements SecondFactorPort {
     }
 
     @Override
+    public SecondFactorSecret enroll() {
+        return enroll("user@driveos.pe");
+    }
+
+    @Override
     public Optional<Long> verify(String secret, String code, Instant at) {
-        if (secret == null || secret.isBlank() || code == null || code.isBlank()) {
+        if (at == null || secret == null || secret.isBlank() || code == null || code.isBlank()) {
+            return Optional.empty();
+        }
+
+        String trimmed = code.trim();
+        if (!SIX_DIGIT_PATTERN.matcher(trimmed).matches()) {
             return Optional.empty();
         }
 
         int introducido;
         try {
-            introducido = Integer.parseInt(code.trim());
+            introducido = Integer.parseInt(trimmed);
         } catch (NumberFormatException e) {
             return Optional.empty();
         }
@@ -68,7 +85,8 @@ public class TotpSecondFactorAdapter implements SecondFactorPort {
                     return Optional.of(contador);
                 }
             } catch (Exception e) {
-                return Optional.empty();
+                // Do NOT abort the entire tolerance loop on a single transient error; continue evaluating other windows
+                continue;
             }
         }
         return Optional.empty();
@@ -76,8 +94,9 @@ public class TotpSecondFactorAdapter implements SecondFactorPort {
 
     /**
      * Generates a random single-use recovery code.
+     * Uses Byte.toUnsignedInt to avoid negative byte sign extension in hexadecimal formatting.
      *
-     * @return formatted recovery code string
+     * @return formatted recovery code string (e.g. XXXXXXXXXX-XXXXXXXXXX)
      */
     public String generarCodigoDeRecuperacion() {
         byte[] bytes = new byte[10];
@@ -88,7 +107,7 @@ public class TotpSecondFactorAdapter implements SecondFactorPort {
             if (i > 0 && i % 5 == 0) {
                 codigo.append('-');
             }
-            codigo.append(String.format("%02X", bytes[i]));
+            codigo.append(String.format("%02X", Byte.toUnsignedInt(bytes[i])));
         }
         return codigo.toString();
     }

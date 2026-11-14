@@ -121,7 +121,7 @@ class CrossTenantUserRegistrationTest extends AbstractPostgresIntegrationTest {
 
     @Test
     void unMecanicoNoPuedeCrearUsuarios() throws Exception {
-        Role mecanico = roleRepositoryPort.findByCode(RoleCode.MECANICO)
+        Role mecanico = roleRepositoryPort.findByCode(RoleCode.TECHNICIAN)
                 .orElseThrow(() -> new AssertionError("El rol MECANICO deberia estar sembrado"));
         User user = User.create(new TenantId(TALLER_ATACANTE),
                 Email.of("mecanico@driveos.pe"),
@@ -147,7 +147,7 @@ class CrossTenantUserRegistrationTest extends AbstractPostgresIntegrationTest {
     }
 
     private String tokenDe(UUID tenantId) {
-        Role admin = roleRepositoryPort.findByCode(RoleCode.ADMIN_TALLER)
+        Role admin = roleRepositoryPort.findByCode(RoleCode.WORKSHOP_ADMIN)
                 .orElseThrow(() -> new AssertionError("El rol ADMIN_TALLER deberia estar sembrado"));
         User user = User.create(new TenantId(tenantId),
                 Email.of("admin@driveos.pe"),

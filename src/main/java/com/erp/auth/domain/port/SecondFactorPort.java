@@ -19,6 +19,16 @@ public interface SecondFactorPort {
     SecondFactorSecret enroll();
 
     /**
+     * Generates a new secret and its enrollment URI for a specific account email.
+     *
+     * @param accountEmail the verified email of the user enrolling
+     * @return the Base32 secret displayed to the user along with its otpauth URI
+     */
+    default SecondFactorSecret enroll(String accountEmail) {
+        return enroll();
+    }
+
+    /**
      * Verifies a code against a secret.
      *
      * @param secret  the secret enrolled by the user

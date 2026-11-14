@@ -51,7 +51,7 @@ class RefreshTokenServiceTest {
     private User sampleUser;
     private RefreshToken activeToken;
     private final String rawToken = "sampleRawRefreshToken";
-    private final String tokenHash = "hashedSampleToken";
+    private final String tokenHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
     @BeforeEach
     void setUp() {
@@ -65,24 +65,24 @@ class RefreshTokenServiceTest {
         tenantId = TenantId.generate();
         Email email = Email.of("asesor@taller.pe");
         PasswordHash passwordHash = PasswordHash.of("$2a$12$hashedPasswordExample");
-        Role role = Role.create(RoleCode.ASESOR, "Asesor");
+        Role role = Role.create(RoleCode.SERVICE_ADVISOR, "Asesor");
 
         sampleUser = User.create(tenantId, email, passwordHash, "Juan Asesor", Set.of(role));
-        activeToken = RefreshToken.create(sampleUser.getId(), tenantId.getValue(), tokenHash, Instant.now().plus(Duration.ofDays(7)));
+        activeToken = RefreshToken.create(sampleUser.getId(), tenantId.value(), tokenHash, Instant.now().plus(Duration.ofDays(7)));
     }
 
     @Test
     @DisplayName("Debe rotar el refresh token: revocar el anterior y emitir un nuevo par de tokens")
     void shouldRotateRefreshTokenSuccessfully() {
-        RefreshTokenCommand command = new RefreshTokenCommand(rawToken, tenantId.getValue());
+        RefreshTokenCommand command = new RefreshTokenCommand(rawToken, tenantId.value());
 
         when(tokenSignerPort.hashToken(rawToken)).thenReturn(tokenHash);
-        when(refreshTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, tenantId.getValue())).thenReturn(Optional.of(activeToken));
+        when(refreshTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, tenantId.value())).thenReturn(Optional.of(activeToken));
         when(userRepositoryPort.findByIdAndTenantId(sampleUser.getId(), tenantId)).thenReturn(Optional.of(sampleUser));
         when(tokenSignerPort.generateAccessToken(sampleUser)).thenReturn("newSignedJwtToken");
         when(tokenSignerPort.generateRefreshToken(any(User.class))).thenReturn("newRawRefreshToken");
         when(tokenSignerPort.extractTokenId(anyString())).thenReturn("token-id-de-prueba");
-        when(tokenSignerPort.hashToken("newRawRefreshToken")).thenReturn("newHashedRefreshToken");
+        when(tokenSignerPort.hashToken("newRawRefreshToken")).thenReturn("f4c8996fb92427ae41e4649b934ca495991b7852b855e3b0c44298fc1c149afb");
         when(tokenSignerPort.getAccessTokenDuration()).thenReturn(Duration.ofMinutes(15));
         when(tokenSignerPort.getRefreshTokenDuration()).thenReturn(Duration.ofDays(7));
 
@@ -97,15 +97,18 @@ class RefreshTokenServiceTest {
     }
 
     @Test
-    @DisplayName("Debe lanzar TokenRevokedException al intentar usar un refresh token ya revocado")
+    @DisplayName("Debe lanzar TokenRevokedException al intentar usar un refresh token ya revocado y revocar todas las sesiones del usuario")
     void shouldThrowTokenRevokedWhenReusingToken() {
         activeToken.revoke();
-        RefreshTokenCommand command = new RefreshTokenCommand(rawToken, tenantId.getValue());
+        RefreshTokenCommand command = new RefreshTokenCommand(rawToken, tenantId.value());
 
         when(tokenSignerPort.hashToken(rawToken)).thenReturn(tokenHash);
-        when(refreshTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, tenantId.getValue())).thenReturn(Optional.of(activeToken));
+        when(refreshTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, tenantId.value())).thenReturn(Optional.of(activeToken));
 
         assertThrows(TokenRevokedException.class, () -> refreshTokenService.refreshToken(command));
+
+        // RFC 6749 / 6819: revocación en cascada de todas las sesiones activas del usuario ante reuso detectado
+        verify(refreshTokenRepositoryPort).revokeAllByUserId(new com.erp.auth.domain.valueobject.UserId(sampleUser.getId()), tenantId);
     }
 
     @Test
@@ -114,17 +117,17 @@ class RefreshTokenServiceTest {
         RefreshToken expiredToken = new RefreshToken(
                 UUID.randomUUID(),
                 sampleUser.getId(),
-                tenantId.getValue(),
+                tenantId.value(),
                 tokenHash,
                 Instant.now().minus(Duration.ofDays(1)),
                 false,
                 Instant.now().minus(Duration.ofDays(8))
         );
 
-        RefreshTokenCommand command = new RefreshTokenCommand(rawToken, tenantId.getValue());
+        RefreshTokenCommand command = new RefreshTokenCommand(rawToken, tenantId.value());
 
         when(tokenSignerPort.hashToken(rawToken)).thenReturn(tokenHash);
-        when(refreshTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, tenantId.getValue())).thenReturn(Optional.of(expiredToken));
+        when(refreshTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, tenantId.value())).thenReturn(Optional.of(expiredToken));
 
         assertThrows(TokenExpiredException.class, () -> refreshTokenService.refreshToken(command));
     }

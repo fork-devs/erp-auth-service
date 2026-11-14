@@ -68,4 +68,8 @@ public interface SpringDataUserRepository extends JpaRepository<UserJpaEntity, U
                                 @Param("lockedUntil") Instant lockedUntil);
 
     List<UserJpaEntity> findAllByTenantId(UUID tenantId);
+
+    @Modifying
+    @Query("DELETE FROM UserJpaEntity u WHERE u.id = :id AND u.tenantId = :tenantId")
+    void deleteByIdAndTenantId(@Param("id") UUID id, @Param("tenantId") UUID tenantId);
 }

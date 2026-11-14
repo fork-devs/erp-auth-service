@@ -7,6 +7,7 @@ import com.erp.auth.infrastructure.persistence.mapper.PasswordResetTokenPersiste
 import com.erp.auth.infrastructure.persistence.repository.SpringDataPasswordResetTokenRepository;
 import com.erp.auth.infrastructure.persistence.TransactionGuard;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
@@ -25,11 +26,31 @@ public class PasswordResetTokenPersistenceAdapter implements PasswordResetTokenR
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public PasswordResetToken save(PasswordResetToken token) {
         transactionGuard.requireActiveTransaction("savePasswordResetToken");
         PasswordResetTokenJpaEntity entity = PasswordResetTokenPersistenceMapper.toEntity(token);
         PasswordResetTokenJpaEntity saved = repository.save(entity);
         return PasswordResetTokenPersistenceMapper.toDomain(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<PasswordResetToken> findByTokenHashAndTenantId(com.erp.auth.domain.model.TokenHash tokenHash, com.erp.auth.domain.valueobject.TenantId tenantId) {
+        return findByTokenHashAndTenantId(tokenHash.value(), tenantId.value());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<PasswordResetToken> findByTokenHash(com.erp.auth.domain.model.TokenHash tokenHash) {
+        return findByTokenHash(tokenHash.value());
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void invalidateAllByUserId(com.erp.auth.domain.valueobject.UserId userId, com.erp.auth.domain.valueobject.TenantId tenantId) {
+        transactionGuard.requireActiveTransaction("invalidateAllByUserId");
+        repository.invalidateAllByUserIdAndTenantId(userId.value(), tenantId.value(), java.time.Instant.now());
     }
 
     @Override
@@ -47,6 +68,7 @@ public class PasswordResetTokenPersistenceAdapter implements PasswordResetTokenR
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void invalidateAllByUserId(UUID userId) {
         transactionGuard.requireActiveTransaction("invalidateAllByUserId");
         repository.invalidateAllByUserId(userId, java.time.Instant.now());

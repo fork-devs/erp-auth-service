@@ -76,7 +76,7 @@ class AccessTokenRevocationTest extends AbstractPostgresIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        Role admin = roleRepositoryPort.findByCode(RoleCode.ADMIN_TALLER)
+        Role admin = roleRepositoryPort.findByCode(RoleCode.WORKSHOP_ADMIN)
                 .orElseThrow(() -> new AssertionError("El rol ADMIN_TALLER deberia estar sembrado"));
         usuario = User.create(
                 new TenantId(TALLER),
@@ -111,13 +111,16 @@ class AccessTokenRevocationTest extends AbstractPostgresIntegrationTest {
         UUID revocado = UUID.randomUUID();
         UUID noRevocado = UUID.randomUUID();
 
-        unitOfWork.runInTransaction(() -> revokedTokenRepositoryPort.revoke(
-                revocado, usuario.getId(), Instant.now().plusSeconds(900)));
+        try (com.erp.auth.infrastructure.persistence.rls.TenantContextScope scope =
+                     com.erp.auth.infrastructure.persistence.rls.TenantContextScope.forTenant(TALLER)) {
+            unitOfWork.runInTransaction(() -> revokedTokenRepositoryPort.revoke(
+                    revocado, new com.erp.auth.domain.valueobject.UserId(usuario.getId()), usuario.getTenantId(), Instant.now().plusSeconds(900)));
 
-        assertTrue(revokedTokenRepositoryPort.isRevoked(revocado),
-                "El token registrado como revocado debe encontrarse");
-        assertFalse(revokedTokenRepositoryPort.isRevoked(noRevocado),
-                "Un token que no se ha revocado no debe aparecer");
+            assertTrue(revokedTokenRepositoryPort.isRevoked(revocado),
+                    "El token registrado como revocado debe encontrarse");
+            assertFalse(revokedTokenRepositoryPort.isRevoked(noRevocado),
+                    "Un token que no se ha revocado no debe aparecer");
+        }
     }
 
     @Test
@@ -131,8 +134,11 @@ class AccessTokenRevocationTest extends AbstractPostgresIntegrationTest {
         assertNotNull(SecurityContextHolder.getContext().getAuthentication(),
                 "El token debe aceptarse mientras no se revoque");
 
-        unitOfWork.runInTransaction(() -> revokedTokenRepositoryPort.revoke(
-                identity.tokenId(), usuario.getId(), identity.expiresAt()));
+        try (com.erp.auth.infrastructure.persistence.rls.TenantContextScope scope =
+                     com.erp.auth.infrastructure.persistence.rls.TenantContextScope.forTenant(TALLER)) {
+            unitOfWork.runInTransaction(() -> revokedTokenRepositoryPort.revoke(
+                    identity.tokenId(), new com.erp.auth.domain.valueobject.UserId(usuario.getId()), usuario.getTenantId(), identity.expiresAt()));
+        }
 
         SecurityContextHolder.clearContext();
         MockHttpServletResponse response = filtrar(token);
@@ -149,10 +155,13 @@ class AccessTokenRevocationTest extends AbstractPostgresIntegrationTest {
         String token = tokenSignerPort.generateAccessToken(usuario);
         TokenIdentity identity = tokenSignerPort.extractIdentity(token);
 
-        accessTokenRevocationService.revokeAccessToken(token);
+        try (com.erp.auth.infrastructure.persistence.rls.TenantContextScope scope =
+                     com.erp.auth.infrastructure.persistence.rls.TenantContextScope.forTenant(TALLER)) {
+            accessTokenRevocationService.revokeAccessToken(token);
 
-        assertTrue(revokedTokenRepositoryPort.isRevoked(identity.tokenId()),
-                "El cierre de sesion debe dejar el token de acceso revocado");
+            assertTrue(revokedTokenRepositoryPort.isRevoked(identity.tokenId()),
+                    "El cierre de sesion debe dejar el token de acceso revocado");
+        }
 
         SecurityContextHolder.clearContext();
         MockHttpServletResponse response = filtrar(token);
@@ -167,17 +176,20 @@ class AccessTokenRevocationTest extends AbstractPostgresIntegrationTest {
         UUID vencido = UUID.randomUUID();
         UUID vigente = UUID.randomUUID();
 
-        unitOfWork.runInTransaction(() -> {
-            revokedTokenRepositoryPort.revoke(vencido, usuario.getId(), Instant.now().minusSeconds(60));
-            revokedTokenRepositoryPort.revoke(vigente, usuario.getId(), Instant.now().plusSeconds(900));
-        });
+        try (com.erp.auth.infrastructure.persistence.rls.TenantContextScope scope =
+                     com.erp.auth.infrastructure.persistence.rls.TenantContextScope.forTenant(TALLER)) {
+            unitOfWork.runInTransaction(() -> {
+                revokedTokenRepositoryPort.revoke(vencido, new com.erp.auth.domain.valueobject.UserId(usuario.getId()), usuario.getTenantId(), Instant.now().minusSeconds(60));
+                revokedTokenRepositoryPort.revoke(vigente, new com.erp.auth.domain.valueobject.UserId(usuario.getId()), usuario.getTenantId(), Instant.now().plusSeconds(900));
+            });
 
-        revokedTokenCleanupTask.eliminarRevocacionesVencidas();
+            revokedTokenCleanupTask.eliminarRevocacionesVencidas();
 
-        assertFalse(revokedTokenRepositoryPort.isRevoked(vencido),
-                "La revocacion de un token ya expirado debe eliminarse");
-        assertTrue(revokedTokenRepositoryPort.isRevoked(vigente),
-                "La revocacion de un token que aun no expira debe conservarse");
+            assertFalse(revokedTokenRepositoryPort.isRevoked(vencido),
+                    "La revocacion de un token ya expirado debe eliminarse");
+            assertTrue(revokedTokenRepositoryPort.isRevoked(vigente),
+                    "La revocacion de un token que aun no expira debe conservarse");
+        }
     }
 
     private MockHttpServletResponse filtrar(String token) throws Exception {

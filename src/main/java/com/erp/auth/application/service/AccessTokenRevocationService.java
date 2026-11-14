@@ -51,8 +51,17 @@ public class AccessTokenRevocationService implements RevokeAccessTokenUseCase {
             return;
         }
 
-        unitOfWork.runInTransaction(() ->
-                revokedTokenRepositoryPort.revoke(identity.tokenId(), identity.userId(), identity.expiresAt()));
+        unitOfWork.runInTransaction(() -> {
+            com.erp.auth.domain.valueobject.TenantId tenantId = identity.tenantId();
+            if (tenantId != null) {
+                revokedTokenRepositoryPort.revoke(identity.tokenId(),
+                        new com.erp.auth.domain.valueobject.UserId(identity.userId()),
+                        tenantId,
+                        identity.expiresAt());
+            } else {
+                throw new IllegalStateException("Cannot revoke token without TenantId claim");
+            }
+        });
 
         AuthEventLogger.registrar("token_acceso_revocado", null, identity.userId(), null, "ok", Map.of());
         log.info("Token de acceso revocado para el usuario {}", identity.userId());

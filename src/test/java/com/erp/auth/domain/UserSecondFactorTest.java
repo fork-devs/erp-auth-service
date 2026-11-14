@@ -56,6 +56,6 @@ class UserSecondFactorTest {
                 Email.of("mfa@taller.pe"),
                 PasswordHash.of("$2a$12$hash"),
                 "Usuario",
-                Set.of(new Role(UUID.randomUUID(), RoleCode.ASESOR, "Asesor")));
+                Set.of(new Role(UUID.randomUUID(), RoleCode.SERVICE_ADVISOR, "Asesor")));
     }
 }

@@ -1,24 +1,33 @@
 package com.erp.auth.domain.port;
 
+import com.erp.auth.domain.valueobject.TenantId;
+import com.erp.auth.domain.valueobject.UserId;
+
 import java.time.Instant;
 import java.util.UUID;
 
 /**
  * Registry of revoked access tokens.
  *
- * <p>An access token is otherwise only invalidated upon reaching its expiration time
- * (a 15-minute window). Recording revocations allows true session termination:
+ * <p>Recording revocations allows true session termination:
  * the credential is rejected immediately, even if unexpired.
  *
  * <p>Entries are identified by the token's unique identifier ({@code jti}),
- * which is globally unique.
+ * and scoped by user and tenant.
  */
 public interface RevokedTokenRepositoryPort {
 
     /**
-     * Records token revocation. Revoking the same token multiple times is idempotent.
+     * Records token revocation with full tenant and user scoping.
      */
-    void revoke(UUID tokenId, UUID userId, Instant expiresAt);
+    void revoke(UUID tokenId, UserId userId, TenantId tenantId, Instant expiresAt);
+
+    /**
+     * Legacy revocation method with fallback support during migration.
+     */
+    default void revoke(UUID tokenId, UUID userId, Instant expiresAt) {
+        throw new UnsupportedOperationException("Multi-tenant safety: revoke requires TenantId");
+    }
 
     /**
      * Checks whether the token has been revoked.
@@ -27,9 +36,6 @@ public interface RevokedTokenRepositoryPort {
 
     /**
      * Purges entries whose tokens have already expired naturally.
-     *
-     * @param now current timestamp
-     * @return the number of purged entries
      */
     int deleteExpired(Instant now);
 }

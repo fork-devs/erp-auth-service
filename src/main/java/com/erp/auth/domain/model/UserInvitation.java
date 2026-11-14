@@ -30,7 +30,7 @@ public class UserInvitation implements Serializable {
                           Instant acceptedAt,
                           Instant createdAt) {
         if (id == null || tenantId == null || email == null || fullName == null || role == null || tokenHash == null || expiresAt == null) {
-            throw new IllegalArgumentException("Campos obligatorios de UserInvitation no pueden ser nulos");
+            throw new IllegalArgumentException("Required UserInvitation fields cannot be null");
         }
         this.id = id;
         this.tenantId = tenantId;
@@ -77,10 +77,10 @@ public class UserInvitation implements Serializable {
 
     public void accept() {
         if (acceptedAt != null) {
-            throw new IllegalStateException("La invitación ya ha sido aceptada previamente");
+            throw new IllegalStateException("Invitation has already been accepted");
         }
         if (isExpired()) {
-            throw new IllegalStateException("La invitación ha expirado");
+            throw new IllegalStateException("Invitation has expired");
         }
         this.acceptedAt = Instant.now();
     }
