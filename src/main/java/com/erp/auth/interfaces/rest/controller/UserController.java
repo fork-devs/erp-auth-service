@@ -117,7 +117,7 @@ public class UserController {
         UUID userId = usuarioAutenticado(authentication);
         TenantId tenantId = tenantIdFromContext();
 
-        enrollSecondFactorUseCase.enroll(userId, tenantId.getValue());
+        enrollSecondFactorUseCase.enroll(userId, tenantId.value());
 
         return ResponseEntity.ok(MessageResponse.of(
                 "Se ha enviado el secreto y los codigos de recuperacion por el canal de notificacion"));
@@ -132,7 +132,7 @@ public class UserController {
         UUID userId = usuarioAutenticado(authentication);
         TenantId tenantId = tenantIdFromContext();
 
-        confirmSecondFactorEnrollmentUseCase.confirm(userId, tenantId.getValue(), request.code());
+        confirmSecondFactorEnrollmentUseCase.confirm(userId, tenantId.value(), request.code());
 
         return ResponseEntity.ok(MessageResponse.of("Segundo factor de autenticacion habilitado"));
     }
@@ -187,7 +187,7 @@ public class UserController {
 
         com.erp.auth.application.dto.command.InviteUserCommand command =
                 new com.erp.auth.application.dto.command.InviteUserCommand(
-                        tenantId.getValue(),
+                        tenantId.value(),
                         request.email(),
                         request.fullName(),
                         request.role(),
@@ -235,8 +235,8 @@ public class UserController {
         List<UserResponse> users = listTenantUsersUseCase.listByTenant(tenantId).stream()
                 .map(u -> new UserResponse(
                         u.getId(),
-                        u.getTenantId().getValue(),
-                        u.getEmail().getValue(),
+                        u.getTenantId().value(),
+                        u.getEmail().value(),
                         u.getFullName(),
                         u.isMfaEnabled(),
                         u.getRoles().stream().map(r -> r.getCode().name()).collect(Collectors.toSet()),

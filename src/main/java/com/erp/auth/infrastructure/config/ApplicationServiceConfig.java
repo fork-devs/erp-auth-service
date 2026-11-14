@@ -13,6 +13,7 @@ import com.erp.auth.application.service.UserSelfService;
 import com.erp.auth.domain.model.PasswordPolicy;
 import com.erp.auth.domain.port.GoogleTokenVerifierPort;
 import com.erp.auth.domain.port.NotificationPort;
+import com.erp.auth.domain.port.OtpCodeHasher;
 import com.erp.auth.domain.port.OtpVerificationRepositoryPort;
 import com.erp.auth.domain.port.SecondFactorPort;
 import com.erp.auth.domain.port.SecondFactorRepositoryPort;
@@ -168,8 +169,10 @@ public class ApplicationServiceConfig {
     public OtpService otpService(
             OtpVerificationRepositoryPort otpVerificationRepositoryPort,
             NotificationPort notificationPort,
-            UnitOfWork unitOfWork) {
-        return new OtpService(otpVerificationRepositoryPort, notificationPort, unitOfWork);
+            UnitOfWork unitOfWork,
+            OtpCodeHasher otpCodeHasher,
+            java.time.Clock clock) {
+        return new OtpService(otpVerificationRepositoryPort, notificationPort, unitOfWork, otpCodeHasher, clock);
     }
 
     @Bean

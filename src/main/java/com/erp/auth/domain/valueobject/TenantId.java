@@ -1,44 +1,38 @@
 package com.erp.auth.domain.valueobject;
 
 import java.io.Serializable;
-import java.util.Objects;
 import java.util.UUID;
 
-public final class TenantId implements Serializable {
-    private final UUID value;
+public record TenantId(UUID value) implements Serializable {
 
-    public TenantId(UUID value) {
+    private static final long serialVersionUID = 1L;
+    private static final UUID NIL_UUID = new UUID(0L, 0L);
+
+    public TenantId {
         if (value == null) {
-            throw new IllegalArgumentException("TenantId no puede ser nulo");
+            throw new IllegalArgumentException("TenantId cannot be null");
         }
-        this.value = value;
+        if (NIL_UUID.equals(value)) {
+            throw new IllegalArgumentException("TenantId cannot be nil UUID (00000000-0000-0000-0000-000000000000)");
+        }
     }
 
     public static TenantId fromString(String value) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException("TenantId string no puede estar vacío");
+            throw new IllegalArgumentException("TenantId string cannot be blank");
         }
-        return new TenantId(UUID.fromString(value.trim()));
+        try {
+            return new TenantId(UUID.fromString(value.trim()));
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage() != null && e.getMessage().contains("nil UUID")) {
+                throw e;
+            }
+            throw new IllegalArgumentException("Invalid TenantId format: " + value, e);
+        }
     }
 
     public static TenantId generate() {
         return new TenantId(UUID.randomUUID());
-    }
-
-    public UUID getValue() {
-        return value;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof TenantId tenantId)) return false;
-        return Objects.equals(value, tenantId.value);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
     }
 
     @Override

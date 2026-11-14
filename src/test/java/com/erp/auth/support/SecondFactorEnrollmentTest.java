@@ -87,7 +87,7 @@ class SecondFactorEnrollmentTest extends AbstractPostgresIntegrationTest {
     void setUp() {
         entregadas = new ArrayList<>();
 
-        Role admin = roleRepositoryPort.findByCode(RoleCode.ADMIN_TALLER)
+        Role admin = roleRepositoryPort.findByCode(RoleCode.WORKSHOP_ADMIN)
                 .orElseThrow(() -> new AssertionError("El rol ADMIN_TALLER deberia estar sembrado"));
         usuario = User.create(
                 new TenantId(TALLER),
@@ -113,7 +113,7 @@ class SecondFactorEnrollmentTest extends AbstractPostgresIntegrationTest {
 
         assertEquals(1, entregadas.size(), "El enrolamiento debe entregar una notificacion");
         NotificationMessage notificacion = entregadas.get(0);
-        assertEquals(usuario.getEmail().getValue(), notificacion.recipient());
+        assertEquals(usuario.getEmail().value(), notificacion.recipient());
         assertTrue(notificacion.body().contains("otpauth://"),
                 "La notificacion debe llevar el enlace de enrolamiento");
         assertTrue(notificacion.body().contains("-"),
@@ -178,7 +178,7 @@ class SecondFactorEnrollmentTest extends AbstractPostgresIntegrationTest {
         assertThrows(RuntimeException.class, () -> {
             try (TenantContextScope scope = TenantContextScope.forTenant(TALLER)) {
                 authenticateUserService.authenticate(new LoginCommand(
-                        usuario.getEmail().getValue(), CONTRASENA, TALLER));
+                        usuario.getEmail().value(), CONTRASENA, TALLER));
             }
         }, "Un login sin codigo de segundo factor no puede emitir credenciales");
     }
@@ -205,7 +205,7 @@ class SecondFactorEnrollmentTest extends AbstractPostgresIntegrationTest {
         AuthResult result;
         try (TenantContextScope scope = TenantContextScope.forTenant(TALLER)) {
             result = authenticateUserService.authenticate(new LoginCommand(
-                    usuario.getEmail().getValue(), CONTRASENA, TALLER, codigoDeLogin));
+                    usuario.getEmail().value(), CONTRASENA, TALLER, codigoDeLogin));
         }
 
         assertNotNull(result.accessToken());

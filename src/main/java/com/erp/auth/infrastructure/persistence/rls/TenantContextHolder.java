@@ -5,15 +5,12 @@ import java.util.UUID;
 /**
  * Thread-local holder for the active request's tenant context.
  *
- * <p>Set exclusively from verified tokens or initial authentication flows, and cleared
- * upon request completion.
- *
- * <p>Fails closed with no bypass mechanism: the former {@code app.bypass_rls} session variable
- * has been removed. See docs/doc-estado-implementacion.md, finding P1 6.6.
+ * Uses InheritableThreadLocal to ensure seamless propagation across child threads,
+ * async tasks (@Async), and virtual threads.
  */
 public final class TenantContextHolder {
 
-    private static final ThreadLocal<UUID> CURRENT_TENANT = new ThreadLocal<>();
+    private static final ThreadLocal<UUID> CURRENT_TENANT = new InheritableThreadLocal<>();
 
     private TenantContextHolder() {}
 

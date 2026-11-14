@@ -8,6 +8,7 @@ package com.erp.auth.domain.exception;
  * than executed without tenant filters. See docs/doc-estado-implementacion.md, finding P1 6.6.
  */
 public class TenantContextMissingException extends DomainException {
+    private static final long serialVersionUID = 1L;
 
     public TenantContextMissingException() {
         super("AUTH_TENANT_CONTEXT_MISSING",
@@ -16,5 +17,9 @@ public class TenantContextMissingException extends DomainException {
 
     public TenantContextMissingException(String message) {
         super("AUTH_TENANT_CONTEXT_MISSING", message);
+    }
+
+    public TenantContextMissingException(String message, Throwable cause) {
+        super("AUTH_TENANT_CONTEXT_MISSING", message, cause);
     }
 }

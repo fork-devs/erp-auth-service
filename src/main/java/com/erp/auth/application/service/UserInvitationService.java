@@ -32,6 +32,7 @@ import com.erp.auth.domain.port.UserRepositoryPort;
 import com.erp.auth.domain.valueobject.Email;
 import com.erp.auth.domain.valueobject.PasswordHash;
 import com.erp.auth.domain.valueobject.TenantId;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -97,7 +98,7 @@ public class UserInvitationService implements InviteUserUseCase, AcceptInvitatio
         TenantId tenantId = new TenantId(command.tenantId());
 
         if (userRepositoryPort.existsByEmailAndTenantId(email, tenantId)) {
-            throw new UserAlreadyExistsException(email.getValue());
+            throw new UserAlreadyExistsException(email.value());
         }
 
         String rawToken = generateSecureToken();
@@ -119,7 +120,7 @@ public class UserInvitationService implements InviteUserUseCase, AcceptInvitatio
 
         String activationLink = invitationBaseUrl + "?token=" + rawToken;
         notificationPort.deliver(NotificationMessage.of(
-                email.getValue(),
+                email.value(),
                 "Invitación para unirte a DriveOS Workshop",
                 "Hola " + saved.getFullName() + ", has sido invitado a formar parte del taller.\n\n"
                         + "Activa tu cuenta y crea tu contraseña ingresando al siguiente enlace seguro:\n"
@@ -130,7 +131,7 @@ public class UserInvitationService implements InviteUserUseCase, AcceptInvitatio
         return new InviteUserResult(
                 saved.getId(),
                 saved.getTenantId(),
-                saved.getEmail().getValue(),
+                saved.getEmail().value(),
                 saved.getFullName(),
                 saved.getRole(),
                 saved.getExpiresAt(),
@@ -139,6 +140,7 @@ public class UserInvitationService implements InviteUserUseCase, AcceptInvitatio
     }
 
     @Override
+    @Transactional(readOnly = true)
     public InvitationDetailsResult getInvitation(String rawToken) {
         if (rawToken == null || rawToken.isBlank()) {
             throw new InvalidTokenException("Token de invitación no proporcionado");
@@ -158,7 +160,7 @@ public class UserInvitationService implements InviteUserUseCase, AcceptInvitatio
         return new InvitationDetailsResult(
                 invitation.getId(),
                 invitation.getTenantId(),
-                invitation.getEmail().getValue(),
+                invitation.getEmail().value(),
                 invitation.getFullName(),
                 invitation.getRole(),
                 invitation.isValid(),
@@ -194,7 +196,7 @@ public class UserInvitationService implements InviteUserUseCase, AcceptInvitatio
         Email email = invitation.getEmail();
 
         if (userRepositoryPort.existsByEmailAndTenantId(email, tenantId)) {
-            throw new UserAlreadyExistsException(email.getValue());
+            throw new UserAlreadyExistsException(email.value());
         }
 
         Set<Role> roles = roleRepositoryPort.findAllByCodes(Set.of(invitation.getRole()));
@@ -218,7 +220,7 @@ public class UserInvitationService implements InviteUserUseCase, AcceptInvitatio
 
             RefreshToken refreshTokenEntity = RefreshToken.create(
                     savedUser.getId(),
-                    savedUser.getTenantId().getValue(),
+                    savedUser.getTenantId().value(),
                     refreshTokenHash,
                     refreshTokenExpiry
             );
@@ -235,8 +237,8 @@ public class UserInvitationService implements InviteUserUseCase, AcceptInvitatio
                     "Bearer",
                     tokenSignerPort.getAccessTokenDuration().toSeconds(),
                     savedUser.getId(),
-                    savedUser.getTenantId().getValue(),
-                    savedUser.getEmail().getValue(),
+                    savedUser.getTenantId().value(),
+                    savedUser.getEmail().value(),
                     savedUser.getFullName(),
                     roleCodes
             );

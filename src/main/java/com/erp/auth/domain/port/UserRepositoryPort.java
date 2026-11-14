@@ -27,5 +27,13 @@ public interface UserRepositoryPort {
      */
     void incrementFailedAttempts(UUID id, int maxAttempts, java.time.Duration lockDuration);
     List<User> findAllByTenantId(TenantId tenantId);
-    void deleteById(UUID id);
+    void deleteById(com.erp.auth.domain.valueobject.UserId userId, TenantId tenantId);
+
+    default void deleteById(UUID id, TenantId tenantId) {
+        deleteById(new com.erp.auth.domain.valueobject.UserId(id), tenantId);
+    }
+
+    default void deleteById(UUID id) {
+        throw new UnsupportedOperationException("Multi-tenant safety: deleteById requires TenantId");
+    }
 }

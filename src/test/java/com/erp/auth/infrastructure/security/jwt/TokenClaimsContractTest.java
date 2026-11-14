@@ -17,19 +17,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Contract test for JWT claims structure and content.
- *
- * <p>Access tokens contain roles array, audience, and unique token identifier (jti).
- * Refresh tokens maintain matching claims structure.
- *
- * <p>See docs/doc-estado-implementacion.md, findings P0 5.7 and P1 6.20.
+ * Contract test for JWT claims structure, type validation, and zero-PII enforcement.
  */
 class TokenClaimsContractTest {
 
@@ -51,23 +42,24 @@ class TokenClaimsContractTest {
                 PasswordHash.of("$2a$12$hash"),
                 "Usuario de Contrato",
                 Set.of(
-                        new Role(UUID.randomUUID(), RoleCode.ADMIN_TALLER, "Administrador"),
-                        new Role(UUID.randomUUID(), RoleCode.ASESOR, "Asesor"),
-                        new Role(UUID.randomUUID(), RoleCode.MECANICO, "Mecanico")));
+                        new Role(UUID.randomUUID(), RoleCode.WORKSHOP_ADMIN, "Administrador"),
+                        new Role(UUID.randomUUID(), RoleCode.SERVICE_ADVISOR, "Asesor"),
+                        new Role(UUID.randomUUID(), RoleCode.TECHNICIAN, "Mecanico")));
     }
 
     @Test
-    @DisplayName("El token de acceso lleva los roles como array")
-    void elTokenDeAccesoLlevaLosRolesComoArray() throws Exception {
+    @DisplayName("El token de acceso lleva roles como array, claim type: access, y no contiene PII (email, fullName)")
+    void elTokenDeAccesoLlevaLosRolesYTypeAccessSinPII() throws Exception {
         SignedJWT token = SignedJWT.parse(signer.generateAccessToken(usuario));
 
         Object roles = token.getJWTClaimsSet().getClaim("roles");
+        assertTrue(roles instanceof List, "El claim de roles debe ser un array");
+        assertEquals(3, ((List<?>) roles).size());
+        assertTrue(((List<?>) roles).contains("WORKSHOP_ADMIN"));
 
-        assertTrue(roles instanceof List, "El claim de roles debe ser un array, no un valor unico");
-        assertEquals(3, ((List<?>) roles).size(), "No se puede perder ningun rol");
-        assertTrue(((List<?>) roles).contains("ADMIN_TALLER"));
-        assertTrue(((List<?>) roles).contains("ASESOR"));
-        assertTrue(((List<?>) roles).contains("MECANICO"));
+        assertEquals("access", token.getJWTClaimsSet().getStringClaim("type"));
+        assertNull(token.getJWTClaimsSet().getClaim("email"), "El access token no debe filtrar email (PII)");
+        assertNull(token.getJWTClaimsSet().getClaim("name"), "El access token no debe filtrar nombre completo (PII)");
     }
 
     @Test
@@ -77,7 +69,7 @@ class TokenClaimsContractTest {
 
         List<String> audiences = token.getJWTClaimsSet().getAudience();
 
-        assertNotNull(audiences, "El token debe declarar su audiencia");
+        assertNotNull(audiences);
         assertTrue(audiences.contains(AUDIENCE));
     }
 
@@ -90,15 +82,15 @@ class TokenClaimsContractTest {
         String idPrimero = SignedJWT.parse(primero).getJWTClaimsSet().getJWTID();
         String idSegundo = SignedJWT.parse(segundo).getJWTClaimsSet().getJWTID();
 
-        assertNotNull(idPrimero, "El token debe llevar su identificador unico");
+        assertNotNull(idPrimero);
         assertNotNull(idSegundo);
-        assertNotEquals(idPrimero, idSegundo, "Cada emision debe producir un identificador distinto");
+        assertNotEquals(idPrimero, idSegundo);
         assertEquals(idPrimero, signer.extractTokenId(primero));
     }
 
     @Test
-    @DisplayName("El token de refresco lleva el mismo conjunto de claims")
-    void elTokenDeRefrescoLlevaElMismoConjuntoDeClaims() throws Exception {
+    @DisplayName("El token de refresco lleva claim type: refresh y NO lleva roles (evitar stale privileges)")
+    void elTokenDeRefrescoNoLlevaRolesYLlevaTypeRefresh() throws Exception {
         SignedJWT token = SignedJWT.parse(signer.generateRefreshToken(usuario));
 
         assertEquals(ISSUER, token.getJWTClaimsSet().getIssuer());
@@ -107,18 +99,19 @@ class TokenClaimsContractTest {
         assertNotNull(token.getJWTClaimsSet().getExpirationTime());
         assertNotNull(token.getJWTClaimsSet().getIssueTime());
         assertEquals(usuario.getId().toString(), token.getJWTClaimsSet().getSubject());
-        assertFalse(((List<?>) token.getJWTClaimsSet().getClaim("roles")).isEmpty());
+        assertEquals("refresh", token.getJWTClaimsSet().getStringClaim("type"));
+        assertNull(token.getJWTClaimsSet().getClaim("roles"), "El refresh token nunca debe portar roles");
     }
 
     @Test
-    @DisplayName("El token de restablecimiento no revela a quien corresponde")
-    void elTokenDeRestablecimientoNoRevelaLaIdentidad() throws Exception {
+    @DisplayName("El token de restablecimiento vincula el userId y lleva type: password_reset")
+    void elTokenDeRestablecimientoVinculaUserIdYLlevaType() throws Exception {
         SignedJWT token = SignedJWT.parse(signer.generatePasswordResetToken(usuario.getId()));
 
         assertEquals(ISSUER, token.getJWTClaimsSet().getIssuer());
         assertTrue(token.getJWTClaimsSet().getAudience().contains(AUDIENCE));
         assertNotNull(token.getJWTClaimsSet().getJWTID());
-        assertEquals(null, token.getJWTClaimsSet().getSubject(),
-                "El token de restablecimiento viaja por correo: no debe revelar a que usuario corresponde");
+        assertEquals(usuario.getId().toString(), token.getJWTClaimsSet().getSubject());
+        assertEquals("password_reset", token.getJWTClaimsSet().getStringClaim("type"));
     }
 }

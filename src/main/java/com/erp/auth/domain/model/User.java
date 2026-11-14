@@ -36,7 +36,7 @@ public class User implements Serializable {
                 Set<Role> roles,
                 Instant createdAt) {
         if (id == null || tenantId == null || email == null || passwordHash == null) {
-            throw new IllegalArgumentException("Campos obligatorios del usuario no pueden ser nulos");
+            throw new IllegalArgumentException("Required user fields cannot be null");
         }
         this.id = id;
         this.tenantId = tenantId;
@@ -96,14 +96,14 @@ public class User implements Serializable {
 
     public void changePassword(PasswordHash newPasswordHash) {
         if (newPasswordHash == null) {
-            throw new IllegalArgumentException("La nueva contraseña no puede ser nula");
+            throw new IllegalArgumentException("New password cannot be null");
         }
         this.passwordHash = newPasswordHash;
     }
 
     public void changeEmail(Email newEmail) {
         if (newEmail == null) {
-            throw new IllegalArgumentException("El nuevo correo no puede ser nulo");
+            throw new IllegalArgumentException("New email cannot be null");
         }
         this.email = newEmail;
     }

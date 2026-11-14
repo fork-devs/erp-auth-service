@@ -228,6 +228,7 @@ class UserInvitationServiceTest {
         when(tokenSignerPort.generateAccessToken(any())).thenReturn("jwt-access-token-xyz");
         when(tokenSignerPort.extractTokenId("jwt-access-token-xyz")).thenReturn("token-id-123");
         when(tokenSignerPort.generateRefreshToken(any())).thenReturn("raw-refresh-token");
+        when(tokenSignerPort.hashToken("raw-refresh-token")).thenReturn("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
         when(tokenSignerPort.getRefreshTokenDuration()).thenReturn(Duration.ofDays(7));
         when(tokenSignerPort.getAccessTokenDuration()).thenReturn(Duration.ofMinutes(15));
 

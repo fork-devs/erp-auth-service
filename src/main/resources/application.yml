@@ -88,6 +88,10 @@ erp:
     rate-limit:
       max-failed-attempts: ${AUTH_MAX_FAILED_ATTEMPTS:5}
       lock-duration-minutes: ${AUTH_LOCK_DURATION_MINUTES:15}
+    token:
+      # Pepper del servidor para calcular el HMAC-SHA256 de tokens almacenados.
+      # Protege contra rainbow tables y ataques offline en caso de fuga de base de datos.
+      hash-pepper: ${TOKEN_HASH_PEPPER:default-dev-token-hash-pepper-change-in-production-32chars}
   notification:
     brevo:
       api-key: ${BREVO_API_KEY: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}

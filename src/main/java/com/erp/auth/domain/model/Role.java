@@ -11,10 +11,10 @@ public class Role implements Serializable {
 
     public Role(UUID id, RoleCode code, String description) {
         if (id == null) {
-            throw new IllegalArgumentException("Id del rol no puede ser nulo");
+            throw new IllegalArgumentException("Role id cannot be null");
         }
         if (code == null) {
-            throw new IllegalArgumentException("Código de rol no puede ser nulo");
+            throw new IllegalArgumentException("Role code cannot be null");
         }
         this.id = id;
         this.code = code;

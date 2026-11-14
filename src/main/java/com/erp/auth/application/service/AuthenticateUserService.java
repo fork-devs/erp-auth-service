@@ -143,7 +143,7 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
         // Always verify the password before rejecting the request for any reason.
         // If the account is locked and rejected early without verifying, response times
         // would reveal account state: an attacker could distinguish "locked" from "nonexistent".
-        boolean passwordMatches = passwordEncoderPort.matches(command.password(), user.getPasswordHash().getValue());
+        boolean passwordMatches = passwordEncoderPort.matches(command.password(), user.getPasswordHash().value());
 
         // Verify whether the account is locked due to failed attempts (QA-5)
         if (user.isAccountLocked()) {
@@ -198,7 +198,7 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
             String refreshTokenHash = tokenSignerPort.hashToken(rawRefreshToken);
             Instant refreshTokenExpiry = Instant.now().plus(tokenSignerPort.getRefreshTokenDuration());
 
-            RefreshToken refreshTokenEntity = RefreshToken.create(user.getId(), user.getTenantId().getValue(),
+            RefreshToken refreshTokenEntity = RefreshToken.create(user.getId(), user.getTenantId().value(),
                     refreshTokenHash, refreshTokenExpiry);
             refreshTokenRepositoryPort.save(refreshTokenEntity);
 
@@ -213,8 +213,8 @@ public class AuthenticateUserService implements AuthenticateUserUseCase {
                     "Bearer",
                     tokenSignerPort.getAccessTokenDuration().toSeconds(),
                     user.getId(),
-                    user.getTenantId().getValue(),
-                    user.getEmail().getValue(),
+                    user.getTenantId().value(),
+                    user.getEmail().value(),
                     user.getFullName(),
                     roleCodes
             );

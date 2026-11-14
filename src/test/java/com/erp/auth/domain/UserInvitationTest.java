@@ -58,7 +58,7 @@ class UserInvitationTest {
 
         assertThatThrownBy(invitation::accept)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("ya ha sido aceptada");
+                .hasMessageContaining("already been accepted");
     }
 
     @Test
@@ -81,6 +81,6 @@ class UserInvitationTest {
 
         assertThatThrownBy(invitation::accept)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("ha expirado");
+                .hasMessageContaining("expired");
     }
 }

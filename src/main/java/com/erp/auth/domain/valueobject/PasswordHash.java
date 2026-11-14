@@ -1,36 +1,19 @@
 package com.erp.auth.domain.valueobject;
 
 import java.io.Serializable;
-import java.util.Objects;
 
-public final class PasswordHash implements Serializable {
-    private final String value;
+public record PasswordHash(String value) implements Serializable {
 
-    public PasswordHash(String value) {
+    private static final long serialVersionUID = 1L;
+
+    public PasswordHash {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException("El hash de contraseña no puede estar vacío");
+            throw new IllegalArgumentException("Password hash cannot be blank");
         }
-        this.value = value;
     }
 
     public static PasswordHash of(String value) {
         return new PasswordHash(value);
-    }
-
-    public String getValue() {
-        return value;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof PasswordHash that)) return false;
-        return Objects.equals(value, that.value);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
     }
 
     @Override

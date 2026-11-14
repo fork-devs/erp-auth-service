@@ -75,7 +75,7 @@ class LoginTimingUniformityTest extends AbstractPostgresIntegrationTest {
     void setUp() {
         correo = "cronometro-" + UUID.randomUUID() + "@taller.pe";
 
-        Role asesor = roleRepositoryPort.findByCode(RoleCode.ASESOR)
+        Role asesor = roleRepositoryPort.findByCode(RoleCode.SERVICE_ADVISOR)
                 .orElseThrow(() -> new AssertionError("El rol ASESOR deberia estar sembrado"));
         User user = User.create(
                 new TenantId(TALLER),

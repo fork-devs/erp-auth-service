@@ -142,7 +142,7 @@ class JwtAuthenticationFilterTenantSourceTest {
                 Email.of("usuario@driveos.pe"),
                 PasswordHash.of("hash"),
                 "Usuario de Prueba",
-                Set.of(new Role(UUID.randomUUID(), RoleCode.ASESOR, "Asesor")));
+                Set.of(new Role(UUID.randomUUID(), RoleCode.SERVICE_ADVISOR, "Asesor")));
         return signer.generateAccessToken(user);
     }
 }

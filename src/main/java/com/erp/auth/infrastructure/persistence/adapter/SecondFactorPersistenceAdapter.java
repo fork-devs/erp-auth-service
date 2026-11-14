@@ -8,6 +8,7 @@ import com.erp.auth.infrastructure.persistence.repository.SpringDataUserReposito
 import com.erp.auth.infrastructure.persistence.TransactionGuard;
 import com.erp.auth.infrastructure.security.crypto.SecretCipher;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -34,6 +35,7 @@ public class SecondFactorPersistenceAdapter implements SecondFactorRepositoryPor
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void storeSecret(UUID userId, String secret) {
         transactionGuard.requireActiveTransaction("storeSecondFactorSecret");
         UserJpaEntity user = userRepository.findById(userId).orElseThrow(
@@ -57,6 +59,7 @@ public class SecondFactorPersistenceAdapter implements SecondFactorRepositoryPor
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void recordAcceptedCounter(UUID userId, long counter) {
         transactionGuard.requireActiveTransaction("recordAcceptedSecondFactorCode");
         UserJpaEntity user = userRepository.findById(userId).orElseThrow(
@@ -66,16 +69,22 @@ public class SecondFactorPersistenceAdapter implements SecondFactorRepositoryPor
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void storeRecoveryCodes(UUID userId, List<String> hashedCodes, Instant expiresAt) {
         transactionGuard.requireActiveTransaction("storeRecoveryCodes");
+        UUID tenantId = userRepository.findById(userId)
+                .map(UserJpaEntity::getTenantId)
+                .orElse(null);
+
         List<RecoveryCodeJpaEntity> entidades = hashedCodes.stream()
                 .map(hash -> new RecoveryCodeJpaEntity(
-                        UUID.randomUUID(), userId, hash, null, expiresAt, Instant.now()))
+                        UUID.randomUUID(), userId, tenantId, hash, null, expiresAt, Instant.now()))
                 .toList();
         recoveryCodeRepository.saveAll(entidades);
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public Optional<RecoveryCode> consumeRecoveryCode(UUID userId, String hashedCode) {
         transactionGuard.requireActiveTransaction("consumeRecoveryCode");
 
@@ -98,6 +107,7 @@ public class SecondFactorPersistenceAdapter implements SecondFactorRepositoryPor
     /**
      * Purges expired recovery codes.
      */
+    @Transactional(propagation = Propagation.MANDATORY)
     public int deleteExpiredRecoveryCodes(Instant now) {
         transactionGuard.requireActiveTransaction("deleteExpiredRecoveryCodes");
         return recoveryCodeRepository.deleteExpired(now);

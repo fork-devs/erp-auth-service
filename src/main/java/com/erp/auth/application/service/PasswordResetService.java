@@ -76,22 +76,22 @@ public class PasswordResetService implements PasswordResetUseCase {
         // Invalidation of previous tokens and issuance of the new token occur
         // atomically: failure after invalidation would strand the user without recovery options.
         unitOfWork.runInTransaction(() -> {
-            passwordResetTokenRepositoryPort.invalidateAllByUserId(user.getId());
+            passwordResetTokenRepositoryPort.invalidateAllByUserId(new com.erp.auth.domain.valueobject.UserId(user.getId()), user.getTenantId());
 
             String rawToken = tokenSignerPort.generatePasswordResetToken(user.getId());
             String tokenHash = tokenSignerPort.hashToken(rawToken);
             Instant expiresAt = Instant.now().plus(tokenSignerPort.getPasswordResetTokenDuration());
 
-            PasswordResetToken resetToken = PasswordResetToken.create(user.getId(), user.getTenantId().getValue(),
+            PasswordResetToken resetToken = PasswordResetToken.create(user.getId(), user.getTenantId().value(),
                     tokenHash, expiresAt);
             passwordResetTokenRepositoryPort.save(resetToken);
 
             // Deliver token to recipient rather than returning it in API response.
             // Direct return would expose credentials to whoever invoked the endpoint.
-            AuthEventLogger.registrar("restablecimiento_solicitado", user.getTenantId().getValue(), user.getId(),
+            AuthEventLogger.registrar("restablecimiento_solicitado", user.getTenantId().value(), user.getId(),
                     null, "ok", Map.of());
             notificationPort.deliver(NotificationMessage.of(
-                    user.getEmail().getValue(),
+                    user.getEmail().value(),
                     "Restablecimiento de contrasena",
                     "Use este token para restablecer su contrasena: " + rawToken));
         });
@@ -110,6 +110,10 @@ public class PasswordResetService implements PasswordResetUseCase {
         String tokenHash = tokenSignerPort.hashToken(command.token().trim());
         PasswordResetToken resetToken = passwordResetTokenRepositoryPort.findByTokenHashAndTenantId(tokenHash, command.tenantId())
                 .orElseThrow(() -> new InvalidTokenException("Token de restablecimiento inválido"));
+
+        if (resetToken.isUsed()) {
+            throw new InvalidTokenException("El token de restablecimiento ya ha sido utilizado");
+        }
 
         if (!resetToken.isValid()) {
             throw new TokenExpiredException();
@@ -130,8 +134,11 @@ public class PasswordResetService implements PasswordResetUseCase {
             user.recordSuccessfulLogin();
             userRepositoryPort.save(user);
 
+            // Invalidate all other reset tokens for this user in this tenant
+            passwordResetTokenRepositoryPort.invalidateAllByUserId(new com.erp.auth.domain.valueobject.UserId(user.getId()), user.getTenantId());
+
             // Revoke all existing refresh tokens for security
-            refreshTokenRepositoryPort.revokeAllByUserId(user.getId());
+            refreshTokenRepositoryPort.revokeAllByUserId(new com.erp.auth.domain.valueobject.UserId(user.getId()), user.getTenantId());
         });
     }
 }

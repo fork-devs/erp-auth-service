@@ -114,7 +114,7 @@ class UserSelfServiceTest {
         when(tokenSignerPort.generateAccessToken(any(User.class))).thenReturn("new-access-token");
         when(tokenSignerPort.extractTokenId("new-access-token")).thenReturn("token-id-456");
         when(tokenSignerPort.generateRefreshToken(any(User.class))).thenReturn("new-refresh-token");
-        when(tokenSignerPort.hashToken("new-refresh-token")).thenReturn("new-refresh-hash");
+        when(tokenSignerPort.hashToken("new-refresh-token")).thenReturn("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
         when(tokenSignerPort.getRefreshTokenDuration()).thenReturn(Duration.ofDays(7));
         when(tokenSignerPort.getAccessTokenDuration()).thenReturn(Duration.ofMinutes(15));
 
@@ -122,7 +122,7 @@ class UserSelfServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.accessToken()).isEqualTo("new-access-token");
-        verify(refreshTokenRepositoryPort).revokeAllByUserId(user.getId());
+        verify(refreshTokenRepositoryPort).revokeAllByUserId(new com.erp.auth.domain.valueobject.UserId(user.getId()), user.getTenantId());
         verify(userRepositoryPort).save(user);
     }
 
@@ -164,7 +164,7 @@ class UserSelfServiceTest {
                 userId, "CurrentPassword123!", "NewSecurePassword456!"));
 
         verify(userRepositoryPort).save(user);
-        verify(refreshTokenRepositoryPort).revokeAllByUserId(user.getId());
+        verify(refreshTokenRepositoryPort).revokeAllByUserId(new com.erp.auth.domain.valueobject.UserId(user.getId()), user.getTenantId());
     }
 
     @Test

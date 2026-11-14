@@ -80,7 +80,7 @@ class GoogleAuthenticationServiceTest {
         when(tokenSignerPort.generateAccessToken(any(User.class))).thenReturn("access-token-jwt");
         when(tokenSignerPort.extractTokenId("access-token-jwt")).thenReturn("token-id-123");
         when(tokenSignerPort.generateRefreshToken(any(User.class))).thenReturn("refresh-token-uuid");
-        when(tokenSignerPort.hashToken("refresh-token-uuid")).thenReturn("refresh-token-hash");
+        when(tokenSignerPort.hashToken("refresh-token-uuid")).thenReturn("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
         when(tokenSignerPort.getRefreshTokenDuration()).thenReturn(Duration.ofDays(7));
         when(tokenSignerPort.getAccessTokenDuration()).thenReturn(Duration.ofMinutes(15));
 
@@ -114,7 +114,7 @@ class GoogleAuthenticationServiceTest {
         when(tokenSignerPort.generateAccessToken(any(User.class))).thenReturn("access-token-jwt");
         when(tokenSignerPort.extractTokenId("access-token-jwt")).thenReturn("token-id-123");
         when(tokenSignerPort.generateRefreshToken(any(User.class))).thenReturn("refresh-token-uuid");
-        when(tokenSignerPort.hashToken("refresh-token-uuid")).thenReturn("refresh-token-hash");
+        when(tokenSignerPort.hashToken("refresh-token-uuid")).thenReturn("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
         when(tokenSignerPort.getRefreshTokenDuration()).thenReturn(Duration.ofDays(7));
         when(tokenSignerPort.getAccessTokenDuration()).thenReturn(Duration.ofMinutes(15));
 

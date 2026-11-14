@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -73,7 +74,7 @@ public class SecondFactorEnrollmentService
         User user = userRepositoryPort.findByIdAndTenantId(userId, new TenantId(tenantId))
                 .orElseThrow(() -> new UserNotFoundException(userId.toString()));
 
-        SecondFactorPort.SecondFactorSecret enrolado = secondFactorPort.enroll();
+        SecondFactorPort.SecondFactorSecret enrolado = secondFactorPort.enroll(user.getEmail().value());
 
         List<String> codigos = java.util.stream.IntStream.range(0, RECOVERY_CODE_COUNT)
                 .mapToObj(i -> totpAdapter.generarCodigoDeRecuperacion())
@@ -90,7 +91,7 @@ public class SecondFactorEnrollmentService
         // Delivery is performed OUTSIDE the transaction boundary: external notification
         // calls should not keep database transactions open.
         notificationPort.deliver(NotificationMessage.of(
-                user.getEmail().getValue(),
+                user.getEmail().value(),
                 "Activa tu segundo factor de autenticacion",
                 "Enlaza esta clave en tu aplicacion autenticadora: " + enrolado.uri()
                         + "\n\nCodigos de recuperacion (cada uno sirve una sola vez):\n"
@@ -108,12 +109,22 @@ public class SecondFactorEnrollmentService
                 .orElseThrow(() -> new InvalidSecondFactorCodeException(
                         "El usuario no tiene ningun segundo factor enrolado"));
 
-        if (secondFactorPort.verify(secreto, code, Instant.now()).isEmpty()) {
-            throw new InvalidSecondFactorCodeException();
+        Optional<Long> contador = secondFactorPort.verify(secreto, code, Instant.now());
+        Long ultimo = secondFactorRepositoryPort.findLastAcceptedCounter(userId).orElse(-1L);
+        if (contador.isEmpty() || contador.get() <= ultimo) {
+            user.recordFailedAttempt(5, Duration.ofMinutes(15));
+            unitOfWork.runInTransaction(() -> userRepositoryPort.save(user));
+            if (user.isAccountLocked()) {
+                throw new InvalidSecondFactorCodeException("Demasiados intentos fallidos de 2FA. Cuenta bloqueada temporalmente.");
+            }
+            throw new InvalidSecondFactorCodeException("Código de segundo factor inválido o previamente utilizado");
         }
 
         user.enableSecondFactor();
-        unitOfWork.runInTransaction(() -> userRepositoryPort.save(user));
+        unitOfWork.runInTransaction(() -> {
+            secondFactorRepositoryPort.recordAcceptedCounter(userId, contador.get());
+            userRepositoryPort.save(user);
+        });
 
         log.info("Segundo factor confirmado y habilitado para el usuario {}", userId);
     }
