@@ -45,6 +45,9 @@ public class UserJpaEntity {
     @Column(name = "mfa_enabled")
     private Boolean mfaEnabled;
 
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     /**
      * Optimistic locking version. Prevents concurrent writes from overwriting each other
      * without detection.
@@ -207,5 +210,13 @@ public class UserJpaEntity {
 
     public void setUserRoles(Set<UserRoleJpaEntity> userRoles) {
         this.userRoles = userRoles;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 }
