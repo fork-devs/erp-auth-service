@@ -14,8 +14,12 @@ import com.erp.auth.application.usecase.RegisterUserUseCase;
 import com.erp.auth.application.usecase.UpdateUserEmailUseCase;
 import com.erp.auth.application.usecase.UpdateUserPasswordUseCase;
 import com.erp.auth.domain.exception.TenantContextMissingException;
+import com.erp.auth.domain.exception.UserNotFoundException;
 import com.erp.auth.domain.model.RoleCode;
 import com.erp.auth.domain.valueobject.TenantId;
+import com.erp.auth.infrastructure.adapter.external.MediaUploadClient;
+import com.erp.auth.infrastructure.persistence.entity.UserJpaEntity;
+import com.erp.auth.infrastructure.persistence.repository.SpringDataUserRepository;
 import com.erp.auth.infrastructure.persistence.rls.TenantContextHolder;
 import com.erp.auth.interfaces.rest.dto.request.RegisterUserRequest;
 import com.erp.auth.interfaces.rest.dto.request.SecondFactorRequest;
@@ -28,17 +32,22 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -61,6 +70,12 @@ public class UserController {
     private final UpdateUserEmailUseCase updateUserEmailUseCase;
     private final UpdateUserPasswordUseCase updateUserPasswordUseCase;
     private final com.erp.auth.application.usecase.InviteUserUseCase inviteUserUseCase;
+
+    @Autowired(required = false)
+    private MediaUploadClient mediaUploadClient;
+
+    @Autowired(required = false)
+    private SpringDataUserRepository userRepository;
 
     public UserController(
             RegisterUserUseCase registerUserUseCase,
@@ -282,6 +297,34 @@ public class UserController {
                 result.email(),
                 result.fullName(),
                 result.roles()
+        ));
+    }
+
+    @PutMapping(value = "/{userId}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("isAuthenticated() and @userSecurityService.isCurrentUser(#userId)")
+    @Transactional
+    @Operation(summary = "Subir avatar de usuario", description = "Sube una foto de perfil a Cloudflare R2 y actualiza el avatar del usuario")
+    public ResponseEntity<UserResponse> uploadAvatar(
+            @PathVariable("userId") UUID userId,
+            @RequestParam("file") MultipartFile file) {
+        if (mediaUploadClient == null || userRepository == null) {
+            throw new IllegalStateException("Media upload dependencies are not configured");
+        }
+        UserJpaEntity entity = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
+        MediaUploadClient.UploadedMedia uploaded = mediaUploadClient.upload(file, "avatars/" + userId);
+        entity.setAvatarUrl(uploaded.url());
+        userRepository.save(entity);
+        UserResult result = getUserByIdUseCase.getUserById(userId);
+        return ResponseEntity.ok(new UserResponse(
+                result.id(),
+                result.tenantId(),
+                result.email(),
+                result.fullName(),
+                result.mfaEnabled(),
+                result.roles(),
+                result.createdAt(),
+                entity.getAvatarUrl()
         ));
     }
 
