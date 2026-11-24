@@ -259,6 +259,32 @@ public class GlobalRestExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
     }
 
+    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+    public ResponseEntity<ProblemDetail> handleMissingParam(
+            org.springframework.web.bind.MissingServletRequestParameterException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                "Required parameter '" + ex.getParameterName() + "' is missing.");
+        problem.setTitle("Parámetro Requerido Ausente");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/missing-parameter"));
+        problem.setProperty("errorCode", "MISSING_PARAMETER");
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
+    }
+
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ProblemDetail> handleNoResourceFound(
+            org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND,
+                "Endpoint not found: " + ex.getResourcePath());
+        problem.setTitle("Recurso No Encontrado");
+        problem.setType(URI.create("https://errors.erp-automotriz.com/auth/not-found"));
+        problem.setProperty("errorCode", "NOT_FOUND");
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGeneralException(Exception ex) {
         // Log full exception stack trace internally for diagnostics while returning generic error
