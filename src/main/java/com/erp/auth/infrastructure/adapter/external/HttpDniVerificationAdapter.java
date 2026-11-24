@@ -57,7 +57,7 @@ public class HttpDniVerificationAdapter implements DniVerificationPort {
         }
 
         try {
-            String uriString = baseUrl + "/api/v1/integrations/validate/lookup?type=DNI&number=" + dni;
+            String uriString = baseUrl + "/api/v1/identity-validations/lookup?type=DNI&number=" + dni;
             HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(uriString))
                     .timeout(Duration.ofSeconds(6))
