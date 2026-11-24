@@ -57,7 +57,6 @@ public class PostgresTenantRlsAspect {
             + " || execution(* com.erp.auth.infrastructure.persistence.adapter.PasswordResetTokenPersistenceAdapter.*(..))"
             + " || execution(* com.erp.auth.infrastructure.persistence.adapter.SecondFactorPersistenceAdapter.*(..))"
             + " || execution(* com.erp.auth.infrastructure.persistence.adapter.UserInvitationPersistenceAdapter.*(..))"
-            + " || execution(* com.erp.auth.infrastructure.persistence.adapter.OtpVerificationPersistenceAdapter.*(..))"
             + " || (execution(* com.erp.auth.infrastructure.persistence.adapter.RevokedTokenPersistenceAdapter.*(..))"
             + "     && !execution(* com.erp.auth.infrastructure.persistence.adapter.RevokedTokenPersistenceAdapter.deleteExpired(..)))")
     public void applyTenantContext() {
