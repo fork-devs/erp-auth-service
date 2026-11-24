@@ -5,6 +5,7 @@ import com.erp.auth.application.dto.command.ForgotPasswordCommand;
 import com.erp.auth.application.dto.command.GoogleLoginCommand;
 import com.erp.auth.application.dto.command.LoginCommand;
 import com.erp.auth.application.dto.command.RefreshTokenCommand;
+import com.erp.auth.application.dto.command.RegisterUserCommand;
 import com.erp.auth.application.dto.command.ResetPasswordCommand;
 import com.erp.auth.application.dto.command.SendOtpCommand;
 import com.erp.auth.application.dto.command.VerifyOtpCommand;
@@ -16,15 +17,23 @@ import com.erp.auth.application.usecase.GetInvitationUseCase;
 import com.erp.auth.application.usecase.GoogleLoginUseCase;
 import com.erp.auth.application.usecase.PasswordResetUseCase;
 import com.erp.auth.application.usecase.RefreshTokenUseCase;
+import com.erp.auth.application.usecase.RegisterUserUseCase;
 import com.erp.auth.application.usecase.RevokeAccessTokenUseCase;
 import com.erp.auth.application.usecase.RevokeTokenUseCase;
 import com.erp.auth.application.usecase.SendOtpUseCase;
 import com.erp.auth.application.usecase.VerifyOtpUseCase;
+import com.erp.auth.domain.exception.InvalidOtpException;
+import com.erp.auth.domain.model.OtpVerification;
+import com.erp.auth.domain.model.RoleCode;
+import com.erp.auth.domain.port.OtpVerificationRepositoryPort;
+import com.erp.auth.domain.valueobject.Email;
+import com.erp.auth.domain.valueobject.TenantId;
 import com.erp.auth.infrastructure.persistence.rls.TenantContextScope;
 import com.erp.auth.interfaces.rest.dto.request.AcceptInvitationRequest;
 import com.erp.auth.interfaces.rest.dto.request.ForgotPasswordRequest;
 import com.erp.auth.interfaces.rest.dto.request.GoogleLoginRequest;
 import com.erp.auth.interfaces.rest.dto.request.LoginRequest;
+import com.erp.auth.interfaces.rest.dto.request.PublicRegistrationRequest;
 import com.erp.auth.interfaces.rest.dto.request.RefreshTokenRequest;
 import com.erp.auth.interfaces.rest.dto.request.ResetPasswordRequest;
 import com.erp.auth.interfaces.rest.dto.request.SendOtpRequest;
@@ -36,6 +45,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -62,6 +72,8 @@ public class AuthenticationController {
     private final VerifyOtpUseCase verifyOtpUseCase;
     private final AcceptInvitationUseCase acceptInvitationUseCase;
     private final GetInvitationUseCase getInvitationUseCase;
+    private final RegisterUserUseCase registerUserUseCase;
+    private final OtpVerificationRepositoryPort otpVerificationRepositoryPort;
 
     public AuthenticationController(
             AuthenticateUserUseCase authenticateUserUseCase,
@@ -74,7 +86,23 @@ public class AuthenticationController {
             VerifyOtpUseCase verifyOtpUseCase) {
         this(authenticateUserUseCase, googleLoginUseCase, refreshTokenUseCase,
                 revokeAccessTokenUseCase, revokeTokenUseCase, passwordResetUseCase,
-                sendOtpUseCase, verifyOtpUseCase, null, null);
+                sendOtpUseCase, verifyOtpUseCase, null, null, null, null);
+    }
+
+    public AuthenticationController(
+            AuthenticateUserUseCase authenticateUserUseCase,
+            GoogleLoginUseCase googleLoginUseCase,
+            RefreshTokenUseCase refreshTokenUseCase,
+            RevokeAccessTokenUseCase revokeAccessTokenUseCase,
+            RevokeTokenUseCase revokeTokenUseCase,
+            PasswordResetUseCase passwordResetUseCase,
+            SendOtpUseCase sendOtpUseCase,
+            VerifyOtpUseCase verifyOtpUseCase,
+            AcceptInvitationUseCase acceptInvitationUseCase,
+            GetInvitationUseCase getInvitationUseCase) {
+        this(authenticateUserUseCase, googleLoginUseCase, refreshTokenUseCase,
+                revokeAccessTokenUseCase, revokeTokenUseCase, passwordResetUseCase,
+                sendOtpUseCase, verifyOtpUseCase, acceptInvitationUseCase, getInvitationUseCase, null, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -88,7 +116,9 @@ public class AuthenticationController {
             SendOtpUseCase sendOtpUseCase,
             VerifyOtpUseCase verifyOtpUseCase,
             @org.springframework.beans.factory.annotation.Autowired(required = false) AcceptInvitationUseCase acceptInvitationUseCase,
-            @org.springframework.beans.factory.annotation.Autowired(required = false) GetInvitationUseCase getInvitationUseCase) {
+            @org.springframework.beans.factory.annotation.Autowired(required = false) GetInvitationUseCase getInvitationUseCase,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) RegisterUserUseCase registerUserUseCase,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) OtpVerificationRepositoryPort otpVerificationRepositoryPort) {
         this.authenticateUserUseCase = authenticateUserUseCase;
         this.googleLoginUseCase = googleLoginUseCase;
         this.refreshTokenUseCase = refreshTokenUseCase;
@@ -99,6 +129,8 @@ public class AuthenticationController {
         this.verifyOtpUseCase = verifyOtpUseCase;
         this.acceptInvitationUseCase = acceptInvitationUseCase;
         this.getInvitationUseCase = getInvitationUseCase;
+        this.registerUserUseCase = registerUserUseCase;
+        this.otpVerificationRepositoryPort = otpVerificationRepositoryPort;
     }
 
     @PostMapping("/sessions")
@@ -229,6 +261,46 @@ public class AuthenticationController {
                     new AcceptInvitationCommand(request.token(), request.password()));
         }
         return ResponseEntity.ok(toAuthResponse(result));
+    }
+
+    @PostMapping("/registrations")
+    @PreAuthorize("permitAll()")
+    @Operation(summary = "Auto-registro público con OTP verificado", description = "Registra un dueño de taller (WORKSHOP_ADMIN) o cliente (CUSTOMER) tras verificar su correo vía OTP y emite credenciales de sesión")
+    public ResponseEntity<AuthResponse> registerPublic(@Valid @RequestBody PublicRegistrationRequest request) {
+        if (registerUserUseCase == null || otpVerificationRepositoryPort == null) {
+            throw new IllegalStateException("Public registration dependencies are not configured");
+        }
+        String normalizedType = request.accountType().trim().toUpperCase();
+        RoleCode targetRole = switch (normalizedType) {
+            case "OWNER", "WORKSHOP_ADMIN" -> RoleCode.WORKSHOP_ADMIN;
+            case "CUSTOMER" -> RoleCode.CUSTOMER;
+            default -> throw new IllegalArgumentException("Unsupported accountType. Allowed values: OWNER, CUSTOMER");
+        };
+
+        OtpVerification latestOtp = otpVerificationRepositoryPort.findLatestByEmail(Email.of(request.email()))
+                .orElseThrow(() -> new InvalidOtpException("Email must be verified with OTP before registering"));
+        if (!latestOtp.isVerified() || latestOtp.isExpired(java.time.Clock.systemUTC())) {
+            throw new InvalidOtpException("OTP verification is missing, unverified, or expired");
+        }
+
+        java.util.UUID resolvedTenantId = request.tenantId() != null
+                ? request.tenantId()
+                : java.util.UUID.randomUUID();
+
+        AuthResult authResult;
+        try (TenantContextScope scope = TenantContextScope.forTenant(resolvedTenantId)) {
+            registerUserUseCase.register(new RegisterUserCommand(
+                    new TenantId(resolvedTenantId),
+                    request.email(),
+                    request.password(),
+                    request.fullName(),
+                    java.util.Set.of(targetRole),
+                    RoleCode.SUPERADMIN
+            ));
+            authResult = authenticateUserUseCase.authenticate(
+                    new LoginCommand(request.email(), request.password(), resolvedTenantId));
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(toAuthResponse(authResult));
     }
 
     private AuthResponse toAuthResponse(AuthResult result) {
