@@ -30,11 +30,19 @@ public final class RoleAssignmentPolicy {
             case SUPERADMIN -> EnumSet.allOf(RoleCode.class);
             case WORKSHOP_ADMIN -> EnumSet.of(
                     RoleCode.WORKSHOP_ADMIN,
+                    RoleCode.BRANCH_MANAGER,
                     RoleCode.SERVICE_ADVISOR,
+                    RoleCode.SECRETARY,
                     RoleCode.TECHNICIAN,
                     RoleCode.CUSTOMER
             );
-            case SERVICE_ADVISOR, TECHNICIAN, CUSTOMER -> Set.of();
+            case BRANCH_MANAGER -> EnumSet.of(
+                    RoleCode.SERVICE_ADVISOR,
+                    RoleCode.SECRETARY,
+                    RoleCode.TECHNICIAN,
+                    RoleCode.CUSTOMER
+            );
+            case SERVICE_ADVISOR, SECRETARY, TECHNICIAN, CUSTOMER -> Set.of();
         };
     }
 

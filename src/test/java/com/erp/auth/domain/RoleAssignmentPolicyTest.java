@@ -28,10 +28,30 @@ class RoleAssignmentPolicyTest {
     void elAdministradorDeTallerConcedeSoloLosRolesDeSuAmbito() {
         assertEquals(EnumSet.of(
                 RoleCode.WORKSHOP_ADMIN,
+                RoleCode.BRANCH_MANAGER,
                 RoleCode.SERVICE_ADVISOR,
+                RoleCode.SECRETARY,
                 RoleCode.TECHNICIAN,
                 RoleCode.CUSTOMER
         ), RoleAssignmentPolicy.assignableRolesFor(RoleCode.WORKSHOP_ADMIN));
+    }
+
+    @Test
+    void branchManagerGrantsOperationalBranchRolesOnly() {
+        assertEquals(EnumSet.of(
+                RoleCode.SERVICE_ADVISOR,
+                RoleCode.SECRETARY,
+                RoleCode.TECHNICIAN,
+                RoleCode.CUSTOMER
+        ), RoleAssignmentPolicy.assignableRolesFor(RoleCode.BRANCH_MANAGER));
+        assertFalse(RoleAssignmentPolicy.canAssign(RoleCode.BRANCH_MANAGER, RoleCode.WORKSHOP_ADMIN));
+        assertFalse(RoleAssignmentPolicy.canAssign(RoleCode.BRANCH_MANAGER, RoleCode.BRANCH_MANAGER));
+    }
+
+    @Test
+    void secretaryCannotGrantAnyRole() {
+        assertTrue(RoleAssignmentPolicy.assignableRolesFor(RoleCode.SECRETARY).isEmpty());
+        assertNull(RoleAssignmentPolicy.defaultRoleFor(RoleCode.SECRETARY));
     }
 
     @Test
@@ -71,5 +91,9 @@ class RoleAssignmentPolicyTest {
         assertEquals(RoleCode.SERVICE_ADVISOR, RoleCode.fromString("ASESOR"));
         assertEquals(RoleCode.TECHNICIAN, RoleCode.fromString("MECANICO"));
         assertEquals(RoleCode.CUSTOMER, RoleCode.fromString("CLIENTE"));
+        assertEquals(RoleCode.BRANCH_MANAGER, RoleCode.fromString("JEFE_SEDE"));
+        assertEquals(RoleCode.SECRETARY, RoleCode.fromString("SECRETARIA"));
+        assertEquals(RoleCode.SECRETARY, RoleCode.fromString("RECEPTIONIST"));
+        assertEquals(RoleCode.SECRETARY, RoleCode.fromString("RECEPCIONISTA"));
     }
 }
