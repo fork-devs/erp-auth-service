@@ -19,12 +19,12 @@ public enum RoleCode {
         String normalized = code.trim().toUpperCase();
         return switch (normalized) {
             case "SUPERADMIN", "ROLE_SUPERADMIN", "ADMIN", "ROLE_ADMIN" -> SUPERADMIN;
-            case "WORKSHOP_ADMIN", "ROLE_WORKSHOP_ADMIN", "ADMIN_TALLER", "ROLE_ADMIN_TALLER", "OWNER", "ROLE_OWNER" -> WORKSHOP_ADMIN;
-            case "BRANCH_MANAGER", "ROLE_BRANCH_MANAGER", "JEFE_SEDE", "ROLE_JEFE_SEDE" -> BRANCH_MANAGER;
-            case "SERVICE_ADVISOR", "ROLE_SERVICE_ADVISOR", "ASESOR", "ROLE_ASESOR" -> SERVICE_ADVISOR;
-            case "SECRETARY", "ROLE_SECRETARY", "SECRETARIA", "ROLE_SECRETARIA", "RECEPTIONIST", "ROLE_RECEPTIONIST", "RECEPCIONISTA" -> SECRETARY;
-            case "TECHNICIAN", "ROLE_TECHNICIAN", "MECANICO", "ROLE_MECANICO" -> TECHNICIAN;
-            case "CUSTOMER", "ROLE_CUSTOMER", "CLIENTE", "USER", "ROLE_USER" -> CUSTOMER;
+            case "WORKSHOP_ADMIN", "ROLE_WORKSHOP_ADMIN", "OWNER", "ROLE_OWNER" -> WORKSHOP_ADMIN;
+            case "BRANCH_MANAGER", "ROLE_BRANCH_MANAGER" -> BRANCH_MANAGER;
+            case "SERVICE_ADVISOR", "ROLE_SERVICE_ADVISOR" -> SERVICE_ADVISOR;
+            case "SECRETARY", "ROLE_SECRETARY", "RECEPTIONIST", "ROLE_RECEPTIONIST" -> SECRETARY;
+            case "TECHNICIAN", "ROLE_TECHNICIAN" -> TECHNICIAN;
+            case "CUSTOMER", "ROLE_CUSTOMER", "USER", "ROLE_USER" -> CUSTOMER;
             default -> {
                 try {
                     yield RoleCode.valueOf(normalized);

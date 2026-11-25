@@ -85,15 +85,16 @@ class RoleAssignmentPolicyTest {
     }
 
     @Test
-    void normalizaAliasHeredadosEnEspanol() {
-        assertEquals(RoleCode.WORKSHOP_ADMIN, RoleCode.fromString("ADMIN_TALLER"));
-        assertEquals(RoleCode.WORKSHOP_ADMIN, RoleCode.fromString("role_admin_taller"));
-        assertEquals(RoleCode.SERVICE_ADVISOR, RoleCode.fromString("ASESOR"));
-        assertEquals(RoleCode.TECHNICIAN, RoleCode.fromString("MECANICO"));
-        assertEquals(RoleCode.CUSTOMER, RoleCode.fromString("CLIENTE"));
-        assertEquals(RoleCode.BRANCH_MANAGER, RoleCode.fromString("JEFE_SEDE"));
-        assertEquals(RoleCode.SECRETARY, RoleCode.fromString("SECRETARIA"));
+    void normalizesEnglishRoleAliases() {
+        assertEquals(RoleCode.SUPERADMIN, RoleCode.fromString("ADMIN"));
+        assertEquals(RoleCode.SUPERADMIN, RoleCode.fromString("role_superadmin"));
+        assertEquals(RoleCode.WORKSHOP_ADMIN, RoleCode.fromString("OWNER"));
+        assertEquals(RoleCode.WORKSHOP_ADMIN, RoleCode.fromString("role_workshop_admin"));
+        assertEquals(RoleCode.BRANCH_MANAGER, RoleCode.fromString("ROLE_BRANCH_MANAGER"));
+        assertEquals(RoleCode.SERVICE_ADVISOR, RoleCode.fromString("ROLE_SERVICE_ADVISOR"));
         assertEquals(RoleCode.SECRETARY, RoleCode.fromString("RECEPTIONIST"));
-        assertEquals(RoleCode.SECRETARY, RoleCode.fromString("RECEPCIONISTA"));
+        assertEquals(RoleCode.SECRETARY, RoleCode.fromString("role_receptionist"));
+        assertEquals(RoleCode.TECHNICIAN, RoleCode.fromString("ROLE_TECHNICIAN"));
+        assertEquals(RoleCode.CUSTOMER, RoleCode.fromString("USER"));
     }
 }
