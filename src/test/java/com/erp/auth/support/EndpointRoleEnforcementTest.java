@@ -101,7 +101,7 @@ class EndpointRoleEnforcementTest extends AbstractPostgresIntegrationTest {
                   "email": "nuevo-%s@taller.pe",
                   "password": "ContrasenaLarga1!",
                   "fullName": "Nuevo Usuario",
-                  "role": "MECANICO"
+                  "role": "TECHNICIAN"
                 }
                 """.formatted(UUID.randomUUID().toString().substring(0, 8));
     }
