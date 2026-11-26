@@ -54,7 +54,7 @@ class CrossTenantUserRegistrationTest extends AbstractPostgresIntegrationTest {
                   "email": "nuevo@driveos.pe",
                   "password": "contrasena-larga-1",
                   "fullName": "Nuevo Usuario",
-                  "role": "MECANICO"
+                  "role": "TECHNICIAN"
                 }
                 """.formatted(TALLER_VICTIMA);
 
@@ -80,7 +80,7 @@ class CrossTenantUserRegistrationTest extends AbstractPostgresIntegrationTest {
                   "email": "cabecera@driveos.pe",
                   "password": "contrasena-larga-2",
                   "fullName": "Usuario Con Cabecera",
-                  "role": "MECANICO"
+                  "role": "TECHNICIAN"
                 }
                 """;
 
@@ -105,7 +105,7 @@ class CrossTenantUserRegistrationTest extends AbstractPostgresIntegrationTest {
                   "email": "sin-taller@driveos.pe",
                   "password": "contrasena-larga-3",
                   "fullName": "Usuario Sin Taller",
-                  "role": "MECANICO"
+                  "role": "TECHNICIAN"
                 }
                 """;
 

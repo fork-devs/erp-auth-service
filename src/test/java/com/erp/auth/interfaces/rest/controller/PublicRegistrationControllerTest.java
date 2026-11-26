@@ -7,6 +7,7 @@ import com.erp.auth.application.dto.result.UserResult;
 import com.erp.auth.application.usecase.*;
 import com.erp.auth.domain.model.OtpPurpose;
 import com.erp.auth.domain.model.OtpVerification;
+import com.erp.auth.domain.port.DniVerificationPort;
 import com.erp.auth.domain.port.OtpVerificationRepositoryPort;
 import com.erp.auth.domain.valueobject.Email;
 import com.erp.auth.domain.valueobject.OtpCodeHash;
@@ -17,7 +18,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -26,6 +26,8 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -34,11 +36,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class PublicRegistrationControllerTest {
 
     @Test
-    @DisplayName("POST /api/v1/authentication/registrations registers OWNER after OTP verification and returns 201")
-    void registerOwner_WithVerifiedOtp_Returns201() throws Exception {
+    @DisplayName("POST /api/v1/authentication/registrations registers OWNER after OTP and DNI verification and returns 201")
+    void registerOwner_WithVerifiedOtpAndValidDni_Returns201() throws Exception {
         AuthenticateUserUseCase authUseCase = mock(AuthenticateUserUseCase.class);
         RegisterUserUseCase registerUseCase = mock(RegisterUserUseCase.class);
         OtpVerificationRepositoryPort otpRepo = mock(OtpVerificationRepositoryPort.class);
+        DniVerificationPort dniPort = mock(DniVerificationPort.class);
 
         Email email = Email.of("owner@driveos.pe");
         Instant now = Instant.now();
@@ -50,18 +53,21 @@ class PublicRegistrationControllerTest {
         );
 
         when(otpRepo.findLatestByEmail(email)).thenReturn(Optional.of(verifiedOtp));
+        when(dniPort.verifyDni("70514079"))
+                .thenReturn(new DniVerificationPort.DniVerificationResult("70514079", "ALDO MACHACCA", true));
+
         UUID userId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
         when(registerUseCase.register(any(RegisterUserCommand.class)))
-                .thenReturn(new UserResult(userId, tenantId, email.value(), "Aldo Owner", false, Set.of("WORKSHOP_ADMIN"), Instant.now()));
+                .thenReturn(new UserResult(userId, tenantId, email.value(), "ALDO MACHACCA", false, Set.of("WORKSHOP_ADMIN"), Instant.now()));
         when(authUseCase.authenticate(any(LoginCommand.class)))
-                .thenReturn(new AuthResult("acc-jwt", "jti-1", "ref-tok", "Bearer", 3600L, userId, tenantId, email.value(), "Aldo Owner", Set.of("WORKSHOP_ADMIN")));
+                .thenReturn(new AuthResult("acc-jwt", "jti-1", "ref-tok", "Bearer", 3600L, userId, tenantId, email.value(), "ALDO MACHACCA", Set.of("WORKSHOP_ADMIN")));
 
         AuthenticationController controller = new AuthenticationController(
                 authUseCase, mock(GoogleLoginUseCase.class), mock(RefreshTokenUseCase.class),
                 mock(RevokeAccessTokenUseCase.class), mock(RevokeTokenUseCase.class),
                 mock(PasswordResetUseCase.class), mock(SendOtpUseCase.class), mock(VerifyOtpUseCase.class),
-                null, null, registerUseCase, otpRepo
+                null, null, registerUseCase, otpRepo, dniPort
         );
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller)
@@ -75,11 +81,97 @@ class PublicRegistrationControllerTest {
                                   "email": "owner@driveos.pe",
                                   "password": "SecurePassword2026!",
                                   "fullName": "Aldo Owner",
+                                  "documentNumber": "70514079",
                                   "accountType": "OWNER"
                                 }
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.accessToken").value("acc-jwt"))
                 .andExpect(jsonPath("$.roles[0]").value("WORKSHOP_ADMIN"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/authentication/registrations rejects unverified OTP without persisting user")
+    void registerOwner_WithUnverifiedOtp_DoesNotPersist() throws Exception {
+        AuthenticateUserUseCase authUseCase = mock(AuthenticateUserUseCase.class);
+        RegisterUserUseCase registerUseCase = mock(RegisterUserUseCase.class);
+        OtpVerificationRepositoryPort otpRepo = mock(OtpVerificationRepositoryPort.class);
+        DniVerificationPort dniPort = mock(DniVerificationPort.class);
+
+        when(otpRepo.findLatestByEmail(Email.of("owner@driveos.pe"))).thenReturn(Optional.empty());
+
+        AuthenticationController controller = new AuthenticationController(
+                authUseCase, mock(GoogleLoginUseCase.class), mock(RefreshTokenUseCase.class),
+                mock(RevokeAccessTokenUseCase.class), mock(RevokeTokenUseCase.class),
+                mock(PasswordResetUseCase.class), mock(SendOtpUseCase.class), mock(VerifyOtpUseCase.class),
+                null, null, registerUseCase, otpRepo, dniPort
+        );
+
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalRestExceptionHandler())
+                .build();
+
+        mockMvc.perform(post("/api/v1/authentication/registrations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "owner@driveos.pe",
+                                  "password": "SecurePassword2026!",
+                                  "fullName": "Aldo Owner",
+                                  "documentNumber": "70514079",
+                                  "accountType": "OWNER"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized());
+
+        verify(registerUseCase, never()).register(any());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/authentication/registrations rejects invalid DNI without persisting user")
+    void registerOwner_WithInvalidDni_DoesNotPersist() throws Exception {
+        AuthenticateUserUseCase authUseCase = mock(AuthenticateUserUseCase.class);
+        RegisterUserUseCase registerUseCase = mock(RegisterUserUseCase.class);
+        OtpVerificationRepositoryPort otpRepo = mock(OtpVerificationRepositoryPort.class);
+        DniVerificationPort dniPort = mock(DniVerificationPort.class);
+
+        Email email = Email.of("owner@driveos.pe");
+        Instant now = Instant.now();
+        OtpVerification verifiedOtp = OtpVerification.reconstitute(
+                com.erp.auth.domain.valueobject.OtpVerificationId.generate(),
+                null, null, email, OtpPurpose.EMAIL_VERIFICATION,
+                OtpCodeHash.of("a".repeat(64)), 0, true,
+                now.plus(Duration.ofMinutes(10)), now
+        );
+
+        when(otpRepo.findLatestByEmail(email)).thenReturn(Optional.of(verifiedOtp));
+        when(dniPort.verifyDni("00000000"))
+                .thenReturn(DniVerificationPort.DniVerificationResult.invalid("00000000"));
+
+        AuthenticationController controller = new AuthenticationController(
+                authUseCase, mock(GoogleLoginUseCase.class), mock(RefreshTokenUseCase.class),
+                mock(RevokeAccessTokenUseCase.class), mock(RevokeTokenUseCase.class),
+                mock(PasswordResetUseCase.class), mock(SendOtpUseCase.class), mock(VerifyOtpUseCase.class),
+                null, null, registerUseCase, otpRepo, dniPort
+        );
+
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalRestExceptionHandler())
+                .build();
+
+        mockMvc.perform(post("/api/v1/authentication/registrations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "owner@driveos.pe",
+                                  "password": "SecurePassword2026!",
+                                  "fullName": "Aldo Owner",
+                                  "documentNumber": "00000000",
+                                  "accountType": "OWNER"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        verify(registerUseCase, never()).register(any());
     }
 }

@@ -11,5 +11,18 @@ public record UserResponse(
         String fullName,
         boolean mfaEnabled,
         Set<String> roles,
-        Instant createdAt
-) {}
+        Instant createdAt,
+        String avatarUrl
+) {
+    public UserResponse(
+            UUID id,
+            UUID tenantId,
+            String email,
+            String fullName,
+            boolean mfaEnabled,
+            Set<String> roles,
+            Instant createdAt
+    ) {
+        this(id, tenantId, email, fullName, mfaEnabled, roles, createdAt, null);
+    }
+}
